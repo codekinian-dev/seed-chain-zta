@@ -82,28 +82,34 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
         // Select random producer UUID
         const producerUUID = this.producerUUIDs[Math.floor(Math.random() * this.producerUUIDs.length)];
 
-        // Generate seed source document parameters
+        // Generate seed source document parameters with valid IPFS CID format
         const seedSourceDocName = `Dokumen Sumber Benih ${seedSourceNumber}`;
-        const seedSourceIpfsCid = `Qm${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+
+        // Generate valid 46-character IPFS CIDv0 (Qm + 44 base58 characters)
+        const base58Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        let seedSourceIpfsCid = 'Qm';
+        for (let i = 0; i < 44; i++) {
+            seedSourceIpfsCid += base58Chars.charAt(Math.floor(Math.random() * base58Chars.length));
+        }
 
         const request = {
             contractId: this.roundArguments.contractId,
             contractFunction: 'createSeedBatch',
             contractArguments: [
-                batchId,
-                variety,
-                commodity,
-                harvestDate.toISOString(),
-                seedSourceNumber,
-                origin,
-                iupNumber,
-                seedClass,
-                producerUUID,  // UUID parameter now required
-                seedSourceDocName,  // Seed source document name
-                seedSourceIpfsCid   // Seed source IPFS CID
+                batchId,                // id
+                variety,                // varietyName
+                commodity,              // commodity
+                harvestDate.toISOString().split('T')[0],  // harvestDate (YYYY-MM-DD)
+                seedSourceNumber,       // seedSourceNumber
+                origin,                 // origin
+                iupNumber,              // iupNumber
+                seedClass,              // seedClass (BS, BD, BP, BR)
+                producerUUID,           // producerUUID (UUID format)
+                seedSourceDocName,      // seedSourceDocName
+                seedSourceIpfsCid       // seedSourceIpfsCid (valid 46-char CIDv0)
             ],
             readOnly: false,
-            invokerIdentity: 'appUser'  // Single appUser with combined roles
+            invokerIdentity: 'appUser'  // Single appUser with role_producer attribute
         };
 
         await this.sutAdapter.sendRequests(request);
