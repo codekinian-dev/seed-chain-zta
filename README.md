@@ -579,7 +579,7 @@ All endpoints are protected by Zero Trust policy:
 ## 📁 Project Structure
 
 ```
-tesis_bismillah/
+seed-chain-zta/
 ├── application/              # API Gateway (Express.js)
 │   ├── src/
 │   │   ├── controllers/      # Request handlers
@@ -739,8 +739,7 @@ tesis_bismillah/
 
 This project is part of a thesis research on Zero Trust Architecture for Blockchain-Based Systems.
 
-**Author**: [Your Name]  
-**Institution**: [Your Institution]  
+**Author**: Rangga Djatikusuma Lukman 
 **Year**: 2025
 
 ---
@@ -750,7 +749,7 @@ This project is part of a thesis research on Zero Trust Architecture for Blockch
 For issues, questions, or contributions:
 
 - **GitHub Issues**: [Repository Issues]
-- **Email**: [your-email@domain.com]
+- **Email**: djatikusuma.data@gmail.com
 - **Documentation**: See `/docs` folder (if available)
 
 ## 🎓 Research Context
