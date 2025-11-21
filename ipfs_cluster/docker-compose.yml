@@ -1,0 +1,112 @@
+services:
+  ipfs-node-1:
+    image: ipfs/kubo:latest
+    container_name: ipfs-node-1
+    environment:
+      - IPFS_PROFILE=server
+      - IPFS_PATH=/data/ipfs
+    ports:
+      - "4001:4001" # Swarm TCP
+      - "4001:4001/udp" # Swarm UDP
+      - "5001:5001" # API
+      - "9090:9090" # Gateway
+    volumes:
+      - ./data/ipfs-node-1:/data/ipfs
+      - ./scripts:/scripts
+      - ./swarm.key:/data/ipfs/swarm.key:ro
+    networks:
+      - ipfs-cluster-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "ipfs", "id" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    entrypoint: [ "/scripts/entrypoint.sh", "1" ]
+
+  ipfs-node-2:
+    image: ipfs/kubo:latest
+    container_name: ipfs-node-2
+    environment:
+      - IPFS_PROFILE=server
+      - IPFS_PATH=/data/ipfs
+    ports:
+      - "4002:4001" # Swarm TCP (mapped to host 4002)
+      - "4002:4001/udp" # Swarm UDP (mapped to host 4002)
+      - "5002:5001" # API (mapped to host 5002)
+      - "9091:9091" # Gateway (mapped to host 9091)
+    volumes:
+      - ./data/ipfs-node-2:/data/ipfs
+      - ./scripts:/scripts
+      - ./swarm.key:/data/ipfs/swarm.key:ro
+    networks:
+      - ipfs-cluster-network
+    restart: unless-stopped
+    depends_on:
+      ipfs-node-1:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "ipfs", "id" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    entrypoint: [ "/scripts/entrypoint.sh", "2" ]
+
+  ipfs-cluster-1:
+    image: ipfs/ipfs-cluster:latest
+    container_name: ipfs-cluster-1
+    environment:
+      - CLUSTER_PEERNAME=cluster-1
+      - CLUSTER_SECRET=${CLUSTER_SECRET}
+      - CLUSTER_IPFSHTTP_NODEMULTIADDRESS=/dns4/ipfs-node-1/tcp/5001
+      - CLUSTER_CRDT_TRUSTEDPEERS=*
+      - CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS=/ip4/0.0.0.0/tcp/9094
+      - CLUSTER_MONITORPINGINTERVAL=2s
+      - CLUSTER_AUTOCONF_ENABLED=false
+    ports:
+      - "9094:9094" # REST API
+      - "9096:9096" # Cluster swarm
+    volumes:
+      - ./data/ipfs-cluster-1:/data/ipfs-cluster
+    networks:
+      - ipfs-cluster-network
+    depends_on:
+      ipfs-node-1:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ipfs-cluster-2:
+    image: ipfs/ipfs-cluster:latest
+    container_name: ipfs-cluster-2
+    environment:
+      - CLUSTER_PEERNAME=cluster-2
+      - CLUSTER_SECRET=${CLUSTER_SECRET}
+      - CLUSTER_IPFSHTTP_NODEMULTIADDRESS=/dns4/ipfs-node-2/tcp/5001
+      - CLUSTER_CRDT_TRUSTEDPEERS=*
+      - CLUSTER_RESTAPI_HTTPLISTENMULTIADDRESS=/ip4/0.0.0.0/tcp/9094
+      - CLUSTER_MONITORPINGINTERVAL=2s
+      - CLUSTER_AUTOCONF_ENABLED=false
+    ports:
+      - "9095:9094" # REST API
+      - "9097:9096" # Cluster swarm
+    volumes:
+      - ./data/ipfs-cluster-2:/data/ipfs-cluster
+    networks:
+      - ipfs-cluster-network
+    depends_on:
+      ipfs-node-2:
+        condition: service_healthy
+      ipfs-cluster-1:
+        condition: service_started
+    restart: unless-stopped
+
+networks:
+  ipfs-cluster-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  ipfs-node-1-data:
+  ipfs-node-2-data:

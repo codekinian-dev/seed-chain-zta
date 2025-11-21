@@ -1,0 +1,3 @@
+echo -e "/key/swarm/psk/1.0.0/\n/base16/\n$(od -vN 32 -An -tx1 /dev/urandom | tr -d ' \n')" > swarm.key && echo "Swarm key generated" && cat swarm.key
+
+od -vN 32 -An -tx1 /dev/urandom | tr -d ' \n' > /Users/rangga/playground/tesis_bismillah/ipfs_cluster/cluster-secret && echo "Cluster secret generated"

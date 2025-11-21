@@ -1,0 +1,35 @@
+# IPFS Data Directories
+data/
+ipfs-node-*/
+ipfs-cluster-*/
+
+# Private Network Keys (CRITICAL - DO NOT COMMIT)
+swarm.key
+cluster-secret
+
+# Environment files
+.env.local
+.env.production
+
+# Docker volumes
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
