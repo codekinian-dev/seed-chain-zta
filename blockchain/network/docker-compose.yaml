@@ -212,10 +212,12 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=pusat.chain-bpsbp.jabarchain.me:9444
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0bpsbp"}
-      - CORE_CHAINCODE_DEPLOYTIMEOUT=300s
-      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_CHAINCODE_STARTUPTIMEOUT=600s
+      - CORE_CHAINCODE_EXECUTETIMEOUT=600s
+      - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
+      - CORE_CHAINCODE_BUILDTIMEOUT=600s
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - pusat.chain-bpsbp.jabarchain.me:/var/hyperledger/production
@@ -251,10 +253,12 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=cert.chain-bpsbp.jabarchain.me:9445
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1bpsbp"}
-      - CORE_CHAINCODE_DEPLOYTIMEOUT=300s
-      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_CHAINCODE_STARTUPTIMEOUT=600s
+      - CORE_CHAINCODE_EXECUTETIMEOUT=600s
+      - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
+      - CORE_CHAINCODE_BUILDTIMEOUT=600s
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - cert.chain-bpsbp.jabarchain.me:/var/hyperledger/production
@@ -290,10 +294,12 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=sekretariat.chain-disbun.jabarchain.me:9446
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0disbun"}
-      - CORE_CHAINCODE_DEPLOYTIMEOUT=300s
-      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_CHAINCODE_STARTUPTIMEOUT=600s
+      - CORE_CHAINCODE_EXECUTETIMEOUT=600s
+      - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
+      - CORE_CHAINCODE_BUILDTIMEOUT=600s
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - sekretariat.chain-disbun.jabarchain.me:/var/hyperledger/production
@@ -329,10 +335,12 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=digital.chain-disbun.jabarchain.me:9447
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1disbun"}
-      - CORE_CHAINCODE_DEPLOYTIMEOUT=300s
-      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_CHAINCODE_STARTUPTIMEOUT=600s
+      - CORE_CHAINCODE_EXECUTETIMEOUT=600s
+      - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
+      - CORE_CHAINCODE_BUILDTIMEOUT=600s
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - digital.chain-disbun.jabarchain.me:/var/hyperledger/production
@@ -365,7 +373,7 @@ services:
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: /bin/bash
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations
       - ../scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
       - ../chaincode:/opt/gopath/src/github.com/hyperledger/fabric/peer/chaincode
