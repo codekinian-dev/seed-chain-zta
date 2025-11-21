@@ -1,0 +1,33 @@
+node_modules/
+npm-debug.log
+yarn-error.log
+.env
+.env.docker.local
+.env.docker
+*.backup
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Uploads (temporary files)
+uploads/
+
+# Wallet (will be copied from blockchain)
+wallet/
+crypto-config/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db

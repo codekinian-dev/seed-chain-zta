@@ -1,0 +1,64 @@
+# Docker ignore file - exclude unnecessary files from Docker build context
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.docker
+
+# Uploads (temporary files)
+uploads/*
+!uploads/.gitkeep
+
+# Wallet (will be mounted as volume)
+wallet/*
+!wallet/.gitkeep
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js
+coverage/
+
+# Docker files
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Scripts
+scripts/
+
+# Misc
+.editorconfig
+.eslintrc*
+.prettierrc*

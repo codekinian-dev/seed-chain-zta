@@ -1,0 +1,3 @@
+# Keep this directory for temporary files but ignore all files inside
+*
+!.gitkeep

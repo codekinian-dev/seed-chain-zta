@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # Redis for Bull Queue
+  redis:
+    image: redis:7-alpine
+    container_name: seed-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - seed-network
+
+  # API Gateway Application
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: seed-api-gateway
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      # Server
+      - PORT=3001
+      - NODE_ENV=production
+
+      # Keycloak (use host.docker.internal for services on host machine)
+      - KEYCLOAK_URL=http://host.docker.internal:8080
+      - KEYCLOAK_REALM=SeedCertificationRealm
+      - KEYCLOAK_CLIENT_ID=seed-api-gateway
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+
+      # Session
+      - SESSION_SECRET=${SESSION_SECRET}
+
+      # Fabric (use host.docker.internal for Fabric network on host)
+      - FABRIC_CHANNEL=benihchannel
+      - FABRIC_CONTRACT=benih-certification
+      - FABRIC_WALLET_PATH=/app/wallet
+      - FABRIC_USER=appUser
+      - FABRIC_ORG_MSP=BPSBPMSP
+      - FABRIC_AS_LOCALHOST=false
+
+      # IPFS (use host.docker.internal for IPFS on host)
+      - IPFS_HOST=host.docker.internal
+      - IPFS_PORT=9094
+      - IPFS_PROTOCOL=http
+
+      # Redis (use service name)
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QUEUE_NAME=ipfs-upload-queue
+
+      # File Upload
+      - MAX_FILE_SIZE=10485760
+
+      # Security
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - RATE_LIMIT_WINDOW=900000
+      - RATE_LIMIT_MAX=100
+
+      # Cleanup
+      - CLEANUP_INTERVAL=30
+      - CLEANUP_MAX_AGE=60
+
+    volumes:
+      # Mount wallet from host (after running setup script)
+      - ./wallet:/app/wallet:ro
+
+      # Mount crypto-config for TLS certificates
+      - ./crypto-config:/app/crypto-config:ro
+
+      # Mount logs for persistence
+      - ./logs:/app/logs
+
+      # Mount uploads (temporary files)
+      - uploads-data:/app/uploads
+
+      # Mount connection profile from host (Docker version with crypto-config paths)
+      - ./config/connection-profile-docker.json:/app/config/connection-profile.json:ro
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health/liveness', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+    networks:
+      - seed-network
+
+    extra_hosts:
+      # Allow container to access services on host machine
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  redis-data:
+    driver: local
+  uploads-data:
+    driver: local
+
+networks:
+  seed-network:
+    driver: bridge

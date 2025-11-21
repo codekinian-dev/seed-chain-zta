@@ -1,0 +1,100 @@
+{
+  "name": "bpsbp-network-fabric",
+  "version": "1.0.0",
+  "client": {
+    "organization": "BPSBP",
+    "connection": {
+      "timeout": {
+        "peer": {
+          "endorser": "300"
+        },
+        "orderer": "300"
+      }
+    }
+  },
+  "channels": {
+    "benihchannel": {
+      "orderers": [
+        "chain-orderer.jabarchain.me"
+      ],
+      "peers": {
+        "pusat.chain-bpsbp.jabarchain.me": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        },
+        "cert.chain-bpsbp.jabarchain.me": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        }
+      }
+    }
+  },
+  "organizations": {
+    "BPSBP": {
+      "mspid": "BPSBPBenihMSP",
+      "peers": [
+        "pusat.chain-bpsbp.jabarchain.me",
+        "cert.chain-bpsbp.jabarchain.me"
+      ],
+      "certificateAuthorities": [
+        "ca-bpsbp"
+      ]
+    }
+  },
+  "orderers": {
+    "chain-orderer.jabarchain.me": {
+      "url": "grpcs://host.docker.internal:7050",
+      "grpcOptions": {
+        "ssl-target-name-override": "chain-orderer.jabarchain.me",
+        "grpc-max-send-message-length": 15,
+        "grpc.keepalive_time_ms": 360000,
+        "grpc.keepalive_timeout_ms": 180000
+      },
+      "tlsCACerts": {
+        "path": "./crypto-config/ordererOrganizations/jabarchain.me/orderers/chain-orderer.jabarchain.me/tls/ca.crt"
+      }
+    }
+  },
+  "peers": {
+    "pusat.chain-bpsbp.jabarchain.me": {
+      "url": "grpcs://host.docker.internal:7051",
+      "grpcOptions": {
+        "ssl-target-name-override": "pusat.chain-bpsbp.jabarchain.me",
+        "grpc.keepalive_time_ms": 360000,
+        "grpc.keepalive_timeout_ms": 180000,
+        "grpc.http2.min_time_between_pings_ms": 120000
+      },
+      "tlsCACerts": {
+        "path": "./crypto-config/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls/ca.crt"
+      }
+    },
+    "cert.chain-bpsbp.jabarchain.me": {
+      "url": "grpcs://host.docker.internal:8051",
+      "grpcOptions": {
+        "ssl-target-name-override": "cert.chain-bpsbp.jabarchain.me",
+        "grpc.keepalive_time_ms": 360000,
+        "grpc.keepalive_timeout_ms": 180000,
+        "grpc.http2.min_time_between_pings_ms": 120000
+      },
+      "tlsCACerts": {
+        "path": "./crypto-config/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls/ca.crt"
+      }
+    }
+  },
+  "certificateAuthorities": {
+    "ca-bpsbp": {
+      "url": "https://host.docker.internal:7054",
+      "httpOptions": {
+        "verify": false
+      },
+      "tlsCACerts": {
+        "path": "./crypto-config/peerOrganizations/chain-bpsbp.jabarchain.me/ca/ca-cert.pem"
+      },
+      "caName": "ca-bpsbp"
+    }
+  }
+}

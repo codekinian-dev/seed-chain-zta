@@ -1,0 +1,962 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Seed Certification API",
+    "version": "1.0.0",
+    "description": "API Gateway for Seed Certification System with Zero Trust Architecture using Hyperledger Fabric blockchain, IPFS storage, and Keycloak authentication",
+    "contact": {
+      "name": "API Support"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.seed-certification.example.com",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check and monitoring endpoints"
+    },
+    {
+      "name": "Seed Batches",
+      "description": "Seed batch management and certification operations"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Get overall system health status",
+        "description": "Returns health status of all services (Blockchain, IPFS, Redis Queue)",
+        "operationId": "getHealth",
+        "responses": {
+          "200": {
+            "description": "System is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "System is degraded or unhealthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/liveness": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Kubernetes liveness probe",
+        "description": "Simple liveness check for Kubernetes",
+        "operationId": "getLiveness",
+        "responses": {
+          "200": {
+            "description": "Service is alive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "alive": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/readiness": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Kubernetes readiness probe",
+        "description": "Check if service is ready to accept traffic",
+        "operationId": "getReadiness",
+        "responses": {
+          "200": {
+            "description": "Service is ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ready": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service is not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ready": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seed-batches": {
+      "get": {
+        "tags": ["Seed Batches"],
+        "summary": "Get all seed batches",
+        "description": "Retrieve list of all seed batches from blockchain",
+        "operationId": "getAllSeedBatches",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of seed batches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeedBatch"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Seed Batches"],
+        "summary": "Create new seed batch",
+        "description": "Create a new seed batch with document upload (Producer role required)",
+        "operationId": "createSeedBatch",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["varietyName", "commodity", "harvestDate", "seedSourceNumber", "origin", "iupNumber", "seedClass", "document"],
+                "properties": {
+                  "varietyName": {
+                    "type": "string",
+                    "description": "Seed variety name",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "example": "Coffee Arabica Premium"
+                  },
+                  "commodity": {
+                    "type": "string",
+                    "description": "Commodity type",
+                    "minLength": 2,
+                    "maxLength": 50,
+                    "example": "Coffee"
+                  },
+                  "harvestDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Harvest date (ISO format: YYYY-MM-DD)",
+                    "example": "2025-11-15"
+                  },
+                  "seedSourceNumber": {
+                    "type": "string",
+                    "description": "Seed source number",
+                    "minLength": 5,
+                    "maxLength": 50,
+                    "example": "SS-2024-001"
+                  },
+                  "origin": {
+                    "type": "string",
+                    "description": "Origin/location of seed source",
+                    "minLength": 2,
+                    "maxLength": 100,
+                    "example": "Bandung, West Java"
+                  },
+                  "iupNumber": {
+                    "type": "string",
+                    "description": "IUP (Izin Usaha Perkebunan) number",
+                    "minLength": 5,
+                    "maxLength": 50,
+                    "example": "IUP-2024-TEST-001"
+                  },
+                  "seedClass": {
+                    "type": "string",
+                    "enum": ["BS", "BD", "BP", "BR"],
+                    "description": "Seed class classification (BS=Breeder Seed, BD=Foundation Seed, BP=Stock Seed, BR=Extension Seed)",
+                    "example": "BD"
+                  },
+                  "document": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Seed batch document (PDF, DOC, DOCX)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Seed batch created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "batchId": {
+                      "type": "string",
+                      "example": "BATCH-20251120-001"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Seed batch created successfully"
+                    },
+                    "ipfsCid": {
+                      "type": "string",
+                      "example": "QmXyZ123..."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Producer role required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seed-batches/{id}": {
+      "get": {
+        "tags": ["Seed Batches"],
+        "summary": "Get seed batch by ID",
+        "description": "Retrieve detailed information about a specific seed batch",
+        "operationId": "getSeedBatch",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Seed batch ID",
+            "schema": {
+              "type": "string",
+              "example": "BATCH-20251120-001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Seed batch details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeedBatch"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Seed batch not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seed-batches/{id}/history": {
+      "get": {
+        "tags": ["Seed Batches"],
+        "summary": "Get seed batch history",
+        "description": "Retrieve complete transaction history of a seed batch from blockchain",
+        "operationId": "getSeedBatchHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Seed batch ID",
+            "schema": {
+              "type": "string",
+              "example": "BATCH-20251120-001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Seed batch history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Seed batch not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/seed-batches/{id}/submit": {
+      "post": {
+        "tags": ["Seed Batches"],
+        "summary": "Submit certification request",
+        "description": "Submit seed batch for certification (Producer role required)",
+        "operationId": "submitCertification",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Seed batch ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["document"],
+                "properties": {
+                  "document": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Certification request document (PDF or Word)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Certification request submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Seed batch not found"
+          }
+        }
+      }
+    },
+    "/api/seed-batches/{id}/inspect": {
+      "post": {
+        "tags": ["Seed Batches"],
+        "summary": "Record field inspection",
+        "description": "Record field inspection results with photo (Field Inspector role required)",
+        "operationId": "recordInspection",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Seed batch ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["inspectionResult", "photo"],
+                "properties": {
+                  "inspectionResult": {
+                    "type": "string",
+                    "description": "Inspection result (minimum 10 characters)",
+                    "example": "Hasil inspeksi lapangan menunjukkan kondisi tanaman benih dalam keadaan baik dan sesuai standar"
+                  },
+                  "photo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Inspection photo or document (JPEG, PNG, PDF, Word)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Inspection recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Field Inspector role required"
+          }
+        }
+      }
+    },
+    "/api/seed-batches/{id}/evaluate": {
+      "post": {
+        "tags": ["Seed Batches"],
+        "summary": "Evaluate inspection result",
+        "description": "Evaluate field inspection results (Chief Inspector role required)",
+        "operationId": "evaluateInspection",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Seed batch ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["approvalStatus", "evaluationNote"],
+                "properties": {
+                  "approvalStatus": {
+                    "type": "string",
+                    "enum": ["APPROVE", "REJECT"],
+                    "description": "Approval status (must be uppercase)"
+                  },
+                  "evaluationNote": {
+                    "type": "string",
+                    "description": "Evaluation note (minimum 10 characters)",
+                    "example": "Evaluasi menunjukkan hasil inspeksi lapangan sudah sesuai dengan standar sertifikasi benih"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Evaluation submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Chief Inspector role required"
+          }
+        }
+      }
+    },
+    "/api/seed-batches/{id}/certificate": {
+      "post": {
+        "tags": ["Seed Batches"],
+        "summary": "Issue certificate",
+        "description": "Issue seed certification (LSM Head role required)",
+        "operationId": "issueCertificate",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Seed batch ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["certificateNumber", "expiryMonths", "certificate"],
+                "properties": {
+                  "certificateNumber": {
+                    "type": "string",
+                    "description": "Certificate number (5-50 characters)",
+                    "example": "CERT-2024-001"
+                  },
+                  "expiryMonths": {
+                    "type": "integer",
+                    "description": "Certificate validity in months (1-120)",
+                    "example": 12
+                  },
+                  "certificate": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Certificate document (PDF or Word)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Certificate issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "certificateNumber": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - LSM Head role required"
+          }
+        }
+      }
+    },
+    "/api/seed-batches/{id}/distribute": {
+      "post": {
+        "tags": ["Seed Batches"],
+        "summary": "Record seed distribution",
+        "description": "Record seed distribution to farmers (Producer role required)",
+        "operationId": "distributeSeed",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Seed batch ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["distributionLocation", "quantity"],
+                "properties": {
+                  "distributionLocation": {
+                    "type": "string",
+                    "description": "Distribution location (5-200 characters)",
+                    "example": "Warehouse A, Bandung"
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "description": "Distributed quantity (must be positive)",
+                    "example": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Distribution recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - Producer role required"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token from Keycloak authentication"
+      }
+    },
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "degraded", "unhealthy"],
+            "example": "healthy"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2025-11-20T07:32:09.420Z"
+          },
+          "responseTime": {
+            "type": "string",
+            "example": "47ms"
+          },
+          "services": {
+            "type": "object",
+            "properties": {
+              "blockchain": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["up", "down"]
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              },
+              "ipfs": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["up", "down"]
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              },
+              "queue": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["up", "down"]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "stats": {
+                    "type": "object",
+                    "properties": {
+                      "waiting": {
+                        "type": "number"
+                      },
+                      "active": {
+                        "type": "number"
+                      },
+                      "completed": {
+                        "type": "number"
+                      },
+                      "failed": {
+                        "type": "number"
+                      },
+                      "delayed": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0.0"
+          },
+          "environment": {
+            "type": "string",
+            "example": "production"
+          }
+        }
+      },
+      "SeedBatch": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "example": "BATCH-20251120-001"
+          },
+          "variety": {
+            "type": "string",
+            "example": "Rice Premium"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 1000
+          },
+          "unit": {
+            "type": "string",
+            "example": "kg"
+          },
+          "harvestDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-11-15"
+          },
+          "location": {
+            "type": "string",
+            "example": "Bandung, West Java"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Created", "Submitted", "Inspected", "Evaluated", "Certified", "Distributed"],
+            "example": "Created"
+          },
+          "producerUUID": {
+            "type": "string",
+            "example": "user-uuid-123"
+          },
+          "ipfsCid": {
+            "type": "string",
+            "example": "QmXyZ123..."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HistoryEntry": {
+        "type": "object",
+        "properties": {
+          "txId": {
+            "type": "string",
+            "description": "Transaction ID"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Transaction timestamp"
+          },
+          "isDelete": {
+            "type": "boolean",
+            "description": "Indicates if this is a delete operation"
+          },
+          "value": {
+            "$ref": "#/components/schemas/SeedBatch"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "message": {
+            "type": "string",
+            "description": "Detailed error description"
+          },
+          "statusCode": {
+            "type": "number",
+            "description": "HTTP status code"
+          }
+        }
+      }
+    }
+  }
+}
