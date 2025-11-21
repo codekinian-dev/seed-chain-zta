@@ -212,6 +212,7 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=pusat.chain-bpsbp.jabarchain.me:9444
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0bpsbp"}
+      - CORE_CHAINCODE_DEPLOYTIMEOUT=300s
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
       - /var/run/:/host/var/run/
@@ -250,6 +251,7 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=cert.chain-bpsbp.jabarchain.me:9445
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1bpsbp"}
+      - CORE_CHAINCODE_DEPLOYTIMEOUT=300s
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
       - /var/run/:/host/var/run/
@@ -288,6 +290,7 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=sekretariat.chain-disbun.jabarchain.me:9446
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0disbun"}
+      - CORE_CHAINCODE_DEPLOYTIMEOUT=300s
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
       - /var/run/:/host/var/run/
@@ -326,6 +329,7 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=digital.chain-disbun.jabarchain.me:9447
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1disbun"}
+      - CORE_CHAINCODE_DEPLOYTIMEOUT=300s
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
       - /var/run/:/host/var/run/
