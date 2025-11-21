@@ -41,7 +41,7 @@ verifyPrereqs() {
     fi
     
     # Check if peers are running
-    if ! docker ps --format '{{.Names}}' | grep -q "peer0.bpsbp"; then
+    if ! docker ps --format '{{.Names}}' | grep -q "pusat.chain-bpsbp.jabarchain.me"; then
         errorln "Fabric network is not running"
         errorln "Start network first: cd blockchain && ./fabric.sh up"
         exit 1
