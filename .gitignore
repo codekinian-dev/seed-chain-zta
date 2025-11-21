@@ -1,0 +1,226 @@
+# Tesis Bismillah - Zero Trust Architecture Blockchain Seed Certification
+# Main .gitignore for entire project
+
+# ==========================================
+# Node.js
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log*
+
+# ==========================================
+# Hyperledger Fabric
+# ==========================================
+# Wallet and identity files
+blockchain/network/organizations/peerOrganizations/*/users/*/msp/keystore/*
+blockchain/network/organizations/ordererOrganizations/*/users/*/msp/keystore/*
+application/wallet/
+application/identity/
+
+# Generated artifacts
+blockchain/network/channel-artifacts/*.block
+blockchain/network/channel-artifacts/*.tx
+blockchain/network/system-genesis-block/*.block
+blockchain/network/package_id.txt
+
+# Fabric CA data
+blockchain/network/organizations/fabric-ca/*/msp/
+blockchain/network/organizations/fabric-ca/*/tls-cert.pem
+blockchain/network/organizations/fabric-ca/*/ca-cert.pem
+blockchain/network/organizations/fabric-ca/*/IssuerPublicKey
+blockchain/network/organizations/fabric-ca/*/IssuerRevocationPublicKey
+blockchain/network/organizations/fabric-ca/*/fabric-ca-server.db
+
+# Docker volumes
+blockchain/network/organizations/fabric-ca/*/fabric-ca-server/
+
+# Chaincode dependencies
+blockchain/chaincode/node_modules/
+
+# Logs
+blockchain/logs/*.log
+blockchain/network/organizations/fabric-ca/*/*.log
+
+# ==========================================
+# Keycloak / IDP
+# ==========================================
+# Environment variables
+idp_keycloak/.env
+idp_keycloak/.env.local
+
+# PostgreSQL data
+idp_keycloak/volume/data/*
+!idp_keycloak/volume/data/.gitkeep
+
+# Keycloak providers and themes (if dynamically added)
+idp_keycloak/volume/providers/*
+!idp_keycloak/volume/providers/.gitkeep
+idp_keycloak/volume/themes/custom/*
+
+# Keep only realm config and example env
+!idp_keycloak/volume/import/realm-config.json
+!idp_keycloak/.env.example
+
+# ==========================================
+# IPFS
+# ==========================================
+ipfs_cluster/ipfs-cluster-data/
+ipfs_cluster/ipfs-cluster-service/
+ipfs_cluster/ipfs/
+
+# ==========================================
+# Application (API Gateway)
+# ==========================================
+# Environment variables
+application/.env
+application/.env.local
+application/.env.*.local
+
+# Uploads and temp files
+application/uploads/**/*
+!application/uploads/.gitkeep
+application/temp/**/*
+!application/temp/.gitkeep
+
+# Logs
+application/logs/*.log
+!application/logs/.gitkeep
+
+# Test coverage
+application/coverage/
+application/.nyc_output/
+
+# ==========================================
+# K6 Load Testing
+# ==========================================
+k6_test/results/
+k6_test/*.json
+k6_test/*.html
+!k6_test/loadtest.js
+!k6_test/smoke-test.js
+
+# ==========================================
+# IDE and Editors
+# ==========================================
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ==========================================
+# Docker
+# ==========================================
+.docker/
+
+# ==========================================
+# Certificates and Keys
+# ==========================================
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+*.jks
+
+# Keep only sample configs
+!blockchain/config/*.example
+!application/config/*.example
+
+# ==========================================
+# Backup and Temporary Files
+# ==========================================
+*.bak
+*.tmp
+*.temp
+*.old
+*.orig
+*.rej
+*.backup
+*~
+
+# ==========================================
+# Build Outputs
+# ==========================================
+dist/
+build/
+out/
+target/
+
+# ==========================================
+# Documentation Build
+# ==========================================
+docs/_build/
+docs/.doctrees/
+
+# ==========================================
+# Zero Trust Architecture Specific
+# ==========================================
+# Policy engine cache (if any)
+application/policies/cache/
+
+# Session store (if using file-based)
+application/sessions/
+
+# ==========================================
+# Test Data
+# ==========================================
+# Keep test setup scripts but ignore test data
+idp_keycloak/tests/node_modules/
+idp_keycloak/tests/coverage/
+
+# ==========================================
+# Performance and Monitoring
+# ==========================================
+# Caliper results
+blockchain/caliper/report*.html
+blockchain/caliper/workspace/
+blockchain/caliper/*.log
