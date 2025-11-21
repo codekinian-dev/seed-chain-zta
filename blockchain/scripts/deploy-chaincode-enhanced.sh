@@ -22,7 +22,7 @@ NC='\033[0m'
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NETWORK_DIR="$(dirname "$SCRIPT_DIR")"
-CHAINCODE_DIR="$(dirname "$NETWORK_DIR")/chaincode"
+CHAINCODE_DIR="$(dirname "$NETWORK_DIR")/blockchain/chaincode"
 
 println() { echo -e "${GREEN}${1}${NC}"; }
 errorln() { echo -e "${RED}ERROR: ${1}${NC}"; }
