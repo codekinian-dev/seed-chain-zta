@@ -29,8 +29,12 @@ sleep 2
 
 # 3. Clean up Docker socket
 echo "2. Cleaning up Docker socket..."
-$SUDO rm -f /var/run/docker.sock
-$SUDO rm -rf /var/lib/docker/network/files/*
+if [ -S /var/run/docker.sock ]; then
+    $SUDO rm -f /var/run/docker.sock
+    $SUDO rm -rf /var/lib/docker/network/files/* 2>/dev/null || true
+else
+    echo -e "${YELLOW}⚠ Docker socket doesn't exist (Docker may not be running)${NC}"
+fi
 
 # 4. Start Docker daemon
 echo "3. Starting Docker daemon..."
@@ -49,8 +53,18 @@ fi
 
 # 6. Fix Docker socket permissions
 echo "5. Fixing Docker socket permissions..."
-$SUDO chmod 666 /var/run/docker.sock
-echo -e "${GREEN}✓ Socket permissions fixed${NC}"
+if [ -S /var/run/docker.sock ]; then
+    $SUDO chmod 666 /var/run/docker.sock
+    echo -e "${GREEN}✓ Socket permissions fixed${NC}"
+else
+    echo -e "${RED}✗ Socket still doesn't exist after Docker start${NC}"
+    echo -e "${YELLOW}Checking Docker status...${NC}"
+    $SUDO systemctl status docker --no-pager -l | head -20
+    echo ""
+    echo -e "${YELLOW}Checking Docker logs...${NC}"
+    $SUDO journalctl -u docker -n 50 --no-pager
+    exit 1
+fi
 
 # 7. Add current user to docker group
 if [ "$EUID" -ne 0 ]; then
