@@ -1,0 +1,173 @@
+# configtx.yaml - Konfigurasi untuk Hyperledger Fabric v2.4.7
+# Sistem Sertifikasi Benih Perkebunan
+
+Organizations:
+    - &OrdererOrg
+        Name: OrdererOrg
+        ID: OrdererMSP
+        MSPDir: organizations/ordererOrganizations/jabarchain.me/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Writers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Admins:
+                Type: Signature
+                Rule: "OR('OrdererMSP.admin')"
+        OrdererEndpoints:
+            - chain-orderer.jabarchain.me:7050
+            - chain-orderer2.jabarchain.me:8050
+            - chain-orderer3.jabarchain.me:9050
+
+    - &BPSBP
+        Name: BPSBPBenih
+        ID: BPSBPBenihMSP
+        MSPDir: organizations/peerOrganizations/chain-bpsbp.jabarchain.me/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('BPSBPBenihMSP.admin', 'BPSBPBenihMSP.peer', 'BPSBPBenihMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('BPSBPBenihMSP.admin', 'BPSBPBenihMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('BPSBPBenihMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('BPSBPBenihMSP.peer')"
+        AnchorPeers:
+            - Host: pusat.chain-bpsbp.jabarchain.me
+              Port: 7051
+
+    - &Disbun
+        Name: DisbunBenih
+        ID: DisbunBenihMSP
+        MSPDir: organizations/peerOrganizations/chain-disbun.jabarchain.me/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('DisbunBenihMSP.admin', 'DisbunBenihMSP.peer', 'DisbunBenihMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('DisbunBenihMSP.admin', 'DisbunBenihMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('DisbunBenihMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('DisbunBenihMSP.peer')"
+        AnchorPeers:
+            - Host: sekretariat.chain-disbun.jabarchain.me
+              Port: 9051
+
+Capabilities:
+    Channel: &ChannelCapabilities
+        V2_0: true
+    Orderer: &OrdererCapabilities
+        V2_0: true
+    Application: &ApplicationCapabilities
+        V2_0: true
+
+Application: &ApplicationDefaults
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        LifecycleEndorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+        Endorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+    OrdererType: etcdraft
+    Addresses:
+        - chain-orderer.jabarchain.me:7050
+        - chain-orderer2.jabarchain.me:8050
+        - chain-orderer3.jabarchain.me:9050
+    EtcdRaft:
+        Consenters:
+        - Host: chain-orderer.jabarchain.me
+          Port: 7050
+          ClientTLSCert: organizations/ordererOrganizations/jabarchain.me/orderers/chain-orderer.jabarchain.me/tls/signcerts/cert.pem
+          ServerTLSCert: organizations/ordererOrganizations/jabarchain.me/orderers/chain-orderer.jabarchain.me/tls/signcerts/cert.pem
+        - Host: chain-orderer2.jabarchain.me
+          Port: 8050
+          ClientTLSCert: organizations/ordererOrganizations/jabarchain.me/orderers/chain-orderer2.jabarchain.me/tls/signcerts/cert.pem
+          ServerTLSCert: organizations/ordererOrganizations/jabarchain.me/orderers/chain-orderer2.jabarchain.me/tls/signcerts/cert.pem
+        - Host: chain-orderer3.jabarchain.me
+          Port: 9050
+          ClientTLSCert: organizations/ordererOrganizations/jabarchain.me/orderers/chain-orderer3.jabarchain.me/tls/signcerts/cert.pem
+          ServerTLSCert: organizations/ordererOrganizations/jabarchain.me/orderers/chain-orderer3.jabarchain.me/tls/signcerts/cert.pem
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+
+Channel: &ChannelDefaults
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ChannelCapabilities
+
+Profiles:
+    BenihOrdererGenesis:
+        <<: *ChannelDefaults
+        Orderer:
+            <<: *OrdererDefaults
+            Organizations:
+                - *OrdererOrg
+            Capabilities:
+                <<: *OrdererCapabilities
+        Consortiums:
+            BenihConsortium:
+                Organizations:
+                    - *BPSBP
+                    - *Disbun
+
+    BenihChannel:
+        Consortium: BenihConsortium
+        <<: *ChannelDefaults
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *BPSBP
+                - *Disbun
+            Capabilities:
+                <<: *ApplicationCapabilities

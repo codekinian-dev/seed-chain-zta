@@ -1,0 +1,89 @@
+test:
+  name: full-workflow-test
+  description: Complete seed certification workflow dari create sampai distribute
+  workers:
+    number: 3
+  rounds:
+    - label: createSeedBatch
+      description: Producer creates seed batches
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments:
+          contractId: benih-certification
+    
+    - label: submitCertification
+      description: Producer submits certification documents
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: ../workload/submitCertification.js
+        arguments:
+          contractId: benih-certification
+    
+    - label: recordInspection
+      description: PBT Field records inspection
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: ../workload/recordInspection.js
+        arguments:
+          contractId: benih-certification
+    
+    - label: evaluateInspection
+      description: PBT Chief evaluates inspection
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: ../workload/evaluateInspection.js
+        arguments:
+          contractId: benih-certification
+    
+    - label: issueCertificate
+      description: LSM Head issues certificate
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: ../workload/issueCertificate.js
+        arguments:
+          contractId: benih-certification
+    
+    - label: distributeSeed
+      description: Producer distributes certified seeds
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: ../workload/distributeSeed.js
+        arguments:
+          contractId: benih-certification
+
+monitors:
+  resource:
+  - module: docker
+    options:
+      interval: 5
+      containers:
+      - pusat.chain-bpsbp.jabarchain.me
+      - cert.chain-bpsbp.jabarchain.me
+      - sekretariat.chain-disbun.jabarchain.me
+      - digital.chain-disbun.jabarchain.me
+      - chain-orderer.jabarchain.me

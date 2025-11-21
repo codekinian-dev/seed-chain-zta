@@ -1,0 +1,29 @@
+test:
+  name: create-ipfs-10-requests
+  description: Test 10 createSeedBatch requests with real IPFS upload
+  workers:
+    number: 10
+  rounds:
+    - label: createSeedBatch-ipfs-10
+      description: Create 10 seed batches with real IPFS document upload
+      txNumber: 10
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: ./workload/createSeedBatchWithIPFS.js
+        arguments:
+          contractId: benih-certification
+
+monitors:
+  resource:
+  - module: docker
+    options:
+      interval: 5
+      containers:
+      - pusat.chain-bpsbp.jabarchain.me
+      - cert.chain-bpsbp.jabarchain.me
+      - sekretariat.chain-disbun.jabarchain.me
+      - digital.chain-disbun.jabarchain.me
+      - chain-orderer.jabarchain.me

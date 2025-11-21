@@ -1,0 +1,101 @@
+---
+name: "disbun-network-fabric"
+version: "1.0.0"
+client:
+  organization: Disbun
+  credentialStore:
+    path: /tmp/disbun-kvs
+    cryptoStore:
+      path: /tmp/disbun-cvs
+  clientPrivateKey:
+    path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/users/Admin@chain-disbun.jabarchain.me/msp/keystore/priv_sk
+  clientSignedCert:
+    path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/users/Admin@chain-disbun.jabarchain.me/msp/signcerts/Admin@chain-disbun.jabarchain.me-cert.pem
+
+channels:
+  benihchannel:
+    orderers:
+      - orderer.jabarchain.me
+    peers:
+      pusat.chain-bpsbp.jabarchain.me:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+      cert.chain-bpsbp.jabarchain.me:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+      sekretariat.chain-disbun.jabarchain.me:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+      digital.chain-disbun.jabarchain.me:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+
+organizations:
+  Disbun:
+    mspid: DisbunBenihMSP
+    peers:
+      - sekretariat.chain-disbun.jabarchain.me
+      - digital.chain-disbun.jabarchain.me
+    certificateAuthorities:
+      - ca-disbun
+
+orderers:
+  orderer.jabarchain.me:
+    url: grpcs://localhost:7050
+    grpcOptions:
+      ssl-target-name-override: chain-orderer.jabarchain.me
+      grpc-max-send-message-length: 15
+    tlsCACerts:
+      path: ../network/organizations/ordererOrganizations/jabarchain.me/orderers/chain-orderer.jabarchain.me/tls/ca.crt
+
+peers:
+  pusat.chain-bpsbp.jabarchain.me:
+    url: grpcs://localhost:7051
+    grpcOptions:
+      ssl-target-name-override: pusat.chain-bpsbp.jabarchain.me
+      grpc.keepalive_time_ms: 600000
+    tlsCACerts:
+      path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls/ca.crt
+
+  cert.chain-bpsbp.jabarchain.me:
+    url: grpcs://localhost:8051
+    grpcOptions:
+      ssl-target-name-override: cert.chain-bpsbp.jabarchain.me
+      grpc.keepalive_time_ms: 600000
+    tlsCACerts:
+      path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls/ca.crt
+
+  sekretariat.chain-disbun.jabarchain.me:
+    url: grpcs://localhost:9051
+    grpcOptions:
+      ssl-target-name-override: sekretariat.chain-disbun.jabarchain.me
+      grpc.keepalive_time_ms: 600000
+    tlsCACerts:
+      path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls/ca.crt
+
+  digital.chain-disbun.jabarchain.me:
+    url: grpcs://localhost:10051
+    grpcOptions:
+      ssl-target-name-override: digital.chain-disbun.jabarchain.me
+      grpc.keepalive_time_ms: 600000
+    tlsCACerts:
+      path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls/ca.crt
+
+certificateAuthorities:
+  ca-disbun:
+    url: https://localhost:8054
+    httpOptions:
+      verify: false
+    tlsCACerts:
+      path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/ca/ca-cert.pem
+    registrar:
+      - enrollId: admin
+        enrollSecret: adminpw

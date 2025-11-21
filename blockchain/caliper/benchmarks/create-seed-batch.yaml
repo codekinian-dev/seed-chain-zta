@@ -1,0 +1,48 @@
+test:
+  name: create-seed-batch-test
+  description: Performance test untuk createSeedBatch function
+  workers:
+    number: 5
+  rounds:
+    - label: createSeedBatch
+      description: Create seed batches dengan berbagai data
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments:
+          contractId: benih-certification
+
+monitors:
+  resource:
+  - module: prometheus
+    options:
+      url: "http://localhost:9090"
+      metrics:
+        include: [peer*, orderer*, couch*]
+        queries:
+        - name: Avg Memory (MB)
+          query: 'sum(container_memory_usage_bytes{name=~".+"}) by (name)'
+          step: 10
+          label: name
+          statistic: avg
+          multiplier: 0.000001
+        - name: Max Memory (MB)
+          query: 'sum(container_memory_usage_bytes{name=~".+"}) by (name)'
+          step: 10
+          label: name
+          statistic: max
+          multiplier: 0.000001
+        - name: Avg CPU (%)
+          query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+          step: 10
+          label: name
+          statistic: avg
+        - name: Max CPU (%)
+          query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+          step: 10
+          label: name
+          statistic: max

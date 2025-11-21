@@ -1,0 +1,51 @@
+test:
+  name: query-test
+  description: Performance test untuk query operations
+  workers:
+    number: 5
+  rounds:
+    - label: querySeedBatch
+      description: Query specific seed batch
+      txNumber: 200
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 50
+      workload:
+        module: ../workload/querySeedBatch.js
+        arguments:
+          contractId: benih-certification
+    
+    - label: queryAllSeedBatches
+      description: Query all seed batches
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: ../workload/queryAllSeedBatches.js
+        arguments:
+          contractId: benih-certification
+    
+    - label: querySeedBatchesByStatus
+      description: Query by status
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 20
+      workload:
+        module: ../workload/queryByStatus.js
+        arguments:
+          contractId: benih-certification
+
+monitors:
+  resource:
+  - module: docker
+    options:
+      interval: 5
+      containers:
+      - pusat.chain-bpsbp.jabarchain.me
+      - sekretariat.chain-disbun.jabarchain.me
+      - chain-orderer.jabarchain.me

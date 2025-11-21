@@ -1,0 +1,23 @@
+name: Benih Certification Network
+version: "2.0.0"
+caliper:
+  blockchain: fabric
+
+channels:
+  - channelName: benihchannel
+    contracts:
+      - id: benih-certification
+
+organizations:
+  - mspid: BPSBPBenihMSP
+    identities:
+      certificates:
+        - name: appUser
+          clientSignedCert:
+            path: /Users/rangga/playground/tesis_bismillah/blockchain/caliper/../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/signcerts/cert.pem
+          clientPrivateKey:
+            path: /Users/rangga/playground/tesis_bismillah/blockchain/caliper/../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/keystore/f70046e1e3d485f42c512664b494088acc9c4886c841155b2dbd0e1b382f462f_sk
+    connectionProfile:
+      path: ./networks/connection-bpsbp.yaml
+      discover: true
+
