@@ -66,7 +66,7 @@ setPeerEnv() {
     
     if [ "$ORG" == "bpsbp" ]; then
         export CORE_PEER_LOCALMSPID="BPSBPMSP"
-        export CORE_PEER_TLS_ROOTCERT_FILE=${NETWORK_DIR}/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/${PEER}.chain-bpsbp.jabarchain.me/tls/ca.crt
+        export CORE_PEER_TLS_ROOTCERT_FILE=${NETWORK_DIR}/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls/ca.crt
         export CORE_PEER_MSPCONFIGPATH=${NETWORK_DIR}/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/Admin@chain-bpsbp.jabarchain.me/msp
         
         if [ "$PEER" == "peer0" ]; then
@@ -76,7 +76,7 @@ setPeerEnv() {
         fi
     else # disbun
         export CORE_PEER_LOCALMSPID="DisbunMSP"
-        export CORE_PEER_TLS_ROOTCERT_FILE=${NETWORK_DIR}/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/${PEER}.chain-disbun.jabarchain.me/tls/ca.crt
+        export CORE_PEER_TLS_ROOTCERT_FILE=${NETWORK_DIR}/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls/ca.crt
         export CORE_PEER_MSPCONFIGPATH=${NETWORK_DIR}/organizations/peerOrganizations/chain-disbun.jabarchain.me/users/Admin@chain-disbun.jabarchain.me/msp
         
         if [ "$PEER" == "peer0" ]; then
@@ -227,9 +227,9 @@ commitChaincode() {
         --version $CC_VERSION \
         --sequence $CC_SEQUENCE \
         --peerAddresses localhost:7051 \
-        --tlsRootCertFiles ${NETWORK_DIR}/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/peer0.chain-bpsbp.jabarchain.me/tls/ca.crt \
+        --tlsRootCertFiles ${NETWORK_DIR}/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls/ca.crt \
         --peerAddresses localhost:9051 \
-        --tlsRootCertFiles ${NETWORK_DIR}/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/peer0.chain-disbun.jabarchain.me/tls/ca.crt
+        --tlsRootCertFiles ${NETWORK_DIR}/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls/ca.crt
     
     println "✓ Chaincode committed"
 }
@@ -262,9 +262,9 @@ main() {
     packageChaincode
     
     # Step 3: Install on all peers
-    installChaincode "bpsbp" "peer0" || exit 1
+    installChaincode "bpsbp" "pusat.chain-bpsbp.jabarchain.me" || exit 1
     sleep 2
-    installChaincode "disbun" "peer0" || exit 1
+    installChaincode "disbun" "sekretariat.chain-disbun.jabarchain.me" || exit 1
     
     # Step 4: Get package ID
     PACKAGE_ID=$(queryInstalled "bpsbp")
