@@ -398,6 +398,5 @@ services:
       - cert.chain-bpsbp.jabarchain.me
       - sekretariat.chain-disbun.jabarchain.me
       - digital.chain-disbun.jabarchain.me
-      - seedbatch.ccaas
     networks:
       - fabric_benih
