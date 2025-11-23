@@ -125,10 +125,10 @@ create_ccaas_package() {
     
     cd "$NETWORK_DIR"
     
-    # Create package directory structure
-    PACKAGE_DIR="${CHAINCODE_NAME}-ccaas"
+    # Create temporary package directory
+    PACKAGE_DIR="ccaas-package-temp"
     rm -rf "$PACKAGE_DIR"
-    mkdir -p "$PACKAGE_DIR/src"
+    mkdir -p "$PACKAGE_DIR"
     
     # Create connection.json with actual address
     cat > "$PACKAGE_DIR/connection.json" <<EOF
@@ -147,14 +147,23 @@ EOF
 }
 EOF
     
-    print_message "Package structure created:"
-    tree "$PACKAGE_DIR" 2>/dev/null || ls -la "$PACKAGE_DIR"
+    print_message "Package contents:"
+    ls -la "$PACKAGE_DIR"
     
-    # Create tar.gz package
-    tar czf "${CHAINCODE_NAME}-ccaas.tar.gz" -C "$PACKAGE_DIR" .
+    # Create tar.gz package with correct structure
+    # Use tar without compression first, then gzip
+    cd "$PACKAGE_DIR"
+    tar cf "../${CHAINCODE_NAME}-ccaas.tar" connection.json metadata.json
+    gzip -f "../${CHAINCODE_NAME}-ccaas.tar"
+    cd ..
     
-    if [ $? -eq 0 ]; then
+    if [ -f "${CHAINCODE_NAME}-ccaas.tar.gz" ]; then
         print_message "✓ CCaaS package created: ${CHAINCODE_NAME}-ccaas.tar.gz"
+        
+        # Verify package contents
+        print_message "Package contents verification:"
+        tar tzf "${CHAINCODE_NAME}-ccaas.tar.gz"
+        
         rm -rf "$PACKAGE_DIR"
     else
         print_error "✗ Failed to create CCaaS package"
