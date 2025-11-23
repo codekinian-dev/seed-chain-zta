@@ -216,7 +216,12 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - CORE_CHAINCODE_EXTERNALBUILDERS=[{"name":"ccaas_builder","path":"/builders/ccaas","propagateEnvironment":["CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG"]}]
+      - |
+        CORE_CHAINCODE_EXTERNALBUILDERS=
+        - name: ccaas_builder
+          path: /builders/ccaas
+          propagateEnvironment:
+            - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ./builders:/builders
@@ -259,7 +264,12 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - CORE_CHAINCODE_EXTERNALBUILDERS=[{"name":"ccaas_builder","path":"/builders/ccaas","propagateEnvironment":["CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG"]}]
+      - |
+        CORE_CHAINCODE_EXTERNALBUILDERS=
+        - name: ccaas_builder
+          path: /builders/ccaas
+          propagateEnvironment:
+            - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ./builders:/builders
@@ -302,7 +312,12 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - CORE_CHAINCODE_EXTERNALBUILDERS=[{"name":"ccaas_builder","path":"/builders/ccaas","propagateEnvironment":["CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG"]}]
+      - |
+        CORE_CHAINCODE_EXTERNALBUILDERS=
+        - name: ccaas_builder
+          path: /builders/ccaas
+          propagateEnvironment:
+            - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ./builders:/builders
@@ -345,7 +360,12 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - CORE_CHAINCODE_EXTERNALBUILDERS=[{"name":"ccaas_builder","path":"/builders/ccaas","propagateEnvironment":["CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG"]}]
+      - |
+        CORE_CHAINCODE_EXTERNALBUILDERS=
+        - name: ccaas_builder
+          path: /builders/ccaas
+          propagateEnvironment:
+            - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ./builders:/builders
