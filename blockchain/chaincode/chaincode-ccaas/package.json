@@ -1,0 +1,17 @@
+{
+  "name": "seed-certification-ccaas",
+  "version": "1.0.0",
+  "description": "Chaincode Sertifikasi Benih Perkebunan - CCaaS",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18",
+    "npm": ">=8"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "fabric-contract-api": "^2.4.0",
+    "fabric-shim": "^2.4.0"
+  }
+}

@@ -352,6 +352,18 @@ services:
     networks:
       - fabric_benih
 
+  # Chaincode-as-a-Service Container
+  seedbatch.ccaas:
+    container_name: seedbatch.ccaas
+    image: seedbatch-ccaas:latest
+    environment:
+      - CHAINCODE_ID=seedbatch:1.0
+      - CHAINCODE_ADDRESS=0.0.0.0:9999
+    ports:
+      - 9999:9999
+    networks:
+      - fabric_benih
+
   # CLI Tools Container
   cli:
     container_name: cli
@@ -386,5 +398,6 @@ services:
       - cert.chain-bpsbp.jabarchain.me
       - sekretariat.chain-disbun.jabarchain.me
       - digital.chain-disbun.jabarchain.me
+      - seedbatch.ccaas
     networks:
       - fabric_benih
