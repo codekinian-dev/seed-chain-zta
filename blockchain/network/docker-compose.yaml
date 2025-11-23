@@ -216,14 +216,16 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
+      - FABRIC_CFG_PATH=/etc/hyperledger/config
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../config:/etc/hyperledger/config:ro
       - ./builders:/builders
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - pusat.chain-bpsbp.jabarchain.me:/var/hyperledger/production
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
-    command: /builders/start-peer.sh
+    command: peer node start
     ports:
       - 7051:7051
       - 9444:9444
@@ -258,14 +260,16 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
+      - FABRIC_CFG_PATH=/etc/hyperledger/config
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../config:/etc/hyperledger/config:ro
       - ./builders:/builders
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - cert.chain-bpsbp.jabarchain.me:/var/hyperledger/production
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
-    command: /builders/start-peer.sh
+    command: peer node start
     ports:
       - 8051:8051
       - 9445:9445
@@ -300,14 +304,16 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
+      - FABRIC_CFG_PATH=/etc/hyperledger/config
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../config:/etc/hyperledger/config:ro
       - ./builders:/builders
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - sekretariat.chain-disbun.jabarchain.me:/var/hyperledger/production
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
-    command: /builders/start-peer.sh
+    command: peer node start
     ports:
       - 9051:9051
       - 9446:9446
@@ -342,14 +348,16 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
+      - FABRIC_CFG_PATH=/etc/hyperledger/config
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../config:/etc/hyperledger/config:ro
       - ./builders:/builders
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - digital.chain-disbun.jabarchain.me:/var/hyperledger/production
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
-    command: /builders/start-peer.sh
+    command: peer node start
     ports:
       - 10051:10051
       - 9447:9447

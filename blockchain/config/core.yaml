@@ -240,8 +240,8 @@ vm:
 
 chaincode:
   externalBuilders:
-    - path: /opt/hyperledger/fabric/peer/ccaas_builder # Path default di image 2.4
-      name: ccaas_builder
+    - name: ccaas_builder
+      path: /builders/ccaas
       propagateEnvironment:
         - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
 
