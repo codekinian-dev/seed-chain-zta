@@ -217,10 +217,9 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - FABRIC_CFG_PATH=/etc/hyperledger/config
+      - FABRIC_CFG_PATH=/builders
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
-      - ../config:/etc/hyperledger/config:ro
       - ./builders:/builders
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
@@ -262,10 +261,9 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - FABRIC_CFG_PATH=/etc/hyperledger/config
+      - FABRIC_CFG_PATH=/builders
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
-      - ../config:/etc/hyperledger/config:ro
       - ./builders:/builders
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
@@ -307,10 +305,9 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - FABRIC_CFG_PATH=/etc/hyperledger/config
+      - FABRIC_CFG_PATH=/builders
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
-      - ../config:/etc/hyperledger/config:ro
       - ./builders:/builders
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
@@ -352,10 +349,9 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - FABRIC_CFG_PATH=/etc/hyperledger/config
+      - FABRIC_CFG_PATH=/builders
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
-      - ../config:/etc/hyperledger/config:ro
       - ./builders:/builders
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
