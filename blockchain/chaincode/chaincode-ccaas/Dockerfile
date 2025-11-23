@@ -2,14 +2,16 @@ FROM node:18-alpine
 
 WORKDIR /usr/src/app
 
-# Copy package files
-COPY package*.json ./
+# Copy package.json
+COPY package.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (production only)
+RUN npm install --production && npm cache clean --force
 
-# Copy chaincode source
-COPY . .
+# Copy chaincode source files
+COPY server.js ./
+COPY index.js ./
+COPY lib ./lib
 
 # Expose chaincode port
 EXPOSE 9999
