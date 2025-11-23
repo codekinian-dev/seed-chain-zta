@@ -219,7 +219,7 @@ query_installed() {
 start_ccaas_container() {
     print_message "Step 5: Starting CCaaS container..."
     
-    cd "$NETWORK_DIR"
+    cd "$CHAINCODE_DIR"
     
     # Check if container already exists
     if docker ps -a | grep -q "seedbatch.ccaas"; then

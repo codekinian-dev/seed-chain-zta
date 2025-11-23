@@ -353,16 +353,16 @@ services:
       - fabric_benih
 
   # Chaincode-as-a-Service Container
-  seedbatch.ccaas:
-    container_name: seedbatch.ccaas
-    image: seedbatch-ccaas:latest
-    environment:
-      - CHAINCODE_ID=seedbatch:1.0
-      - CHAINCODE_ADDRESS=0.0.0.0:9999
-    ports:
-      - 9999:9999
-    networks:
-      - fabric_benih
+  # seedbatch.ccaas:
+  #   container_name: seedbatch.ccaas
+  #   image: seedbatch-ccaas:latest
+  #   environment:
+  #     - CHAINCODE_ID=seedbatch:1.0
+  #     - CHAINCODE_ADDRESS=0.0.0.0:9999
+  #   ports:
+  #     - 9999:9999
+  #   networks:
+  #     - fabric_benih
 
   # CLI Tools Container
   cli:
