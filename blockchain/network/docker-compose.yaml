@@ -209,6 +209,7 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=pusat.chain-bpsbp.jabarchain.me:7051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=pusat.chain-bpsbp.jabarchain.me:7051
       - CORE_PEER_LOCALMSPID=BPSBPBenihMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_OPERATIONS_LISTENADDRESS=pusat.chain-bpsbp.jabarchain.me:9444
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0bpsbp"}
@@ -253,6 +254,7 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=pusat.chain-bpsbp.jabarchain.me:7051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=cert.chain-bpsbp.jabarchain.me:8051
       - CORE_PEER_LOCALMSPID=BPSBPBenihMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_OPERATIONS_LISTENADDRESS=cert.chain-bpsbp.jabarchain.me:9445
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1bpsbp"}
@@ -297,6 +299,7 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=sekretariat.chain-disbun.jabarchain.me:9051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=sekretariat.chain-disbun.jabarchain.me:9051
       - CORE_PEER_LOCALMSPID=DisbunBenihMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_OPERATIONS_LISTENADDRESS=sekretariat.chain-disbun.jabarchain.me:9446
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0disbun"}
@@ -341,6 +344,7 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=sekretariat.chain-disbun.jabarchain.me:9051
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=digital.chain-disbun.jabarchain.me:10051
       - CORE_PEER_LOCALMSPID=DisbunBenihMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
       - CORE_OPERATIONS_LISTENADDRESS=digital.chain-disbun.jabarchain.me:9447
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1disbun"}
