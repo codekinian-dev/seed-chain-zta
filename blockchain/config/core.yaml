@@ -263,8 +263,8 @@ chaincode:
     
     externalBuilders:
         - path: /opt/hyperledger/fabric/peer/ccaas_builder  # <--- Pastikan path ini benar di dalam container
-        name: ccaas_builder
-        propagateEnvironment:
+          name: ccaas_builder
+          propagateEnvironment:
             - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
 
     installTimeout: 600s
