@@ -194,49 +194,56 @@ vm:
                     max-file: "5"
             Memory: 2147483648
 
+# chaincode:
+#     id:
+#         path:
+#         name:
+#     # ---------------------------------------------------------------------------
+#     # UBAH BAGIAN INI: Hardcode nama image agar pasti cocok dengan yang di-pull
+#     # Jangan pakai variabel $(...) agar tidak ambigu
+#     # ---------------------------------------------------------------------------
+#     builder: hyperledger/fabric-ccenv:2.4
+#     pull: false  # PENTING: Keep false agar Peer pakai image lokal (tidak download lagi)
+
+#     golang:
+#         runtime: hyperledger/fabric-baseos:2.4
+#         dynamicLink: false
+
+#     java:
+#         runtime: hyperledger/fabric-javaenv:2.4
+
+#     # ---------------------------------------------------------------------------
+#     # INI BAGIAN KRITIS UNTUK NODE.JS
+#     # Pastikan runtime menunjuk ke versi 2.4 yang sudah kita pull manual
+#     # ---------------------------------------------------------------------------
+#     node:
+#         runtime: hyperledger/fabric-nodeenv:2.4
+
+#     externalBuilders: []
+
+#     # ---------------------------------------------------------------------------
+#     # SOLUSI BROKEN PIPE: Naikkan semua timeout ini secara ekstrem
+#     # ---------------------------------------------------------------------------
+#     installTimeout: 600s    # Default 300s -> Ubah ke 600s (10 menit)
+#     startuptimeout: 600s    # Default 300s -> Ubah ke 600s (10 menit)
+#     executetimeout: 120s    # Default 30s  -> Ubah ke 120s (Jaga-jaga server lambat)
+
+#     mode: net
+#     keepalive: 0
+#     system:
+#         _lifecycle: enable
+#         cscc: enable
+#         lscc: enable
+#         escc: enable
+#         vscc: enable
+#         qscc: enable
+
 chaincode:
-    id:
-        path:
-        name:
-    # ---------------------------------------------------------------------------
-    # UBAH BAGIAN INI: Hardcode nama image agar pasti cocok dengan yang di-pull
-    # Jangan pakai variabel $(...) agar tidak ambigu
-    # ---------------------------------------------------------------------------
-    builder: hyperledger/fabric-ccenv:2.4
-    pull: false  # PENTING: Keep false agar Peer pakai image lokal (tidak download lagi)
-
-    golang:
-        runtime: hyperledger/fabric-baseos:2.4
-        dynamicLink: false
-
-    java:
-        runtime: hyperledger/fabric-javaenv:2.4
-
-    # ---------------------------------------------------------------------------
-    # INI BAGIAN KRITIS UNTUK NODE.JS
-    # Pastikan runtime menunjuk ke versi 2.4 yang sudah kita pull manual
-    # ---------------------------------------------------------------------------
-    node:
-        runtime: hyperledger/fabric-nodeenv:2.4
-
-    externalBuilders: []
-
-    # ---------------------------------------------------------------------------
-    # SOLUSI BROKEN PIPE: Naikkan semua timeout ini secara ekstrem
-    # ---------------------------------------------------------------------------
-    installTimeout: 600s    # Default 300s -> Ubah ke 600s (10 menit)
-    startuptimeout: 600s    # Default 300s -> Ubah ke 600s (10 menit)
-    executetimeout: 120s    # Default 30s  -> Ubah ke 120s (Jaga-jaga server lambat)
-
-    mode: net
-    keepalive: 0
-    system:
-        _lifecycle: enable
-        cscc: enable
-        lscc: enable
-        escc: enable
-        vscc: enable
-        qscc: enable
+  externalBuilders:
+    - name: ccaas_builder
+      path: /builders/ccaas
+      propagateEnvironment:
+        - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
 
 ledger:
   blockchain:
