@@ -216,15 +216,11 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - |
-        CORE_CHAINCODE_EXTERNALBUILDERS=
-        - name: ccaas_builder
-          path: /builders/ccaas
-          propagateEnvironment:
-            - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ./builders:/builders
+      - ./builders/external-builders.yaml:/etc/hyperledger/fabric/core.yaml:ro
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - pusat.chain-bpsbp.jabarchain.me:/var/hyperledger/production
@@ -264,15 +260,11 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - |
-        CORE_CHAINCODE_EXTERNALBUILDERS=
-        - name: ccaas_builder
-          path: /builders/ccaas
-          propagateEnvironment:
-            - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ./builders:/builders
+      - ./builders/external-builders.yaml:/etc/hyperledger/fabric/core.yaml:ro
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - cert.chain-bpsbp.jabarchain.me:/var/hyperledger/production
@@ -312,15 +304,11 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - |
-        CORE_CHAINCODE_EXTERNALBUILDERS=
-        - name: ccaas_builder
-          path: /builders/ccaas
-          propagateEnvironment:
-            - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ./builders:/builders
+      - ./builders/external-builders.yaml:/etc/hyperledger/fabric/core.yaml:ro
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - sekretariat.chain-disbun.jabarchain.me:/var/hyperledger/production
@@ -360,15 +348,11 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
       - CORE_CHAINCODE_DEPLOYTIMEOUT=600s
       - CORE_CHAINCODE_BUILDTIMEOUT=600s
-      - |
-        CORE_CHAINCODE_EXTERNALBUILDERS=
-        - name: ccaas_builder
-          path: /builders/ccaas
-          propagateEnvironment:
-            - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock
       - ./builders:/builders
+      - ./builders/external-builders.yaml:/etc/hyperledger/fabric/core.yaml:ro
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - digital.chain-disbun.jabarchain.me:/var/hyperledger/production
