@@ -239,11 +239,41 @@ vm:
 #         qscc: enable
 
 chaincode:
-  externalBuilders:
-    - name: ccaas_builder
-      path: /builders/ccaas
-      propagateEnvironment:
-        - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
+    id:
+        path:
+        name:
+    builder: $(DOCKER_NS)/fabric-ccenv:2.4.7
+    pull: false
+    
+    golang:
+        runtime: $(DOCKER_NS)/fabric-baseos:2.4.7
+        dynamicLink: false
+    
+    java:
+        runtime: $(DOCKER_NS)/fabric-javaenv:2.4.7
+    
+    node:
+        runtime: $(DOCKER_NS)/fabric-nodeenv:2.4.7
+    
+    externalBuilders:
+      - name: ccaas_builder
+        path: /builders/ccaas
+        propagateEnvironment:
+          - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
+    
+    installTimeout: 600s
+    startuptimeout: 600s
+    executetimeout: 120s
+    mode: net
+    keepalive: 0
+    
+    system:
+        _lifecycle: enable
+        cscc: enable
+        lscc: enable
+        escc: enable
+        vscc: enable
+        qscc: enable
 
 ledger:
   blockchain:
