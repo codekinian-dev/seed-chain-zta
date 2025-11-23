@@ -256,17 +256,11 @@ chaincode:
         runtime: $(DOCKER_NS)/fabric-nodeenv:2.4.7
     
     externalBuilders:
-      - name: ccaas_builder
-        path: /builders/ccaas
-        propagateEnvironment:
-          - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
+        - name: ccaas_builder
+          path: /builders/ccaas
+          propagateEnvironment:
+              - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
     
-    # externalBuilders:
-    #     - path: /opt/hyperledger/fabric/peer/ccaas_builder  # <--- Pastikan path ini benar di dalam container
-    #       name: ccaas_builder
-    #       propagateEnvironment:
-    #         - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
-
     installTimeout: 600s
     startuptimeout: 600s
     executetimeout: 120s
