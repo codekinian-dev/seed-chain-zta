@@ -1,0 +1,10 @@
+FROM hyperledger/fabric-peer:2.4.7
+
+# Copy external builder configuration
+COPY builders/external-builders.yaml /tmp/external-builders.yaml
+
+# Merge external builder config into default core.yaml
+RUN yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+    /etc/hyperledger/fabric/core.yaml /tmp/external-builders.yaml > /tmp/core-merged.yaml && \
+    mv /tmp/core-merged.yaml /etc/hyperledger/fabric/core.yaml && \
+    rm /tmp/external-builders.yaml
