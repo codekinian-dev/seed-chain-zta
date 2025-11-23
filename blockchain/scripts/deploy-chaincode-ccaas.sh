@@ -150,11 +150,15 @@ EOF
     print_message "Package contents:"
     ls -la "$PACKAGE_DIR"
     
-    # Create tar.gz package with correct structure
-    # Use tar without compression first, then gzip
+    # Create empty code.tar.gz (required by Fabric even for CCaaS)
+    # CCaaS doesn't need actual code in the package, just connection info
     cd "$PACKAGE_DIR"
-    tar cf "../${CHAINCODE_NAME}-ccaas.tar" connection.json metadata.json
-    gzip -f "../${CHAINCODE_NAME}-ccaas.tar"
+    tar czf code.tar.gz -T /dev/null 2>/dev/null || tar czf code.tar.gz --files-from /dev/null
+    cd ..
+    
+    # Create final tar.gz package with metadata.json, connection.json, and code.tar.gz
+    cd "$PACKAGE_DIR"
+    tar czf "../${CHAINCODE_NAME}-ccaas.tar.gz" metadata.json connection.json code.tar.gz
     cd ..
     
     if [ -f "${CHAINCODE_NAME}-ccaas.tar.gz" ]; then
