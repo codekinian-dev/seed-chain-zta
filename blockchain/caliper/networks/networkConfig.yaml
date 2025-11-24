@@ -16,7 +16,7 @@ organizations:
           clientSignedCert:
             path: /Users/rangga/playground/tesis_bismillah/blockchain/caliper/../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/signcerts/cert.pem
           clientPrivateKey:
-            path: /Users/rangga/playground/tesis_bismillah/blockchain/caliper/../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/keystore/f70046e1e3d485f42c512664b494088acc9c4886c841155b2dbd0e1b382f462f_sk
+            path: /Users/rangga/playground/tesis_bismillah/blockchain/caliper/../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/keystore/c3629372780a0289af7f2967bc3b99789b5c2e61872ffc3c5715a3f171e67989_sk
     connectionProfile:
       path: ./networks/connection-bpsbp.yaml
       discover: true
