@@ -213,6 +213,7 @@ services:
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0bpsbp"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
     volumes:
       - /var/run/:/host/var/run/
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
@@ -253,6 +254,7 @@ services:
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1bpsbp"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
     volumes:
       - /var/run/:/host/var/run/
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
@@ -293,6 +295,7 @@ services:
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0disbun"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
     volumes:
       - /var/run/:/host/var/run/
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
@@ -333,6 +336,7 @@ services:
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1disbun"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
     volumes:
       - /var/run/:/host/var/run/
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
