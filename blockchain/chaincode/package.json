@@ -8,7 +8,7 @@
     "npm": ">=5"
   },
   "scripts": {
-    "start": "fabric-chaincode-node start"
+    "start": "fabric-chaincode-node server --chaincode-address=$CHAINCODE_SERVER_ADDRESS --chaincode-id=$CHAINCODE_ID"
   },
   "dependencies": {
     "fabric-contract-api": "^2.4.0",

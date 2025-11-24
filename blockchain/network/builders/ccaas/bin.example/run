@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "Error: run script called. This means release script failed to provide connection.json" >&2
+exit 1
