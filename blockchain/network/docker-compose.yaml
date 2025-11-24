@@ -218,6 +218,8 @@ services:
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - pusat.chain-bpsbp.jabarchain.me:/var/hyperledger/production
+      - ./builders:/opt/gopath/src/github.com/hyperledger/fabric/peer/builders
+      - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: peer node start
     ports:
@@ -256,6 +258,8 @@ services:
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - cert.chain-bpsbp.jabarchain.me:/var/hyperledger/production
+      - ./builders:/opt/gopath/src/github.com/hyperledger/fabric/peer/builders
+      - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: peer node start
     ports:
@@ -294,6 +298,8 @@ services:
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - sekretariat.chain-disbun.jabarchain.me:/var/hyperledger/production
+      - ./builders:/opt/gopath/src/github.com/hyperledger/fabric/peer/builders
+      - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: peer node start
     ports:
@@ -332,6 +338,8 @@ services:
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - digital.chain-disbun.jabarchain.me:/var/hyperledger/production
+      - ./builders:/opt/gopath/src/github.com/hyperledger/fabric/peer/builders
+      - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: peer node start
     ports:

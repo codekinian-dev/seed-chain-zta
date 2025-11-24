@@ -147,6 +147,51 @@ package_chaincode() {
     fi
 }
 
+# Function to package chaincode for CCaaS
+package_chaincode_ccaas() {
+    print_message "Packaging chaincode for CCaaS..."
+    
+    cd "$NETWORK_DIR"
+    
+    local CC_PORT=${CHAINCODE_PORT:-9999}
+    local CC_ADDRESS=${CHAINCODE_ADDRESS:-"host.docker.internal"}
+    
+    mkdir -p build_ccaas
+    
+    # Create connection.json
+    cat <<EOF > build_ccaas/connection.json
+{
+  "address": "${CC_ADDRESS}:${CC_PORT}",
+  "dial_timeout": "10s",
+  "tls_required": false
+}
+EOF
+
+    # Create metadata.json
+    cat <<EOF > build_ccaas/metadata.json
+{
+    "type": "ccaas",
+    "label": "${CHAINCODE_NAME}_${CHAINCODE_VERSION}"
+}
+EOF
+
+    # Create code.tar.gz containing connection.json
+    tar -C build_ccaas -czf build_ccaas/code.tar.gz connection.json
+    
+    # Create final package
+    tar -C build_ccaas -czf ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz metadata.json code.tar.gz
+    
+    rm -rf build_ccaas
+    
+    if [ -f "${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz" ]; then
+        print_message "✓ Chaincode CCaaS berhasil di-package: ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz"
+        print_message "  Connection Info: ${CC_ADDRESS}:${CC_PORT}"
+    else
+        print_error "✗ Gagal packaging chaincode CCaaS"
+        exit 1
+    fi
+}
+
 # Function to install chaincode on peer
 install_chaincode_on_peer() {
     local org=$1
@@ -329,8 +374,20 @@ main() {
             print_message "✓ Chaincode deployment selesai"
             print_warning "Note: Testing harus dilakukan melalui aplikasi client dengan proper authentication"
             ;;
+        "deploy-ccaas")
+            get_chaincode_version
+            package_chaincode_ccaas
+            install_chaincode
+            query_installed
+            approve_chaincode
+            check_commit_readiness
+            commit_chaincode
+            query_committed
+            print_message "✓ Chaincode CCaaS deployment selesai"
+            print_warning "PENTING: Pastikan chaincode service berjalan di ${CHAINCODE_ADDRESS:-host.docker.internal}:${CHAINCODE_PORT:-9999}"
+            ;;
         *)
-            print_message "Usage: $0 {package|install|query-installed|approve|check-readiness|commit|query-committed|deploy}"
+            print_message "Usage: $0 {package|install|query-installed|approve|check-readiness|commit|query-committed|deploy|deploy-ccaas}"
             print_message ""
             print_message "Commands:"
             print_message "  package          - Package chaincode"
@@ -341,6 +398,7 @@ main() {
             print_message "  commit           - Commit chaincode dengan endorsement policy"
             print_message "  query-committed  - Query committed chaincode"
             print_message "  deploy           - Jalankan semua langkah deployment secara berurutan"
+            print_message "  deploy-ccaas     - Jalankan deployment untuk CCaaS"
             print_message ""
             print_message "Endorsement Policy: $ENDORSEMENT_POLICY"
             print_message "Note: Version dan Sequence akan auto-increment dari versi terakhir yang tercommit"
