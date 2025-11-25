@@ -13,13 +13,10 @@ services:
     image: chaincode-benih:latest
     container_name: chaincode-benih
     environment:
-      - CHAINCODE_SERVER_ADDRESS=0.0.0.0:9999
+      - CORE_PEER_ADDRESS=pusat.chain-bpsbp.jabarchain.me:7052
+      - CORE_PEER_TLS_ENABLED=false
       - CHAINCODE_ID=${CHAINCODE_ID}
       - FABRIC_LOGGING_SPEC=DEBUG
-      - HFC_LOGGING={"debug":"console"}
-      - GRPC_VERBOSITY=DEBUG
-      - GRPC_TRACE=all
-    ports:
-      - "9999:9999"
+    ports: # No need to expose port in client mode
     networks:
       - fabric_benih
