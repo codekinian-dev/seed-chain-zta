@@ -1,0 +1,77 @@
+test:
+  name: create-1000-requests
+  description: Test 1000 createSeedBatch requests
+  workers:
+    number: 10
+  rounds:
+    - label: createSeedBatch-10
+      description: Create 10 seed batches
+      txNumber: 10
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: ./workload/createSeedBatch.js
+        arguments:
+          contractId: benih-certification
+
+    - label: createSeedBatch-50
+      description: Create 50 seed batches
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: ./workload/createSeedBatch.js
+        arguments:
+          contractId: benih-certification
+
+    - label: createSeedBatch-100
+      description: Create 100 seed batches
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: ./workload/createSeedBatch.js
+        arguments:
+          contractId: benih-certification
+
+    - label: createSeedBatch-500
+      description: Create 500 seed batches
+      txNumber: 500
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: ./workload/createSeedBatch.js
+        arguments:
+          contractId: benih-certification
+
+    - label: createSeedBatch-1000
+      description: Create 1000 seed batches
+      txNumber: 1000
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: ./workload/createSeedBatch.js
+        arguments:
+          contractId: benih-certification
+
+monitors:
+  resource:
+  - module: docker
+    options:
+      interval: 5
+      containers:
+      - pusat.chain-bpsbp.jabarchain.me
+      - cert.chain-bpsbp.jabarchain.me
+      - sekretariat.chain-disbun.jabarchain.me
+      - digital.chain-disbun.jabarchain.me
+      - chain-orderer.jabarchain.me
