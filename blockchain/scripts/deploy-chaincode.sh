@@ -233,9 +233,9 @@ query_installed() {
     
     peer lifecycle chaincode queryinstalled
     
-    # Get package ID based on label
+    # Get package ID based on label (take the latest one if multiple exist)
     local LABEL="${CHAINCODE_NAME}_${CHAINCODE_VERSION}"
-    export PACKAGE_ID=$(peer lifecycle chaincode queryinstalled --output json | jq -r ".installed_chaincodes[] | select(.label == \"$LABEL\") | .package_id")
+    export PACKAGE_ID=$(peer lifecycle chaincode queryinstalled --output json | jq -r ".installed_chaincodes[] | select(.label == \"$LABEL\") | .package_id" | head -n 1)
     
     if [ -n "$PACKAGE_ID" ]; then
         print_message "✓ Package ID: $PACKAGE_ID"
@@ -383,8 +383,8 @@ main() {
             
             # Restart chaincode container with new ID
             print_message "Restarting chaincode container with new ID..."
-            export CHAINCODE_ID=$(cat package_id.txt)
-            docker-compose -f "$NETWORK_DIR/docker-compose-chaincode.yaml" up -d --force-recreate
+            export CHAINCODE_ID=$(cat $NETWORK_DIR/package_id.txt)
+            docker compose -f "$NETWORK_DIR/docker-compose-chaincode.yaml" up -d --force-recreate
             
             approve_chaincode
             check_commit_readiness
