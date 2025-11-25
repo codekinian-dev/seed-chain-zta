@@ -381,10 +381,10 @@ main() {
             install_chaincode
             query_installed
             
-            # Restart chaincode container with new ID
+                        # Restart chaincode container with new ID
             print_message "Restarting chaincode container with new ID..."
-            export CHAINCODE_ID=$(cat $NETWORK_DIR/package_id.txt)
-            docker compose -f "$NETWORK_DIR/docker-compose-chaincode.yaml" up -d --force-recreate
+            export CHAINCODE_ID=$(cat "$NETWORK_DIR/package_id.txt")
+            docker-compose -f "$NETWORK_DIR/docker-compose-chaincode.yaml" up -d --build --force-recreate
             
             approve_chaincode
             check_commit_readiness
