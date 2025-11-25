@@ -741,6 +741,13 @@ class SeedBatchContractZTA extends Contract {
     }
 
     // =========================================================
+    // TEST: Simple ping function
+    // =========================================================
+    async ping(ctx) {
+        return JSON.stringify({ message: 'pong', timestamp: new Date().toISOString() });
+    }
+
+    // =========================================================
     // Query All Batches (public with audit)
     // =========================================================
     async queryAllSeedBatches(ctx) {
