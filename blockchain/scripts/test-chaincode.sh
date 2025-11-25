@@ -50,6 +50,7 @@ test_invoke() {
     BATCH_ID="BATCH-TEST-$(date +%s)"
     
     print_message "Creating Seed Batch with ID: $BATCH_ID"
+    print_message "Orderer: ${ORDERER_DOMAIN}:${ORDERER_PORT}"
     
     docker exec cli peer chaincode invoke \
         -o ${ORDERER_DOMAIN}:${ORDERER_PORT} \
