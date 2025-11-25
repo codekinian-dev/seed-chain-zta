@@ -15,8 +15,7 @@ services:
     environment:
       - CORE_PEER_ADDRESS=pusat.chain-bpsbp.jabarchain.me:7052
       - CORE_PEER_TLS_ENABLED=false
-      - CHAINCODE_ID=${CHAINCODE_ID}
+      - CHAINCODE_ID=benih-certification_1.1:81816922be5b5c61c6cb6370268f4f329001df3b38634cf11e00abb5e46adf1b
       - FABRIC_LOGGING_SPEC=DEBUG
-    ports: # No need to expose port in client mode
     networks:
       - fabric_benih
