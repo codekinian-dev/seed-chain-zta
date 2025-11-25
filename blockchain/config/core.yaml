@@ -214,7 +214,7 @@ chaincode:
             - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
     installTimeout: 300s
     startuptimeout: 300s
-    executetimeout: 30s
+    executetimeout: 300s
     mode: net
     keepalive: 0
     system:
