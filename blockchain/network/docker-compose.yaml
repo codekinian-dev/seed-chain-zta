@@ -11,7 +11,9 @@ volumes:
 networks:
   fabric_benih:
     name: fabric_benih
-
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1450"
 services:
   # Certificate Authority Services
   ca_bpsbp:
