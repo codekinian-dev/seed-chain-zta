@@ -131,6 +131,19 @@ set_peer_env() {
 package_chaincode() {
     print_message "Packaging chaincode..."
     
+    # --- TAMBAHAN PENTING MULAI ---
+    print_warning "Membersihkan node_modules untuk mencegah error Broken Pipe..."
+    if [ -d "${CHAINCODE_PATH}/node_modules" ]; then
+        rm -rf "${CHAINCODE_PATH}/node_modules"
+        print_message "✓ Folder node_modules dihapus."
+    fi
+    
+    if [ -d "${CHAINCODE_PATH}/package-lock.json" ]; then
+         # Opsional: kadang package-lock bikin masalah versi, aman dihapus
+         rm -f "${CHAINCODE_PATH}/package-lock.json" 
+    fi
+    # --- TAMBAHAN PENTING SELESAI ---
+
     cd "$NETWORK_DIR"
     
     # Set environment to any peer
@@ -140,7 +153,9 @@ package_chaincode() {
     peer lifecycle chaincode package ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz --path ${CHAINCODE_PATH} --lang node --label ${CHAINCODE_NAME}_${CHAINCODE_VERSION}
     
     if [ $? -eq 0 ]; then
-        print_message "✓ Chaincode berhasil di-package: ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz"
+        # Cek ukuran file
+        FILE_SIZE=$(du -h ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz | cut -f1)
+        print_message "✓ Chaincode berhasil di-package: ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz (Ukuran: $FILE_SIZE)"
     else
         print_error "✗ Gagal packaging chaincode"
         exit 1
