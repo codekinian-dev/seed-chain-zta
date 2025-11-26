@@ -117,7 +117,7 @@ csr:
       O: Hyperledger
       OU: Fabric
   hosts:
-    - 192.168.1.7
+    - MacBook-Pro-3.local
 
 #############################################################################
 #  Registration section used to register a new identity with fabric-ca server

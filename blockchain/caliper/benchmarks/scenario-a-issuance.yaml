@@ -1,0 +1,97 @@
+test:
+  name: scenario-a-issuance
+  description: Scenario A - Certificate Issuance (Write-Heavy). Load test 100-1000 TPS.
+  workers:
+    number: 5
+  rounds:
+    - label: issuance-100tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 100 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+    - label: issuance-200tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 200 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+    - label: issuance-300tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 300 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+    - label: issuance-400tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 400 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+    - label: issuance-500tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 500 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+    - label: issuance-600tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 600 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+    - label: issuance-700tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 700 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+    - label: issuance-800tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 800 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+    - label: issuance-900tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 900 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+    - label: issuance-1000tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 1000 } }
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+
+monitors:
+  resource:
+  - module: prometheus
+    options:
+      url: "http://localhost:9090"
+      metrics:
+        include: [peer*, orderer*, couch*]
+        queries:
+        - name: Avg Memory (MB)
+          query: 'sum(container_memory_usage_bytes{name=~".+"}) by (name)'
+          step: 10
+          label: name
+          statistic: avg
+          multiplier: 0.000001
+        - name: Max Memory (MB)
+          query: 'sum(container_memory_usage_bytes{name=~".+"}) by (name)'
+          step: 10
+          label: name
+          statistic: max
+          multiplier: 0.000001
+        - name: Avg CPU (%)
+          query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+          step: 10
+          label: name
+          statistic: avg
+        - name: Max CPU (%)
+          query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+          step: 10
+          label: name
+          statistic: max
