@@ -268,3 +268,10 @@ metrics:
         address: 127.0.0.1:8125
         writeInterval: 10s
         prefix:
+
+gateway:
+    enabled: true
+    endorserConcurrencyLimit: 2500
+    queryConcurrencyLimit: 2500
+    dialTimeout: 60s
+    connectionTimeout: 60s
