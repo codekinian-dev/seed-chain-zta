@@ -256,18 +256,18 @@ update_chaincode_container() {
         exit 1
     fi
     
-    print_message "Updating docker compose-chaincode.yaml with Package ID: $PACKAGE_ID"
+    print_message "Updating docker-compose-chaincode.yaml with Package ID: $PACKAGE_ID"
     
     # Update CHAINCODE_ID in docker compose-chaincode.yaml
     # Note: Using sed compatible with both GNU and BSD (macOS)
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker compose-chaincode.yaml
+        sed -i '' "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker-compose-chaincode.yaml
     else
-        sed -i "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker compose-chaincode.yaml
+        sed -i "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker-compose-chaincode.yaml
     fi
     
     print_message "Restarting chaincode container..."
-    docker compose -f docker compose-chaincode.yaml up -d --no-deps benih-cc
+    docker compose -f docker-compose-chaincode.yaml up -d --no-deps benih-cc
     
     if [ $? -eq 0 ]; then
         print_message "✓ Chaincode container updated and restarted"
