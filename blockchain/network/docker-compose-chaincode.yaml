@@ -10,6 +10,8 @@ services:
     container_name: benih-cc
     build: ../chaincode
     image: benih-cc:1.0
+    command: >
+      sh -c "fabric-chaincode-node server --chaincode-address=0.0.0.0:9999 --chaincode-id=$CHAINCODE_ID"
     environment:
       - CHAINCODE_SERVER_ADDRESS=0.0.0.0:9999
       - CHAINCODE_ID=benih-certification_1.0:2a8efe98358f983d7f9e45956a3b63c966a44748764f9ffafbeddd842c6e9376
