@@ -225,14 +225,15 @@ query_installed() {
     
     peer lifecycle chaincode queryinstalled
     
-    # Get package ID
-    export PACKAGE_ID=$(peer lifecycle chaincode queryinstalled --output json | jq -r '.installed_chaincodes[0].package_id')
+    # Get package ID based on label
+    local LABEL="${CHAINCODE_NAME}_${CHAINCODE_VERSION}"
+    export PACKAGE_ID=$(peer lifecycle chaincode queryinstalled --output json | jq -r ".installed_chaincodes[] | select(.label == \"$LABEL\") | .package_id" | head -n 1)
     
     if [ -n "$PACKAGE_ID" ]; then
         print_message "✓ Package ID: $PACKAGE_ID"
         echo $PACKAGE_ID > package_id.txt
     else
-        print_error "✗ Gagal mendapatkan package ID"
+        print_error "✗ Gagal mendapatkan package ID untuk label $LABEL"
         exit 1
     fi
 }
