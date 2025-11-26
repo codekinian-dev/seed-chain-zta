@@ -189,7 +189,8 @@ query_installed() {
     peer lifecycle chaincode queryinstalled
     
     # Get package ID
-    export PACKAGE_ID=$(peer lifecycle chaincode queryinstalled --output json | jq -r '.installed_chaincodes[0].package_id')
+    LABEL="${CHAINCODE_NAME}_${CHAINCODE_VERSION}"
+    export PACKAGE_ID=$(peer lifecycle chaincode queryinstalled --output json | jq -r ".installed_chaincodes[] | select(.label == \"${LABEL}\") | .package_id")
     
     if [ -n "$PACKAGE_ID" ]; then
         print_message "✓ Package ID: $PACKAGE_ID"
