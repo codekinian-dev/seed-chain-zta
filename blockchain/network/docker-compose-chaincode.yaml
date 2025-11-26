@@ -12,7 +12,7 @@ services:
     image: benih-cc:1.0
     environment:
       - CHAINCODE_SERVER_ADDRESS=0.0.0.0:9999
-      - CHAINCODE_ID=benih-certification_1.0:3918e9f174a876f156b83355f397d2a5b80a4a3ffdd6960eff10616d20b8cd80
+      - CHAINCODE_ID=benih-certification_1.0:2a8efe98358f983d7f9e45956a3b63c966a44748764f9ffafbeddd842c6e9376
     ports:
       - "9999:9999"
     networks:
