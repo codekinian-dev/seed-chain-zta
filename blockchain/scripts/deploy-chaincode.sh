@@ -339,7 +339,6 @@ main() {
             install_chaincode
             ;;
         "query-installed")
-            get_chaincode_version
             query_installed
             ;;
         "approve")
@@ -355,7 +354,6 @@ main() {
             commit_chaincode
             ;;
         "query-committed")
-            get_chaincode_version
             query_committed
             ;;
         "deploy")
