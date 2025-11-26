@@ -154,7 +154,7 @@ package_chaincode_ccaas() {
     cd "$NETWORK_DIR"
     
     local CC_PORT=${CHAINCODE_PORT:-9999}
-    local CC_ADDRESS=${CHAINCODE_ADDRESS:-"host.docker.internal"}
+    local CC_ADDRESS=${CHAINCODE_ADDRESS:-"chaincode-benih"}
     
     mkdir -p build_ccaas
     
@@ -392,7 +392,7 @@ main() {
             commit_chaincode
             query_committed
             print_message "✓ Chaincode CCaaS deployment selesai"
-            print_warning "PENTING: Pastikan chaincode service berjalan di ${CHAINCODE_ADDRESS:-host.docker.internal}:${CHAINCODE_PORT:-9999}"
+            print_warning "PENTING: Pastikan chaincode service berjalan di ${CHAINCODE_ADDRESS:-chaincode-benih}:${CHAINCODE_PORT:-9999}"
             ;;
         *)
             print_message "Usage: $0 {package|install|query-installed|approve|check-readiness|commit|query-committed|deploy|deploy-ccaas}"
