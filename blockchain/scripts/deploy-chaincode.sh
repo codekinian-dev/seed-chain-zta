@@ -256,18 +256,18 @@ update_chaincode_container() {
         exit 1
     fi
     
-    print_message "Updating docker-compose-chaincode.yaml with Package ID: $PACKAGE_ID"
+    print_message "Updating docker compose-chaincode.yaml with Package ID: $PACKAGE_ID"
     
-    # Update CHAINCODE_ID in docker-compose-chaincode.yaml
+    # Update CHAINCODE_ID in docker compose-chaincode.yaml
     # Note: Using sed compatible with both GNU and BSD (macOS)
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker-compose-chaincode.yaml
+        sed -i '' "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker compose-chaincode.yaml
     else
-        sed -i "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker-compose-chaincode.yaml
+        sed -i "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker compose-chaincode.yaml
     fi
     
     print_message "Restarting chaincode container..."
-    docker-compose -f docker-compose-chaincode.yaml up -d --no-deps benih-cc
+    docker compose -f docker compose-chaincode.yaml up -d --no-deps benih-cc
     
     if [ $? -eq 0 ]; then
         print_message "✓ Chaincode container updated and restarted"
@@ -419,7 +419,7 @@ main() {
             print_message "  package          - Package chaincode"
             print_message "  install          - Install chaincode pada semua peers"
             print_message "  query-installed  - Query installed chaincode dan dapatkan package ID"
-            print_message "  update-cc        - Update CHAINCODE_ID di docker-compose dan restart container"
+            print_message "  update-cc        - Update CHAINCODE_ID di docker compose dan restart container"
             print_message "  approve          - Approve chaincode untuk semua organisasi"
             print_message "  check-readiness  - Check commit readiness"
             print_message "  commit           - Commit chaincode dengan endorsement policy"
