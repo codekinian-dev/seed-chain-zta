@@ -1,0 +1,19 @@
+version: '3.7'
+
+networks:
+  fabric_benih:
+    external: true
+    name: fabric_benih
+
+services:
+  benih-cc:
+    container_name: benih-cc
+    build: ./chaincode
+    image: benih-cc:1.0
+    environment:
+      - CHAINCODE_SERVER_ADDRESS=0.0.0.0:9999
+      - CHAINCODE_ID=${CHAINCODE_ID}
+    ports:
+      - "9999:9999"
+    networks:
+      - fabric_benih

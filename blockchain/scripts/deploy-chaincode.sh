@@ -128,38 +128,60 @@ set_peer_env() {
 }
 
 # Function to package chaincode
-package_chaincode() {
-    print_message "Packaging chaincode..."
+# package_chaincode() {
+#     print_message "Packaging chaincode..."
     
-    # --- TAMBAHAN PENTING MULAI ---
-    print_warning "Membersihkan node_modules untuk mencegah error Broken Pipe..."
-    if [ -d "${CHAINCODE_PATH}/node_modules" ]; then
-        rm -rf "${CHAINCODE_PATH}/node_modules"
-        print_message "✓ Folder node_modules dihapus."
-    fi
+#     # --- TAMBAHAN PENTING MULAI ---
+#     print_warning "Membersihkan node_modules untuk mencegah error Broken Pipe..."
+#     if [ -d "${CHAINCODE_PATH}/node_modules" ]; then
+#         rm -rf "${CHAINCODE_PATH}/node_modules"
+#         print_message "✓ Folder node_modules dihapus."
+#     fi
     
-    if [ -d "${CHAINCODE_PATH}/package-lock.json" ]; then
-         # Opsional: kadang package-lock bikin masalah versi, aman dihapus
-         rm -f "${CHAINCODE_PATH}/package-lock.json" 
-    fi
-    # --- TAMBAHAN PENTING SELESAI ---
+#     if [ -d "${CHAINCODE_PATH}/package-lock.json" ]; then
+#          # Opsional: kadang package-lock bikin masalah versi, aman dihapus
+#          rm -f "${CHAINCODE_PATH}/package-lock.json" 
+#     fi
+#     # --- TAMBAHAN PENTING SELESAI ---
 
-    cd "$NETWORK_DIR"
+#     cd "$NETWORK_DIR"
     
-    # Set environment to any peer
-    set_peer_env "bpsbp" "peer0"
+#     # Set environment to any peer
+#     set_peer_env "bpsbp" "peer0"
     
-    # Package chaincode
-    peer lifecycle chaincode package ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz --path ${CHAINCODE_PATH} --lang node --label ${CHAINCODE_NAME}_${CHAINCODE_VERSION}
+#     # Package chaincode
+#     peer lifecycle chaincode package ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz --path ${CHAINCODE_PATH} --lang node --label ${CHAINCODE_NAME}_${CHAINCODE_VERSION}
     
-    if [ $? -eq 0 ]; then
-        # Cek ukuran file
-        FILE_SIZE=$(du -h ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz | cut -f1)
-        print_message "✓ Chaincode berhasil di-package: ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz (Ukuran: $FILE_SIZE)"
-    else
-        print_error "✗ Gagal packaging chaincode"
-        exit 1
-    fi
+#     if [ $? -eq 0 ]; then
+#         # Cek ukuran file
+#         FILE_SIZE=$(du -h ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz | cut -f1)
+#         print_message "✓ Chaincode berhasil di-package: ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz (Ukuran: $FILE_SIZE)"
+#     else
+#         print_error "✗ Gagal packaging chaincode"
+#         exit 1
+#     fi
+# }
+package_chaincode() {
+    print_message "Packaging chaincode for CCaaS..."
+    
+    cd "$CHAINCODE_PATH"
+    
+    # Pack connection.json ke dalam archive
+    tar cfz code.tar.gz connection.json
+    
+    # Buat metadata.json
+    echo "{\"path\":\"\",\"type\":\"external\",\"label\":\"${CHAINCODE_NAME}_${CHAINCODE_VERSION}\"}" > metadata.json
+    
+    # Pack final package yang diterima Peer
+    tar cfz ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz metadata.json code.tar.gz
+    
+    # Pindahkan ke folder network agar bisa diinstall
+    mv ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz "$NETWORK_DIR/"
+    
+    # Bersihkan temp file
+    rm metadata.json code.tar.gz
+    
+    print_message "✓ CCaaS Package created (Isi hanya koneksi, tanpa kode)"
 }
 
 # Function to install chaincode on peer
