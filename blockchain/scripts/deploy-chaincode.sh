@@ -329,10 +329,12 @@ update_chaincode_container() {
     fi
     
     print_message "Restarting chaincode container..."
-    docker compose -f docker-compose-chaincode.yaml up -d --no-deps benih-cc
+    
+    # Force rebuild image agar perubahan package.json (TLS flags) terambil
+    docker compose -f docker-compose-chaincode.yaml up -d --build --no-deps benih-cc
     
     if [ $? -eq 0 ]; then
-        print_message "✓ Chaincode container updated and restarted"
+        print_message "✓ Chaincode container updated, rebuilt, and restarted"
     else
         print_error "✗ Gagal restart chaincode container"
         exit 1
