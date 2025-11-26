@@ -15,5 +15,7 @@ services:
       - CHAINCODE_ID=benih-certification_1.7:88c2bcf6f259a5ad90d778aa6aac9683d4cee5cc13a08fa7cca164f46a6d8036
     ports:
       - "9999:9999"
+    volumes:
+      - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/tls
     networks:
       - fabric_benih

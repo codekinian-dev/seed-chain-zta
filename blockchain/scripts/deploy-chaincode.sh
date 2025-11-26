@@ -82,6 +82,27 @@ get_chaincode_version() {
     export CHAINCODE_SEQUENCE
 }
 
+# Function to get current committed version without incrementing
+get_current_version() {
+    print_message "Detecting current committed version..."
+    
+    cd "$NETWORK_DIR"
+    set_peer_env "bpsbp" "peer0"
+    
+    # Query committed chaincode
+    COMMITTED_INFO=$(peer lifecycle chaincode querycommitted --channelID $CHANNEL_NAME --name $CHAINCODE_NAME 2>/dev/null || echo "")
+    
+    if [ -z "$COMMITTED_INFO" ]; then
+        print_error "No committed chaincode found."
+        exit 1
+    else
+        # Extract current version
+        CHAINCODE_VERSION=$(echo "$COMMITTED_INFO" | sed -n 's/.*Version: \([^,]*\).*/\1/p')
+        print_message "✓ Current committed version: $CHAINCODE_VERSION"
+        export CHAINCODE_VERSION
+    fi
+}
+
 # Function to set peer environment
 set_peer_env() {
     local org=$1
@@ -162,10 +183,51 @@ set_peer_env() {
 #     fi
 # }
 package_chaincode() {
-    print_message "Packaging chaincode for CCaaS..."
+    print_message "Packaging chaincode for CCaaS (TLS Enabled)..."
     
     cd "$CHAINCODE_PATH"
     
+    # Path ke CA cert (gunakan CA dari BPSBP Peer0 sebagai root trust)
+    local CA_CERT_FILE="$NETWORK_DIR/organizations/peerOrganizations/${BPSBP_DOMAIN}/peers/pusat.${BPSBP_DOMAIN}/tls/ca.crt"
+    
+    if [ ! -f "$CA_CERT_FILE" ]; then
+        print_error "CA Cert file not found at $CA_CERT_FILE"
+        exit 1
+    fi
+    
+    # Read CA cert and escape newlines for JSON
+    # Using awk to read file and replace newlines with \n
+    local ROOT_CERT=$(awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' "$CA_CERT_FILE")
+    
+    # Buat connection.json dengan TLS enabled
+    cat > connection.json <<EOF
+{
+  "address": "benih-cc:9999",
+  "dial_timeout": "10s",
+  "tls_required": true,
+  "client_auth_required": true,
+  "client_key": "-----BEGIN PRIVATE KEY----- ... -----END PRIVATE KEY-----",
+  "client_cert": "-----BEGIN CERTIFICATE----- ... -----END CERTIFICATE-----",
+  "root_cert": "$ROOT_CERT"
+}
+EOF
+    # Note: client_key and client_cert are for the Peer to authenticate itself to the Chaincode.
+    # In this setup, we are using the Peer's TLS certs which are already trusted by the CA.
+    # However, connection.json usually only needs root_cert if the Peer acts as client.
+    # The Peer will use its own TLS certs (defined in core.yaml) to connect.
+    # So we just need root_cert to verify the Chaincode's cert.
+    
+    # Re-write connection.json correctly for Peer -> Chaincode (Client Mode)
+    cat > connection.json <<EOF
+{
+  "address": "benih-cc:9999",
+  "dial_timeout": "10s",
+  "tls_required": true,
+  "client_auth_required": true,
+  "root_cert": "$ROOT_CERT"
+}
+EOF
+
     # Pack connection.json ke dalam archive
     tar cfz code.tar.gz connection.json
     
@@ -179,9 +241,9 @@ package_chaincode() {
     mv ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz "$NETWORK_DIR/"
     
     # Bersihkan temp file
-    rm metadata.json code.tar.gz
+    rm metadata.json code.tar.gz connection.json
     
-    print_message "✓ CCaaS Package created"
+    print_message "✓ CCaaS Package created with TLS enabled"
 }
 
 # Function to install chaincode on peer
@@ -412,14 +474,21 @@ main() {
         "update-cc")
             update_chaincode_container
             ;;
+        "sync")
+            get_current_version
+            query_installed
+            update_chaincode_container
+            print_message "✓ Chaincode container synced with committed version $CHAINCODE_VERSION"
+            ;;
         *)
-            print_message "Usage: $0 {package|install|query-installed|update-cc|approve|check-readiness|commit|query-committed|deploy}"
+            print_message "Usage: $0 {package|install|query-installed|update-cc|sync|approve|check-readiness|commit|query-committed|deploy}"
             print_message ""
             print_message "Commands:"
             print_message "  package          - Package chaincode"
             print_message "  install          - Install chaincode pada semua peers"
             print_message "  query-installed  - Query installed chaincode dan dapatkan package ID"
-            print_message "  update-cc        - Update CHAINCODE_ID di docker compose dan restart container"
+            print_message "  update-cc        - Update CHAINCODE_ID di docker-compose dan restart container (pakai package_id.txt)"
+            print_message "  sync             - Sinkronisasi container dengan versi yang sudah ter-commit di ledger"
             print_message "  approve          - Approve chaincode untuk semua organisasi"
             print_message "  check-readiness  - Check commit readiness"
             print_message "  commit           - Commit chaincode dengan endorsement policy"

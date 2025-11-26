@@ -8,7 +8,7 @@
     "npm": ">=5"
   },
   "scripts": {
-    "start": "fabric-chaincode-node server --chaincode-address=$CHAINCODE_SERVER_ADDRESS --chaincode-id=$CHAINCODE_ID"
+    "start": "fabric-chaincode-node server --chaincode-address=$CHAINCODE_SERVER_ADDRESS --chaincode-id=$CHAINCODE_ID --chaincode-tls-key-file=/etc/hyperledger/tls/server.key --chaincode-tls-cert-file=/etc/hyperledger/tls/server.crt --chaincode-tls-client-cacert-file=/etc/hyperledger/tls/ca.crt"
   },
   "dependencies": {
     "fabric-contract-api": "^2.4.0",
