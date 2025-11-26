@@ -271,7 +271,7 @@ metrics:
 
 gateway:
     enabled: true
-    endorserConcurrencyLimit: 2500
-    queryConcurrencyLimit: 2500
-    dialTimeout: 60s
-    connectionTimeout: 60s
+    endorserConcurrencyLimit: 5000
+    queryConcurrencyLimit: 5000
+    dialTimeout: 120s
+    connectionTimeout: 120s

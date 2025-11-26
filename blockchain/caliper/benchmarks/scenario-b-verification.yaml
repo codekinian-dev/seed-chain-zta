@@ -3,61 +3,67 @@ test:
   description: Scenario B - Public Verification (Read-Heavy). Load test 100-1000 TPS.
   workers:
     number: 10
-  rounds:
+  rounds: 
+    - label: verification-50tps
+      txDuration: 120
+      rateControl: { type: fixed-rate, opts: { tps: 50 } }
+      workload:
+        module: ./workload/querySeedBatch.js
+        arguments: { contractId: benih-certification }
     - label: verification-100tps
       txDuration: 120
       rateControl: { type: fixed-rate, opts: { tps: 100 } }
       workload:
         module: ./workload/querySeedBatch.js
         arguments: { contractId: benih-certification }
-    - label: verification-200tps
-      txDuration: 120
-      rateControl: { type: fixed-rate, opts: { tps: 200 } }
-      workload:
-        module: ./workload/querySeedBatch.js
-        arguments: { contractId: benih-certification }
-    - label: verification-300tps
-      txDuration: 120
-      rateControl: { type: fixed-rate, opts: { tps: 300 } }
-      workload:
-        module: ./workload/querySeedBatch.js
-        arguments: { contractId: benih-certification }
-    - label: verification-400tps
-      txDuration: 120
-      rateControl: { type: fixed-rate, opts: { tps: 400 } }
-      workload:
-        module: ./workload/querySeedBatch.js
-        arguments: { contractId: benih-certification }
+    # - label: verification-200tps
+    #   txDuration: 120
+    #   rateControl: { type: fixed-rate, opts: { tps: 200 } }
+    #   workload:
+    #     module: ./workload/querySeedBatch.js
+    #     arguments: { contractId: benih-certification }
+    # - label: verification-300tps
+    #   txDuration: 120
+    #   rateControl: { type: fixed-rate, opts: { tps: 300 } }
+    #   workload:
+    #     module: ./workload/querySeedBatch.js
+    #     arguments: { contractId: benih-certification }
+    # - label: verification-400tps
+    #   txDuration: 120
+    #   rateControl: { type: fixed-rate, opts: { tps: 400 } }
+    #   workload:
+    #     module: ./workload/querySeedBatch.js
+    #     arguments: { contractId: benih-certification }
     - label: verification-500tps
       txDuration: 120
       rateControl: { type: fixed-rate, opts: { tps: 500 } }
       workload:
         module: ./workload/querySeedBatch.js
         arguments: { contractId: benih-certification }
-    - label: verification-600tps
-      txDuration: 120
-      rateControl: { type: fixed-rate, opts: { tps: 600 } }
-      workload:
-        module: ./workload/querySeedBatch.js
-        arguments: { contractId: benih-certification }
-    - label: verification-700tps
-      txDuration: 120
-      rateControl: { type: fixed-rate, opts: { tps: 700 } }
-      workload:
-        module: ./workload/querySeedBatch.js
-        arguments: { contractId: benih-certification }
-    - label: verification-800tps
-      txDuration: 120
-      rateControl: { type: fixed-rate, opts: { tps: 800 } }
-      workload:
-        module: ./workload/querySeedBatch.js
-        arguments: { contractId: benih-certification }
-    - label: verification-900tps
-      txDuration: 120
-      rateControl: { type: fixed-rate, opts: { tps: 900 } }
-      workload:
-        module: ./workload/querySeedBatch.js
-        arguments: { contractId: benih-certification }
+    # - label: verification-600tps
+    #   txDuration: 120
+    #   rateControl: { type: fixed-rate, opts: { tps: 600 } }
+    #   workload:
+    #     module: ./workload/querySeedBatch.js
+    #     arguments: { contractId: benih-certification }
+    # - label: verification-700tps
+    #   txDuration: 120
+    #   rateControl: { type: fixed-rate, opts: { tps: 700 } }
+    #   workload:
+    #     module: ./workload/querySeedBatch.js
+    #     arguments: { contractId: benih-certification }
+    # - label: verification-800tps
+    #   txDuration: 120
+    #   rateControl: { type: fixed-rate, opts: { tps: 800 } }
+    #   workload:
+    #     module: ./workload/querySeedBatch.js
+    #     arguments: { contractId: benih-certification }
+    # - label: verification-900tps
+    #   txDuration: 120
+    #   rateControl: { type: fixed-rate, opts: { tps: 900 } }
+    #   workload:
+    #     module: ./workload/querySeedBatch.js
+    #     arguments: { contractId: benih-certification }
     - label: verification-1000tps
       txDuration: 120
       rateControl: { type: fixed-rate, opts: { tps: 1000 } }
