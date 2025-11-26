@@ -1,8 +1,18 @@
 #!/bin/sh
-# Script ini menyalin connection.json ke lokasi output peer
-# Tanpa melakukan compile/npm install apapun!
-cp "$1/connection.json" "$3/connection.json"
-if [ -f "$1/metadata.json" ]; then
-    cp "$1/metadata.json" "$3/metadata.json"
+
+# build script for ccaas builder
+set -e
+
+SOURCE="$1"
+METADATA="$2"
+OUTPUT="$3"
+
+if [ -f "$SOURCE/code.tar.gz" ]; then
+    tar -xf "$SOURCE/code.tar.gz" -C "$OUTPUT" connection.json
+elif [ -f "$SOURCE/connection.json" ]; then
+    cp "$SOURCE/connection.json" "$OUTPUT/connection.json"
+else
+    exit 1
 fi
+
 exit 0

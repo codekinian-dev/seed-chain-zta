@@ -1,10 +1,17 @@
 #!/bin/sh
-# Script ini mengecek apakah chaincode bertipe EXTERNAL
-if [ -f "$2/metadata.json" ]; then
-    STR=$(cat "$2/metadata.json" | grep "external")
-    if [ -z "$STR" ]; then
-        exit 1
-    fi
+
+# detect script for ccaas builder
+set -e
+
+CHAINCODE_METADATA_DIR="$2"
+
+if [ ! -f "$CHAINCODE_METADATA_DIR/metadata.json" ]; then
+    exit 1
+fi
+
+# Read the file content and check for type: ccaas (case insensitive)
+if grep -i "\"type\":[[:space:]]*\"ccaas\"" "$CHAINCODE_METADATA_DIR/metadata.json" > /dev/null; then
     exit 0
 fi
+
 exit 1

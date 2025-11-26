@@ -1,3 +1,28 @@
 #!/bin/sh
-# Release tidak perlu melakukan apa-apa
+
+# release script for ccaas builder
+# This script is called by the peer when launching the chaincode
+# For CCaaS, we just return the connection.json content
+
+set -e
+
+BUILD_OUTPUT_DIR="$1"
+RUN_METADATA_DIR="$2"
+
+echo "CCaaS Release - BUILD_OUTPUT_DIR: $BUILD_OUTPUT_DIR" >&2
+echo "CCaaS Release - RUN_METADATA_DIR: $RUN_METADATA_DIR" >&2
+
+# Check if connection.json exists
+if [ ! -f "$BUILD_OUTPUT_DIR/connection.json" ]; then
+    echo "Error: connection.json not found in $BUILD_OUTPUT_DIR" >&2
+    ls -la "$BUILD_OUTPUT_DIR" >&2 || true
+    exit 1
+fi
+
+# Copy connection.json to the run metadata directory
+cp "$BUILD_OUTPUT_DIR/connection.json" "$RUN_METADATA_DIR/connection.json"
+
+echo "CCaaS Release - connection.json copied successfully" >&2
+
+# Exit successfully
 exit 0
