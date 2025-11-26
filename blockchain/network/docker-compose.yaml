@@ -218,6 +218,7 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock:z
+      - ./builders:/opt/gopath/src/github.com/hyperledger/fabric/peer/external_builder
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - pusat.chain-bpsbp.jabarchain.me:/var/hyperledger/production
@@ -257,6 +258,7 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock:z
+      - ./builders:/opt/gopath/src/github.com/hyperledger/fabric/peer/external_builder
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - cert.chain-bpsbp.jabarchain.me:/var/hyperledger/production
@@ -296,6 +298,7 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock:z
+      - ./builders:/opt/gopath/src/github.com/hyperledger/fabric/peer/external_builder
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - sekretariat.chain-disbun.jabarchain.me:/var/hyperledger/production
@@ -335,6 +338,7 @@ services:
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
       - /var/run/docker.sock:/host/var/run/docker.sock:z
+      - ./builders:/opt/gopath/src/github.com/hyperledger/fabric/peer/external_builder
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - digital.chain-disbun.jabarchain.me:/var/hyperledger/production

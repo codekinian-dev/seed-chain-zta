@@ -181,7 +181,7 @@ package_chaincode() {
     # Bersihkan temp file
     rm metadata.json code.tar.gz
     
-    print_message "✓ CCaaS Package created (Isi hanya koneksi, tanpa kode)"
+    print_message "✓ CCaaS Package created"
 }
 
 # Function to install chaincode on peer
