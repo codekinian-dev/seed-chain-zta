@@ -340,7 +340,8 @@ main() {
     case "$1" in
         "package")
             get_chaincode_version
-            package_chaincode
+            # package_chaincode
+            package_chaincode_ccaas
             ;;
         "install")
             install_chaincode
