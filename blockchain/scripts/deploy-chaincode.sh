@@ -170,7 +170,7 @@ package_chaincode() {
     tar cfz code.tar.gz connection.json
     
     # Buat metadata.json
-    echo "{\"path\":\"\",\"type\":\"external\",\"label\":\"${CHAINCODE_NAME}_${CHAINCODE_VERSION}\"}" > metadata.json
+    echo "{\"type\":\"ccaas\",\"label\":\"${CHAINCODE_NAME}_${CHAINCODE_VERSION}\"}" > metadata.json
     
     # Pack final package yang diterima Peer
     tar cfz ${CHAINCODE_NAME}-v${CHAINCODE_VERSION}.tar.gz metadata.json code.tar.gz
