@@ -207,10 +207,14 @@ chaincode:
         runtime: $(DOCKER_NS)/fabric-javaenv:$(PROJECT_VERSION)
     node:
         runtime: $(DOCKER_NS)/fabric-nodeenv:$(PROJECT_VERSION)
-    externalBuilders: []
+    externalBuilders:
+        - path: /opt/gopath/src/github.com/hyperledger/fabric/peer/external_builder/ccaas
+          name: ccaas_builder
+          propagateEnvironment:
+            - CORE_PEER_ID
     installTimeout: 300s
     startuptimeout: 300s
-    executetimeout: 30s
+    executetimeout: 300s
     mode: net
     keepalive: 0
     system:
