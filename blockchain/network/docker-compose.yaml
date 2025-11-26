@@ -192,6 +192,7 @@ services:
   pusat.chain-bpsbp.jabarchain.me:
     container_name: pusat.chain-bpsbp.jabarchain.me
     image: hyperledger/fabric-peer:2.4.7
+    privileged: true
     environment:
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric_benih
@@ -230,6 +231,7 @@ services:
   cert.chain-bpsbp.jabarchain.me:
     container_name: cert.chain-bpsbp.jabarchain.me
     image: hyperledger/fabric-peer:2.4.7
+    privileged: true
     environment:
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric_benih
@@ -268,6 +270,7 @@ services:
   sekretariat.chain-disbun.jabarchain.me:
     container_name: sekretariat.chain-disbun.jabarchain.me
     image: hyperledger/fabric-peer:2.4.7
+    privileged: true
     environment:
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric_benih
@@ -306,6 +309,7 @@ services:
   digital.chain-disbun.jabarchain.me:
     container_name: digital.chain-disbun.jabarchain.me
     image: hyperledger/fabric-peer:2.4.7
+    privileged: true
     environment:
       - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
       - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=fabric_benih
@@ -344,6 +348,7 @@ services:
   cli:
     container_name: cli
     image: hyperledger/fabric-tools:2.4.7
+    privileged: true
     tty: true
     stdin_open: true
     environment:
