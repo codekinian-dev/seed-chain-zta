@@ -1,0 +1,8 @@
+#!/bin/sh
+# Script ini menyalin connection.json ke lokasi output peer
+# Tanpa melakukan compile/npm install apapun!
+cp "$1/connection.json" "$3/connection.json"
+if [ -f "$1/metadata.json" ]; then
+    cp "$1/metadata.json" "$3/metadata.json"
+fi
+exit 0

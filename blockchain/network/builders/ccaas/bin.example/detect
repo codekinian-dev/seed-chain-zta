@@ -1,0 +1,10 @@
+#!/bin/sh
+# Script ini mengecek apakah chaincode bertipe EXTERNAL
+if [ -f "$2/metadata.json" ]; then
+    STR=$(cat "$2/metadata.json" | grep "external")
+    if [ -z "$STR" ]; then
+        exit 1
+    fi
+    exit 0
+fi
+exit 1

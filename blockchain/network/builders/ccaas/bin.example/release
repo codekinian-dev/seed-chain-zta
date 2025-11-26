@@ -1,0 +1,3 @@
+#!/bin/sh
+# Release tidak perlu melakukan apa-apa
+exit 0

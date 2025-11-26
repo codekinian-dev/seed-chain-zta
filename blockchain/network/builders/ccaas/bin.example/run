@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# run script for ccaas builder
+# This script is called by the peer to launch the chaincode
+# For CCaaS, we don't need to launch anything as it's running externally
+
+echo "CCaaS Run - Starting chaincode (no-op for external service)" >&2
+
+# Sleep forever to keep the process alive
+# This prevents the "container exited with 0" error
+exec tail -f /dev/null
