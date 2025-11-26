@@ -9,7 +9,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 NETWORK_DIR="$ROOT_DIR/../network"
-NETWORK_CONFIG="$ROOT_DIR/networks/networkConfig.yaml"
+NETWORK_CONFIG="$ROOT_DIR/networks/networkConfig-remote.yaml"
 
 source "$ROOT_DIR/../.env"
 

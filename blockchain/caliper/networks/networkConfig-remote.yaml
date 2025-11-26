@@ -1,0 +1,22 @@
+name: Benih Certification Network Remote
+version: "2.0.0"
+caliper:
+  blockchain: fabric
+
+channels:
+  - channelName: benihchannel
+    contracts:
+      - id: benih-certification
+
+organizations:
+  - mspid: BPSBPBenihMSP
+    identities:
+      certificates:
+        - name: appUser
+          clientSignedCert:
+            path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/signcerts/cert.pem
+          clientPrivateKey:
+            path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/keystore/priv_sk
+    connectionProfile:
+      path: ./networks/connection-remote.yaml
+      discover: true
