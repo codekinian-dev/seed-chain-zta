@@ -227,13 +227,52 @@ query_installed() {
     
     # Get package ID based on label
     local LABEL="${CHAINCODE_NAME}_${CHAINCODE_VERSION}"
+    print_message "Mencari Package ID untuk label: $LABEL"
+    
     export PACKAGE_ID=$(peer lifecycle chaincode queryinstalled --output json | jq -r ".installed_chaincodes[] | select(.label == \"$LABEL\") | .package_id" | head -n 1)
     
     if [ -n "$PACKAGE_ID" ]; then
-        print_message "✓ Package ID: $PACKAGE_ID"
+        print_message "✓ Package ID ditemukan: $PACKAGE_ID"
         echo $PACKAGE_ID > package_id.txt
     else
         print_error "✗ Gagal mendapatkan package ID untuk label $LABEL"
+        print_error "Pastikan chaincode dengan versi $CHAINCODE_VERSION sudah terinstall."
+        exit 1
+    fi
+}
+
+# Function to update chaincode container with new Package ID
+update_chaincode_container() {
+    print_message "Updating chaincode container..."
+    
+    cd "$NETWORK_DIR"
+    
+    if [ -f "../package_id.txt" ]; then
+        PACKAGE_ID=$(cat ../package_id.txt)
+    elif [ -f "package_id.txt" ]; then
+        PACKAGE_ID=$(cat package_id.txt)
+    else
+        print_error "Package ID tidak ditemukan. Jalankan query_installed terlebih dahulu."
+        exit 1
+    fi
+    
+    print_message "Updating docker-compose-chaincode.yaml with Package ID: $PACKAGE_ID"
+    
+    # Update CHAINCODE_ID in docker-compose-chaincode.yaml
+    # Note: Using sed compatible with both GNU and BSD (macOS)
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker-compose-chaincode.yaml
+    else
+        sed -i "s|CHAINCODE_ID=.*|CHAINCODE_ID=$PACKAGE_ID|g" docker-compose-chaincode.yaml
+    fi
+    
+    print_message "Restarting chaincode container..."
+    docker-compose -f docker-compose-chaincode.yaml up -d --no-deps benih-cc
+    
+    if [ $? -eq 0 ]; then
+        print_message "✓ Chaincode container updated and restarted"
+    else
+        print_error "✗ Gagal restart chaincode container"
         exit 1
     fi
 }
@@ -339,6 +378,7 @@ main() {
             install_chaincode
             ;;
         "query-installed")
+            get_chaincode_version
             query_installed
             ;;
         "approve")
@@ -361,6 +401,7 @@ main() {
             package_chaincode
             install_chaincode
             query_installed
+            update_chaincode_container
             approve_chaincode
             check_commit_readiness
             commit_chaincode
@@ -368,13 +409,17 @@ main() {
             print_message "✓ Chaincode deployment selesai"
             print_warning "Note: Testing harus dilakukan melalui aplikasi client dengan proper authentication"
             ;;
+        "update-cc")
+            update_chaincode_container
+            ;;
         *)
-            print_message "Usage: $0 {package|install|query-installed|approve|check-readiness|commit|query-committed|deploy}"
+            print_message "Usage: $0 {package|install|query-installed|update-cc|approve|check-readiness|commit|query-committed|deploy}"
             print_message ""
             print_message "Commands:"
             print_message "  package          - Package chaincode"
             print_message "  install          - Install chaincode pada semua peers"
             print_message "  query-installed  - Query installed chaincode dan dapatkan package ID"
+            print_message "  update-cc        - Update CHAINCODE_ID di docker-compose dan restart container"
             print_message "  approve          - Approve chaincode untuk semua organisasi"
             print_message "  check-readiness  - Check commit readiness"
             print_message "  commit           - Commit chaincode dengan endorsement policy"
