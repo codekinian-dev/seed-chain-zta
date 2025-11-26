@@ -194,32 +194,32 @@ vm:
                     max-file: "5"
             Memory: 2147483648
 
-# chaincode:
-#     id:
-#         path:
-#         name:
-#     builder: $(DOCKER_NS)/fabric-ccenv:2.4.6
-#     pull: false
-#     golang:
-#         runtime: $(BASE_DOCKER_NS)/fabric-baseos:$(BASE_DOCKER_TAG)
-#         dynamicLink: false
-#     java:
-#         runtime: $(DOCKER_NS)/fabric-javaenv:2.4.6
-#     node:
-#         runtime: $(DOCKER_NS)/fabric-nodeenv:2.4.6
-#     externalBuilders: []
-#     installTimeout: 300s
-#     startuptimeout: 300s
-#     executetimeout: 30s
-#     mode: net
-#     keepalive: 0
-#     system:
-#         _lifecycle: enable
-#         cscc: enable
-#         lscc: enable
-#         escc: enable
-#         vscc: enable
-#         qscc: enable
+chaincode:
+    id:
+        path:
+        name:
+    builder: $(DOCKER_NS)/fabric-ccenv:2.4.1
+    pull: false
+    golang:
+        runtime: $(BASE_DOCKER_NS)/fabric-baseos:$(BASE_DOCKER_TAG)
+        dynamicLink: false
+    java:
+        runtime: $(DOCKER_NS)/fabric-javaenv:2.4.1
+    node:
+        runtime: $(DOCKER_NS)/fabric-nodeenv:2.4.1
+    externalBuilders: []
+    installTimeout: 300s
+    startuptimeout: 300s
+    executetimeout: 30s
+    mode: net
+    keepalive: 0
+    system:
+        _lifecycle: enable
+        cscc: enable
+        lscc: enable
+        escc: enable
+        vscc: enable
+        qscc: enable
 
 ledger:
   blockchain:
