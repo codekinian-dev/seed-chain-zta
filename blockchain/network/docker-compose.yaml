@@ -214,7 +214,7 @@ services:
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0bpsbp"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - pusat.chain-bpsbp.jabarchain.me:/var/hyperledger/production
@@ -252,7 +252,7 @@ services:
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1bpsbp"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - cert.chain-bpsbp.jabarchain.me:/var/hyperledger/production
@@ -290,7 +290,7 @@ services:
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0disbun"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - sekretariat.chain-disbun.jabarchain.me:/var/hyperledger/production
@@ -328,7 +328,7 @@ services:
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1disbun"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=300s
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/msp:/etc/hyperledger/fabric/msp
       - ./organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls:/etc/hyperledger/fabric/tls
       - digital.chain-disbun.jabarchain.me:/var/hyperledger/production
@@ -361,7 +361,7 @@ services:
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: /bin/bash
     volumes:
-      - /var/run/:/host/var/run/
+      - /var/run/docker.sock:/host/var/run/docker.sock
       - ./organizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations
       - ../scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
       - ../chaincode:/opt/gopath/src/github.com/hyperledger/fabric/peer/chaincode
