@@ -49,7 +49,7 @@ organizations:
 
 orderers:
   orderer.jabarchain.me:
-    url: grpcs://chain-orderer.jabarchain.me:7050
+    url: grpcs://143.198.199.79:7050
     grpcOptions:
       ssl-target-name-override: chain-orderer.jabarchain.me
       grpc-max-send-message-length: 15
@@ -60,7 +60,7 @@ orderers:
 
 peers:
   pusat.chain-bpsbp.jabarchain.me:
-    url: grpcs://pusat.chain-bpsbp.jabarchain.me:7051
+    url: grpcs://143.198.199.79:7051
     grpcOptions:
       ssl-target-name-override: pusat.chain-bpsbp.jabarchain.me
       grpc.keepalive_time_ms: 600000
@@ -71,7 +71,7 @@ peers:
       path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls/ca.crt
 
   cert.chain-bpsbp.jabarchain.me:
-    url: grpcs://cert.chain-bpsbp.jabarchain.me:8051
+    url: grpcs://143.198.199.79:8051
     grpcOptions:
       ssl-target-name-override: cert.chain-bpsbp.jabarchain.me
       grpc.keepalive_time_ms: 600000
@@ -82,7 +82,7 @@ peers:
       path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls/ca.crt
 
   sekretariat.chain-disbun.jabarchain.me:
-    url: grpcs://sekretariat.chain-disbun.jabarchain.me:9051
+    url: grpcs://143.198.199.79:9051
     grpcOptions:
       ssl-target-name-override: sekretariat.chain-disbun.jabarchain.me
       grpc.keepalive_time_ms: 600000
@@ -93,7 +93,7 @@ peers:
       path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls/ca.crt
 
   digital.chain-disbun.jabarchain.me:
-    url: grpcs://digital.chain-disbun.jabarchain.me:10051
+    url: grpcs://143.198.199.79:10051
     grpcOptions:
       ssl-target-name-override: digital.chain-disbun.jabarchain.me
       grpc.keepalive_time_ms: 600000
@@ -105,7 +105,7 @@ peers:
 
 certificateAuthorities:
   ca-bpsbp:
-    url: https://pusat.chain-bpsbp.jabarchain.me:7054
+    url: https://143.198.199.79:7054
     httpOptions:
       verify: false
     tlsCACerts:

@@ -1,4 +1,4 @@
-name: Benih Certification Network
+name: Benih Certification Network Remote
 version: "2.0.0"
 caliper:
   blockchain: fabric
@@ -18,6 +18,6 @@ organizations:
           clientPrivateKey:
             path: /Users/rangga/playground/tesis_bismillah/blockchain/caliper/../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/keystore/6b9a7144a8ef87a0760d57be5487b319a9f764d5ab47d73b188ca790cb4b7e64_sk
     connectionProfile:
-      path: ./networks/connection-bpsbp.yaml
+      path: ./networks/connection-remote.yaml
       discover: true
 
