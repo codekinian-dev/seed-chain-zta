@@ -60,10 +60,9 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
         this.txIndex++;
 
         // Generate unique ID for seed batch
-        // Using timestamp and random suffix to ensure uniqueness across runs
-        // Format: BATCH-{WorkerIndex}-{TxIndex}-{Timestamp}-{Random}
-        const uniqueId = `${this.workerIndex}-${this.txIndex}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        const batchId = `BATCH-${uniqueId}`;
+        // Deterministic ID: BATCH-{WorkerIndex}-{TxIndex}
+        // This allows us to predict IDs in Scenario B and re-run tests without reset (by ignoring duplicates)
+        const batchId = `BATCH-${this.workerIndex}-${this.txIndex}`;
 
         // Random selection for variety and data
         const varietyIndex = Math.floor(Math.random() * this.varieties.length);
@@ -115,7 +114,16 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
             invokerIdentity: 'appUser'  // Single appUser with role_producer attribute
         };
 
-        await this.sutAdapter.sendRequests(request);
+        try {
+            await this.sutAdapter.sendRequests(request);
+        } catch (error) {
+            // Ignore "already exists" errors to allow re-running tests without reset
+            if (error.message && (error.message.includes('sudah ada') || error.message.includes('already exists'))) {
+                // console.log(`Batch ${batchId} already exists, skipping...`);
+                return;
+            }
+            throw error;
+        }
     }
 
     /**

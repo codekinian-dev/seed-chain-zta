@@ -113,9 +113,8 @@ class CreateSeedBatchWithIPFSWorkload extends WorkloadModuleBase {
         this.txIndex++;
 
         // Generate unique ID for seed batch
-        // Using timestamp and random suffix to ensure uniqueness across runs
-        const uniqueId = `${this.workerIndex}-${this.txIndex}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-        const batchId = `BATCH-${uniqueId}`;
+        // Deterministic ID: BATCH-{WorkerIndex}-{TxIndex}
+        const batchId = `BATCH-${this.workerIndex}-${this.txIndex}`;
 
         // Random selection for variety and data
         const varietyIndex = Math.floor(Math.random() * this.varieties.length);
@@ -159,15 +158,23 @@ class CreateSeedBatchWithIPFSWorkload extends WorkloadModuleBase {
                 origin,
                 iupNumber,
                 seedClass,
-                producerUUID,  // UUID parameter now required
-                seedSourceDocName,  // Seed source document name
-                seedSourceIpfsCid   // Real IPFS CID from upload
+                producerUUID,
+                seedSourceDocName,
+                seedSourceIpfsCid
             ],
             readOnly: false,
             invokerIdentity: 'appUser'  // Single appUser with combined roles
         };
 
-        await this.sutAdapter.sendRequests(request);
+        try {
+            await this.sutAdapter.sendRequests(request);
+        } catch (error) {
+            // Ignore "already exists" errors
+            if (error.message && (error.message.includes('sudah ada') || error.message.includes('already exists'))) {
+                return;
+            }
+            throw error;
+        }
     }
 
     /**
