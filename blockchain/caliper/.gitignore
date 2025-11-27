@@ -1,7 +1,6 @@
 # Caliper Reports
 *.html
 *.csv
-*.json
 report*.md
 reports/
 reports_fixed/

@@ -1,0 +1,54 @@
+{
+  "name": "benih-certification-caliper",
+  "version": "1.0.0",
+  "description": "Hyperledger Caliper performance testing untuk Chaincode Sertifikasi Benih dengan Zero Trust Architecture",
+  "main": "index.js",
+  "scripts": {
+    "test:create": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/create-seed-batch.yaml --caliper-flow-only-test",
+    "test:query": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/query-test.yaml --caliper-flow-only-test",
+    "test:workflow": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/full-workflow.yaml --caliper-flow-only-test",
+    "test:scenario-a": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-a-issuance.yaml --caliper-flow-only-test --caliper-report-path reports/report-scenario-a.html",
+    "test:scenario-a-remote": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig-remote.yaml --caliper-benchconfig benchmarks/scenario-a-issuance.yaml --caliper-flow-only-test --caliper-report-path reports/report-scenario-a-remote.html",
+    "test:scenario-b": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-b-verification.yaml --caliper-flow-only-test --caliper-report-path reports/report-scenario-b.html",
+    "test:scenario-b-remote": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig-remote.yaml --caliper-benchconfig benchmarks/scenario-b-verification.yaml --caliper-flow-only-test --caliper-report-path reports/report-scenario-b-remote.html",
+    "test:100": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-100.yaml --caliper-flow-only-test --caliper-report-path reports/report-100.html",
+    "test:500": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-500.yaml --caliper-flow-only-test --caliper-report-path reports/report-500.html",
+    "test:1000": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-1000.yaml --caliper-flow-only-test --caliper-report-path reports/report-1000.html",
+    "test:ipfs:10": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-ipfs-10.yaml --caliper-flow-only-test --caliper-report-path reports/report-ipfs-10.html",
+    "test:ipfs:100": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-ipfs-100.yaml --caliper-flow-only-test --caliper-report-path reports/report-ipfs-100.html",
+    "test:ipfs:500": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-ipfs-500.yaml --caliper-flow-only-test --caliper-report-path reports/report-ipfs-500.html",
+    "test:ipfs:1000": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-ipfs-1000.yaml --caliper-flow-only-test --caliper-report-path reports/report-ipfs-1000.html",
+    "test:ipfs:scenarios": "npm run test:ipfs:10 && npm run test:ipfs:100 && npm run test:ipfs:500 && npm run test:ipfs:1000",
+    "test:ipfs:all": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-ipfs-all.yaml --caliper-flow-only-test --caliper-report-path reports/report-ipfs-all.html",
+    "test:scenarios": "caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/networkConfig.yaml --caliper-benchconfig benchmarks/scenario-full.yaml --caliper-flow-only-test --caliper-report-path reports/report-scenario-all.html",
+    "test:all": "npm run test:create && npm run test:query && npm run test:workflow",
+    "setup:identities": "./scripts/setup-identities.sh",
+    "setup:config": "./scripts/update-networkconfig.sh",
+    "setup:all": "npm run setup:identities && npm run setup:config",
+    "bind": "npm install --only=prod @hyperledger/caliper-fabric@0.7.1",
+    "unbind": "npm uninstall @hyperledger/caliper-fabric"
+  },
+  "keywords": [
+    "hyperledger",
+    "fabric",
+    "caliper",
+    "blockchain",
+    "performance",
+    "testing",
+    "zero-trust",
+    "seed-certification"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.13.1",
+    "@hyperledger/caliper-cli": "0.7.1",
+    "@hyperledger/caliper-core": "0.7.1",
+    "@hyperledger/caliper-fabric": "^0.7.1",
+    "@hyperledger/fabric-gateway": "^1.7.1",
+    "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

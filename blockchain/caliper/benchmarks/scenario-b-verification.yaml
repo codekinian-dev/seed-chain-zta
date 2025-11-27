@@ -9,7 +9,7 @@ test:
       txDuration: 60
       rateControl: { type: fixed-rate, opts: { tps: 50 } }
       workload:
-        module: ./workload/createSeedBatch.js
+        module: ./workload/querySeedBatch.js
         arguments: { contractId: benih-certification }
 
     # --- TAHAP 2: Beban Menengah (Optimal) ---
@@ -17,7 +17,7 @@ test:
       txDuration: 60
       rateControl: { type: fixed-rate, opts: { tps: 100 } }
       workload:
-        module: ./workload/createSeedBatch.js
+        module: ./workload/querySeedBatch.js
         arguments: { contractId: benih-certification }
 
     # --- TAHAP 3: Mencari Batas (Approaching Limit) ---
@@ -26,7 +26,7 @@ test:
       txDuration: 60
       rateControl: { type: fixed-rate, opts: { tps: 150 } }
       workload:
-        module: ./workload/createSeedBatch.js
+        module: ./workload/querySeedBatch.js
         arguments: { contractId: benih-certification }
 
     # --- TAHAP 4: Titik Jenuh (Saturation Point) ---
@@ -35,7 +35,7 @@ test:
       txDuration: 60
       rateControl: { type: fixed-rate, opts: { tps: 200 } }
       workload:
-        module: ./workload/createSeedBatch.js
+        module: ./workload/querySeedBatch.js
         arguments: { contractId: benih-certification }
 
     # --- TAHAP 5: Stress Test Ringan ---
@@ -45,7 +45,7 @@ test:
       txDuration: 60
       rateControl: { type: fixed-rate, opts: { tps: 250 } }
       workload:
-        module: ./workload/createSeedBatch.js
+        module: ./workload/querySeedBatch.js
         arguments: { contractId: benih-certification }
 
 monitors:
