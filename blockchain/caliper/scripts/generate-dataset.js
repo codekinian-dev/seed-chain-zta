@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const count = 50000;
+const count = 100000;
 const dataset = [];
 
 const varieties = [

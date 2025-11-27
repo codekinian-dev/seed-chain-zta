@@ -28,6 +28,10 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
         this.workerIndex = workerIndex;
         this.totalWorkers = totalWorkers;
         this.roundIndex = roundIndex;
+
+        // DO NOT reset txIndex - let it accumulate across rounds
+        // This ensures continuous, non-overlapping dataset access
+        console.log(`[Worker ${workerIndex}] Initialized for Round ${roundIndex}. Current txIndex: ${this.txIndex}`);
     }
 
     /**
@@ -36,12 +40,11 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
     async submitTransaction() {
         this.txIndex++;
 
-        // Calculate index to pick from dataset based on round, worker, and transaction index
-        // Formula ensures unique batch IDs across all workers and rounds
-        // roundIndex × largeOffset ensures each round gets a completely different dataset range
-        // Worker distribution within round: Worker 0 -> 0,5,10,15... | Worker 1 -> 1,6,11,16...
-        const roundOffset = this.roundIndex * 100000; // Each round gets 100K offset
-        const dataIndex = (roundOffset + this.workerIndex + ((this.txIndex - 1) * this.totalWorkers)) % dataset.length;
+        // Calculate index to pick from dataset based on worker and transaction index
+        // Formula ensures continuous, unique batch IDs across all workers and rounds
+        // Worker distribution: Worker 0 -> 0,5,10,15... | Worker 1 -> 1,6,11,16...
+        // txIndex accumulates across rounds, so no overlap occurs
+        const dataIndex = (this.workerIndex + ((this.txIndex - 1) * this.totalWorkers)) % dataset.length;
         const data = dataset[dataIndex];
 
         console.log(`[Worker ${this.workerIndex}] Round ${this.roundIndex}, Tx ${this.txIndex}: Using ${data.batchId} (index ${dataIndex})`);
