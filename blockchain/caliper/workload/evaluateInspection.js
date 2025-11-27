@@ -35,7 +35,7 @@ class EvaluateInspectionWorkload extends WorkloadModuleBase {
             const result = await this.sutAdapter.sendRequests(queryRequest);
             if (result && result.status === 'success') {
                 const batches = JSON.parse(result.result.toString());
-                this.batchIds = batches.map(b => b.id);
+                this.batchIds = batches.map(b => b.Key);
             }
         } catch (error) {
             console.warn('Could not fetch INSPECTED batches');

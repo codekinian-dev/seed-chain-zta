@@ -60,7 +60,11 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
         this.txIndex++;
 
         // Generate unique ID for seed batch
-        const batchId = `BATCH-${this.workerIndex}-${this.roundIndex}-${this.txIndex}-${Date.now()}`;
+        // Simplified deterministic ID: BATCH-{WorkerIndex*10000 + TxIndex}
+        // Example: Worker 0 -> BATCH-1, BATCH-2... | Worker 1 -> BATCH-10001...
+        // NOTE: Restart network between runs to avoid 'Asset already exists' errors
+        const uniqueNum = (this.workerIndex * 10000) + this.txIndex;
+        const batchId = `BATCH-${uniqueNum}`;
 
         // Random selection for variety and data
         const varietyIndex = Math.floor(Math.random() * this.varieties.length);

@@ -31,18 +31,22 @@ class QuerySeedBatchWorkload extends WorkloadModuleBase {
             if (result && result.status === 'success') {
                 const batches = JSON.parse(result.result.toString());
                 this.batchIds = batches.map(b => b.Key);
+                console.log(`[Worker ${workerIndex}] Berhasil mengambil ${this.batchIds.length} ID benih dari ledger.`);
+            } else {
+                console.warn(`[Worker ${workerIndex}] Gagal mengambil data benih. Status: ${result.status}`);
             }
         } catch (error) {
-            console.warn('Could not fetch existing batches, will use generated IDs');
-            // Generate some default batch IDs for testing
-            for (let i = 0; i < 100; i++) {
+            console.warn(`[Worker ${workerIndex}] Error saat mengambil data awal: ${error.message}`);
+            // Generate some default batch IDs for testing (assuming Worker 0 created them)
+            for (let i = 1; i <= 100; i++) {
                 this.batchIds.push(`BATCH-${i}`);
             }
         }
 
         if (this.batchIds.length === 0) {
+            console.warn(`[Worker ${workerIndex}] TIDAK ADA DATA DI LEDGER. Menggunakan ID dummy (akan error 500).`);
             // Fallback to generated IDs
-            for (let i = 0; i < 100; i++) {
+            for (let i = 1; i <= 100; i++) {
                 this.batchIds.push(`BATCH-${i}`);
             }
         }
