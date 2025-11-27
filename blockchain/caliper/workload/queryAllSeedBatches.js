@@ -19,7 +19,7 @@ class QueryAllSeedBatchesWorkload extends WorkloadModuleBase {
             contractFunction: 'queryAllSeedBatches',
             contractArguments: [],
             readOnly: true,
-            invokerIdentity: 'producer_bpsbp'
+            invokerIdentity: 'appUser'
         };
 
         await this.sutAdapter.sendRequests(request);

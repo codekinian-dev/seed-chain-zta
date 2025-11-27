@@ -23,14 +23,14 @@ class QuerySeedBatchWorkload extends WorkloadModuleBase {
             contractFunction: 'queryAllSeedBatches',
             contractArguments: [],
             readOnly: true,
-            invokerIdentity: 'producer_bpsbp'
+            invokerIdentity: 'appUser'
         };
 
         try {
             const result = await this.sutAdapter.sendRequests(queryRequest);
             if (result && result.status === 'success') {
                 const batches = JSON.parse(result.result.toString());
-                this.batchIds = batches.map(b => b.id);
+                this.batchIds = batches.map(b => b.Key);
             }
         } catch (error) {
             console.warn('Could not fetch existing batches, will use generated IDs');
@@ -60,7 +60,7 @@ class QuerySeedBatchWorkload extends WorkloadModuleBase {
             contractFunction: 'querySeedBatch',
             contractArguments: [batchId],
             readOnly: true,
-            invokerIdentity: 'producer_bpsbp'
+            invokerIdentity: 'appUser'
         };
 
         await this.sutAdapter.sendRequests(request);

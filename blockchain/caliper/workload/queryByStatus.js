@@ -23,7 +23,7 @@ class QueryByStatusWorkload extends WorkloadModuleBase {
             contractFunction: 'querySeedBatchesByStatus',
             contractArguments: [status],
             readOnly: true,
-            invokerIdentity: 'producer_bpsbp'
+            invokerIdentity: 'appUser'
         };
 
         await this.sutAdapter.sendRequests(request);

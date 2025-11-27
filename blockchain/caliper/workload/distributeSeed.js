@@ -32,14 +32,14 @@ class DistributeSeedWorkload extends WorkloadModuleBase {
             contractFunction: 'querySeedBatchesByStatus',
             contractArguments: ['CERTIFIED'],
             readOnly: true,
-            invokerIdentity: 'producer_bpsbp'
+            invokerIdentity: 'appUser'
         };
 
         try {
             const result = await this.sutAdapter.sendRequests(queryRequest);
             if (result && result.status === 'success') {
                 const batches = JSON.parse(result.result.toString());
-                this.batchIds = batches.map(b => b.id);
+                this.batchIds = batches.map(b => b.Key);
             }
         } catch (error) {
             console.warn('Could not fetch CERTIFIED batches');
@@ -69,7 +69,7 @@ class DistributeSeedWorkload extends WorkloadModuleBase {
                 quantity
             ],
             readOnly: false,
-            invokerIdentity: 'producer_bpsbp'
+            invokerIdentity: 'appUser'
         };
 
         await this.sutAdapter.sendRequests(request);
