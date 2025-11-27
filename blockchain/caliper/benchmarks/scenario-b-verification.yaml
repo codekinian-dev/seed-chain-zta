@@ -2,7 +2,7 @@ test:
   name: scenario-b-verification
   description: Scenario B - Public Verification (Read-Heavy). Load test 100-1000 TPS.
   workers:
-    number: 10
+    number: 5
   rounds: 
     # --- TAHAP 1: Pemanasan (Safe Zone) ---
     - label: issuance-50tps
