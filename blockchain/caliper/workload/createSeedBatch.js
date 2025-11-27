@@ -36,11 +36,15 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
     async submitTransaction() {
         this.txIndex++;
 
-        // Calculate index to pick from dataset based on worker index and transaction index
+        // Calculate index to pick from dataset based on round, worker, and transaction index
         // Formula ensures unique batch IDs across all workers and rounds
-        // Each worker gets a sequential range: Worker 0 -> 0,5,10,15... | Worker 1 -> 1,6,11,16...
-        const dataIndex = (this.workerIndex + ((this.txIndex - 1) * this.totalWorkers)) % dataset.length;
+        // roundIndex × largeOffset ensures each round gets a completely different dataset range
+        // Worker distribution within round: Worker 0 -> 0,5,10,15... | Worker 1 -> 1,6,11,16...
+        const roundOffset = this.roundIndex * 100000; // Each round gets 100K offset
+        const dataIndex = (roundOffset + this.workerIndex + ((this.txIndex - 1) * this.totalWorkers)) % dataset.length;
         const data = dataset[dataIndex];
+
+        console.log(`[Worker ${this.workerIndex}] Round ${this.roundIndex}, Tx ${this.txIndex}: Using ${data.batchId} (index ${dataIndex})`);
 
         const request = {
             contractId: this.roundArguments.contractId,
