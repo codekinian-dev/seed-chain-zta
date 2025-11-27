@@ -96,7 +96,7 @@ organizations:
           clientPrivateKey:
             path: $APP_USER_KEY
     connectionProfile:
-      path: ./networks/connection-bpsbp.yaml
+      path: ./networks/connection-remote.yaml
       discover: true
 
 EOF

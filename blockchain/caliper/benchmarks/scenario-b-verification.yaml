@@ -4,71 +4,48 @@ test:
   workers:
     number: 10
   rounds: 
-    - label: verification-50tps
-      txDuration: 120
+    # --- TAHAP 1: Pemanasan (Safe Zone) ---
+    - label: issuance-50tps
+      txDuration: 60
       rateControl: { type: fixed-rate, opts: { tps: 50 } }
       workload:
-        module: ./workload/querySeedBatch.js
+        module: ./workload/createSeedBatch.js
         arguments: { contractId: benih-certification }
-    - label: verification-100tps
-      txDuration: 120
+
+    # --- TAHAP 2: Beban Menengah (Optimal) ---
+    - label: issuance-100tps
+      txDuration: 60
       rateControl: { type: fixed-rate, opts: { tps: 100 } }
       workload:
-        module: ./workload/querySeedBatch.js
+        module: ./workload/createSeedBatch.js
         arguments: { contractId: benih-certification }
-    # - label: verification-200tps
-    #   txDuration: 120
-    #   rateControl: { type: fixed-rate, opts: { tps: 200 } }
-    #   workload:
-    #     module: ./workload/querySeedBatch.js
-    #     arguments: { contractId: benih-certification }
-    # - label: verification-300tps
-    #   txDuration: 120
-    #   rateControl: { type: fixed-rate, opts: { tps: 300 } }
-    #   workload:
-    #     module: ./workload/querySeedBatch.js
-    #     arguments: { contractId: benih-certification }
-    # - label: verification-400tps
-    #   txDuration: 120
-    #   rateControl: { type: fixed-rate, opts: { tps: 400 } }
-    #   workload:
-    #     module: ./workload/querySeedBatch.js
-    #     arguments: { contractId: benih-certification }
-    - label: verification-500tps
-      txDuration: 120
-      rateControl: { type: fixed-rate, opts: { tps: 500 } }
+
+    # --- TAHAP 3: Mencari Batas (Approaching Limit) ---
+    # Ini sangat penting untuk melihat kapan latency mulai naik
+    - label: issuance-150tps
+      txDuration: 60
+      rateControl: { type: fixed-rate, opts: { tps: 150 } }
       workload:
-        module: ./workload/querySeedBatch.js
+        module: ./workload/createSeedBatch.js
         arguments: { contractId: benih-certification }
-    # - label: verification-600tps
-    #   txDuration: 120
-    #   rateControl: { type: fixed-rate, opts: { tps: 600 } }
-    #   workload:
-    #     module: ./workload/querySeedBatch.js
-    #     arguments: { contractId: benih-certification }
-    # - label: verification-700tps
-    #   txDuration: 120
-    #   rateControl: { type: fixed-rate, opts: { tps: 700 } }
-    #   workload:
-    #     module: ./workload/querySeedBatch.js
-    #     arguments: { contractId: benih-certification }
-    # - label: verification-800tps
-    #   txDuration: 120
-    #   rateControl: { type: fixed-rate, opts: { tps: 800 } }
-    #   workload:
-    #     module: ./workload/querySeedBatch.js
-    #     arguments: { contractId: benih-certification }
-    # - label: verification-900tps
-    #   txDuration: 120
-    #   rateControl: { type: fixed-rate, opts: { tps: 900 } }
-    #   workload:
-    #     module: ./workload/querySeedBatch.js
-    #     arguments: { contractId: benih-certification }
-    - label: verification-1000tps
-      txDuration: 120
-      rateControl: { type: fixed-rate, opts: { tps: 1000 } }
+
+    # --- TAHAP 4: Titik Jenuh (Saturation Point) ---
+    # Kemungkinan besar latency akan melonjak di sini (sesuai data Anda ~190 TPS)
+    - label: issuance-200tps
+      txDuration: 60
+      rateControl: { type: fixed-rate, opts: { tps: 200 } }
       workload:
-        module: ./workload/querySeedBatch.js
+        module: ./workload/createSeedBatch.js
+        arguments: { contractId: benih-certification }
+
+    # --- TAHAP 5: Stress Test Ringan ---
+    # Jika 200 TPS masih aman, baru coba ini.
+    # Jangan langsung ke 500/1000!
+    - label: issuance-250tps
+      txDuration: 60
+      rateControl: { type: fixed-rate, opts: { tps: 250 } }
+      workload:
+        module: ./workload/createSeedBatch.js
         arguments: { contractId: benih-certification }
 
 monitors:
