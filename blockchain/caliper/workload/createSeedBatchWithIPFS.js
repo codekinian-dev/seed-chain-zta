@@ -113,9 +113,9 @@ class CreateSeedBatchWithIPFSWorkload extends WorkloadModuleBase {
         this.txIndex++;
 
         // Generate unique ID for seed batch
-        // Simplified deterministic ID: BATCH-{WorkerIndex*10000 + TxIndex}
-        const uniqueNum = (this.workerIndex * 10000) + this.txIndex;
-        const batchId = `BATCH-${uniqueNum}`;
+        // Using timestamp and random suffix to ensure uniqueness across runs
+        const uniqueId = `${this.workerIndex}-${this.txIndex}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const batchId = `BATCH-${uniqueId}`;
 
         // Random selection for variety and data
         const varietyIndex = Math.floor(Math.random() * this.varieties.length);
