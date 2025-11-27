@@ -2,6 +2,7 @@
 
 const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
 const { v4: uuidv4 } = require('uuid');
+const dataset = require('./seed-batch-dataset.json');
 
 /**
  * Workload module for createSeedBatch transaction
@@ -10,30 +11,6 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
     constructor() {
         super();
         this.txIndex = 0;
-        this.varieties = [
-            'Kelapa Dalam', 'Kelapa Hibrida', 'Kelapa Sawit Tenera', 'Kelapa Sawit Dura',
-            'Karet IRR 118', 'Karet PB 260', 'Kopi Arabika Gayo', 'Kopi Robusta Lampung',
-            'Kakao Forastero', 'Kakao Criollo'
-        ];
-
-        this.commodities = [
-            'Kelapa', 'Kelapa Sawit', 'Karet', 'Kopi Arabika', 'Kopi Robusta',
-            'Kakao', 'Teh', 'Tebu', 'Tembakau', 'Cengkeh'
-        ];
-        this.origins = [
-            'Bandung', 'Bogor', 'Cianjur', 'Sukabumi', 'Garut',
-            'Tasikmalaya', 'Kuningan', 'Majalengka', 'Sumedang', 'Purwakarta'
-        ];
-        this.seedClasses = ['BS', 'BD', 'BP', 'BR'];
-
-        // Simulated producer UUIDs
-        this.producerUUIDs = [
-            '550e8400-e29b-41d4-a716-446655440001',
-            '550e8400-e29b-41d4-a716-446655440002',
-            '550e8400-e29b-41d4-a716-446655440003',
-            '550e8400-e29b-41d4-a716-446655440004',
-            '550e8400-e29b-41d4-a716-446655440005'
-        ];
     }
 
     /**
@@ -59,56 +36,27 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
     async submitTransaction() {
         this.txIndex++;
 
-        // Generate unique ID for seed batch
-        // Deterministic ID: BATCH-{WorkerIndex}-{TxIndex}
-        // This allows us to predict IDs in Scenario B and re-run tests without reset (by ignoring duplicates)
-        const batchId = `BATCH-${this.workerIndex}-${this.txIndex}`;
-
-        // Random selection for variety and data
-        const varietyIndex = Math.floor(Math.random() * this.varieties.length);
-        const variety = this.varieties[varietyIndex];
-        const commodity = this.commodities[Math.min(varietyIndex, this.commodities.length - 1)];
-        const origin = this.origins[Math.floor(Math.random() * this.origins.length)];
-        const seedClass = this.seedClasses[Math.floor(Math.random() * this.seedClasses.length)];
-
-        // Generate harvest date (random date within last 6 months)
-        const harvestDate = new Date();
-        harvestDate.setDate(harvestDate.getDate() - Math.floor(Math.random() * 180));
-
-        // Generate seed source number
-        const seedSourceNumber = `SSN-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-
-        // Generate IUP number
-        const iupNumber = `IUP-${Math.floor(Math.random() * 100000)}`;
-
-        // Select random producer UUID
-        const producerUUID = this.producerUUIDs[Math.floor(Math.random() * this.producerUUIDs.length)];
-
-        // Generate seed source document parameters with valid IPFS CID format
-        const seedSourceDocName = `Dokumen Sumber Benih ${seedSourceNumber}`;
-
-        // Generate valid 46-character IPFS CIDv0 (Qm + 44 base58 characters)
-        const base58Chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-        let seedSourceIpfsCid = 'Qm';
-        for (let i = 0; i < 44; i++) {
-            seedSourceIpfsCid += base58Chars.charAt(Math.floor(Math.random() * base58Chars.length));
-        }
+        // Calculate index to pick from dataset based on worker index and transaction index
+        // Formula ensures unique batch IDs across all workers and rounds
+        // Each worker gets a sequential range: Worker 0 -> 0,5,10,15... | Worker 1 -> 1,6,11,16...
+        const dataIndex = (this.workerIndex + ((this.txIndex - 1) * this.totalWorkers)) % dataset.length;
+        const data = dataset[dataIndex];
 
         const request = {
             contractId: this.roundArguments.contractId,
             contractFunction: 'createSeedBatch',
             contractArguments: [
-                batchId,                // id
-                variety,                // varietyName
-                commodity,              // commodity
-                harvestDate.toISOString().split('T')[0],  // harvestDate (YYYY-MM-DD)
-                seedSourceNumber,       // seedSourceNumber
-                origin,                 // origin
-                iupNumber,              // iupNumber
-                seedClass,              // seedClass (BS, BD, BP, BR)
-                producerUUID,           // producerUUID (UUID format)
-                seedSourceDocName,      // seedSourceDocName
-                seedSourceIpfsCid       // seedSourceIpfsCid (valid 46-char CIDv0)
+                data.batchId,           // id
+                data.variety,           // varietyName
+                data.commodity,         // commodity
+                data.harvestDate,       // harvestDate
+                data.seedSourceNumber,  // seedSourceNumber
+                data.origin,            // origin
+                data.iupNumber,         // iupNumber
+                data.seedClass,         // seedClass
+                data.producerUUID,      // producerUUID
+                data.seedSourceDocName, // seedSourceDocName
+                data.seedSourceIpfsCid  // seedSourceIpfsCid
             ],
             readOnly: false,
             invokerIdentity: 'appUser'  // Single appUser with role_producer attribute
@@ -119,7 +67,7 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
         } catch (error) {
             // Ignore "already exists" errors to allow re-running tests without reset
             if (error.message && (error.message.includes('sudah ada') || error.message.includes('already exists'))) {
-                // console.log(`Batch ${batchId} already exists, skipping...`);
+                // console.log(`Batch ${data.batchId} already exists, skipping...`);
                 return;
             }
             throw error;
