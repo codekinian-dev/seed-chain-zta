@@ -107,11 +107,15 @@ create_user() {
 echo "Creating test users..."
 echo ""
 
-create_user "producer_test" "Test123!"
-create_user "producer_test2" "Test123!"
-create_user "producer_test3" "Test123!"
-create_user "producer_test4" "Test123!"
-create_user "producer_test5" "Test123!"
+# create_user "producer_test" "Test123!"
+# create_user "producer_test2" "Test123!"
+# create_user "producer_test3" "Test123!"
+# create_user "producer_test4" "Test123!"
+# create_user "producer_test5" "Test123!"
+for i in {1..50}; do
+  create_user "producer_test$i" "Test123!"
+done
+
 
 echo "=== Setup Complete ==="
 echo ""
