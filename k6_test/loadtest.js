@@ -22,9 +22,9 @@ export const options = {
         { duration: '10s', target: 0 },   // Ramp down to 0
     ],
     thresholds: {
-        'http_req_duration': ['p(95)<3000'], // 95% of requests must complete below 3s (blockchain is slow)
+        'http_req_duration': ['p(95)<5000'], // 95% of requests must complete below 5s (blockchain + file upload is slower)
         'errors': ['rate<0.1'],               // Error rate must be less than 10%
-        'http_req_failed': ['rate<0.1'],      // HTTP errors must be less than 10%
+        'http_req_failed': ['rate<0.05'],     // HTTP errors must be less than 5%
     },
 };
 
@@ -189,20 +189,7 @@ export function setup() {
     console.log(`Duration: 30 seconds at peak`);
     console.log(`Keycloak: ${KEYCLOAK_URL}`);
     console.log(`API: ${API_BASE_URL}`);
-    // console.log(`User: ${USERNAME}`);
     console.log('==========================');
-
-    // Verify Keycloak is accessible
-    const healthCheck = http.get(`${KEYCLOAK_URL}/health/ready`);
-    if (healthCheck.status !== 200) {
-        console.warn('WARNING: Keycloak may not be ready');
-    }
-
-    // Verify API is accessible
-    const apiHealth = http.get(`${API_BASE_URL}/api/health`);
-    if (apiHealth.status !== 200) {
-        console.warn('WARNING: API may not be ready');
-    }
 
     return {};
 }
