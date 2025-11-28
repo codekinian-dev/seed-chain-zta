@@ -12,7 +12,7 @@ services:
       - "4001:4001" # Swarm TCP
       - "4001:4001/udp" # Swarm UDP
       - "5001:5001" # API
-      - "9090:9091" # Gateway
+      - "9090:8080" # Gateway
     volumes:
       - ./data/ipfs-node-1:/data/ipfs
       - ./scripts:/scripts
@@ -33,14 +33,14 @@ services:
     environment:
       - IPFS_PROFILE=server
       - IPFS_PATH=/data/ipfs
-      - IPFS_NODE_2_GATEWAY_PORT=9091
+      # - IPFS_NODE_2_GATEWAY_PORT=9091
       - LIBP2P_TCP_MUX=false
       - IPFS_AUTOTLS=false
     ports:
       - "4002:4001" # Swarm TCP (mapped to host 4002)
       - "4002:4001/udp" # Swarm UDP (mapped to host 4002)
       - "5002:5001" # API (mapped to host 5002)
-      - "9091:9091" # Gateway (host 9091 -> container 9091)
+      - "9091:8080" # Gateway (host 9091 -> container 8080)
     volumes:
       - ./data/ipfs-node-2:/data/ipfs
       - ./scripts:/scripts
