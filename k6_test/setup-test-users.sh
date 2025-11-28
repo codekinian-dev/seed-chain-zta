@@ -3,7 +3,7 @@
 # Setup multiple test users for K6 load testing
 # This script creates 5 producer users to avoid concurrent session conflicts
 
-KEYCLOAK_URL="http://localhost:6080"
+KEYCLOAK_URL="https://auth.jabarchain.me"
 REALM="SeedCertificationRealm"
 ADMIN_USER="disbun"
 ADMIN_PASSWORD="@Keycloak123!"

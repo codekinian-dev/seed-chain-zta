@@ -33,14 +33,14 @@ echo ""
 echo "Checking services..."
 
 # Check Keycloak
-if curl -s http://localhost:6080/health/ready > /dev/null 2>&1; then
+if curl -s https://auth.jabarchain.me/health/ready > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Keycloak is running${NC}"
 else
     echo -e "${YELLOW}⚠ Keycloak may not be running on port 6080${NC}"
 fi
 
 # Check API Gateway
-if curl -s http://localhost:3001/api/health > /dev/null 2>&1; then
+if curl -s https://gateway.jabarchain.me/api/health > /dev/null 2>&1; then
     echo -e "${GREEN}✓ API Gateway is running${NC}"
 else
     echo -e "${YELLOW}⚠ API Gateway may not be running on port 3001${NC}"
