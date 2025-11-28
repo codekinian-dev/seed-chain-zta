@@ -1,13 +1,16 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
-import { Rate } from 'k6/metrics';
+import { Rate, Counter, Trend } from 'k6/metrics';
 import { FormData } from 'https://jslib.k6.io/formdata/0.0.2/index.js';
 import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
 // Custom metrics
 const errorRate = new Rate('errors');
+const seedBatchCreated = new Counter('seed_batch_created');
+const seedBatchFailed = new Counter('seed_batch_failed');
+const seedBatchDuration = new Trend('seed_batch_duration');
 
 // Load PDF file once at init stage (global scope)
 const pdfFile = open('./documents/test.pdf', 'b');
@@ -144,6 +147,9 @@ export default function () {
 
     const response = http.post(createUrl, formData.body(), params);
 
+    // Record response time for seed batch creation
+    seedBatchDuration.add(response.timings.duration);
+
     // Log full response for debugging
     console.log(`Response Status: ${response.status}`);
     console.log(`Response Body: ${response.body ? String(response.body).substring(0, 500) : 'No body'}`);
@@ -168,8 +174,10 @@ export default function () {
         const errorBody = response.body ? String(response.body).substring(0, 500) : 'No response body';
         console.error(`Create seed batch failed: ${response.status} - ${errorBody}`);
         errorRate.add(1);
+        seedBatchFailed.add(1);
     } else {
         errorRate.add(0);
+        seedBatchCreated.add(1);
         // Log successful request
         if (__ITER % 10 === 0) {
             console.log(`✓ Iteration ${__ITER}: Seed batch created successfully`);
