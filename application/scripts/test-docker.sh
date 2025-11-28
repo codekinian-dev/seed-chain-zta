@@ -52,19 +52,19 @@ echo ""
 
 # Step 2: Stop existing containers
 echo "Step 2: Stopping existing containers..."
-docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
+docker compose -f docker-compose.prod.yml down 2>/dev/null || true
 echo -e "${GREEN}✓ Containers stopped${NC}"
 echo ""
 
 # Step 3: Build image
 echo "Step 3: Building Docker image..."
-docker-compose -f docker-compose.prod.yml build api-gateway
+docker compose -f docker-compose.prod.yml build api-gateway
 echo -e "${GREEN}✓ Image built${NC}"
 echo ""
 
 # Step 4: Start Redis first
 echo "Step 4: Starting Redis..."
-docker-compose -f docker-compose.prod.yml up -d redis
+docker compose -f docker-compose.prod.yml up -d redis
 echo "Waiting for Redis to be healthy..."
 sleep 5
 
@@ -84,7 +84,7 @@ echo "========================================="
 echo ""
 
 # Run container and capture output
-docker-compose -f docker-compose.prod.yml up api-gateway
+docker compose -f docker-compose.prod.yml up api-gateway
 
 # If we get here, container exited
 echo ""
