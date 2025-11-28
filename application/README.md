@@ -2,6 +2,14 @@
 
 API Gateway for Seed Certification System with Zero Trust Architecture, integrating Keycloak, IPFS Cluster, and Hyperledger Fabric.
 
+## 📚 Documentation
+
+- **[VPS Deployment Guide](docs/VPS_DEPLOYMENT.md)** - Deploy aplikasi di VPS server
+- **[Docker Guide](docs/DOCKER_GUIDE.md)** - Panduan lengkap Docker deployment
+- **[Troubleshooting VPS](TROUBLESHOOTING_VPS.md)** - Solusi masalah Docker di VPS
+- **[API Documentation](docs/API_DOCS.md)** - Complete API reference
+- **[Setup Guide](docs/SETUP_GUIDE.md)** - Initial setup instructions
+
 ## Features
 
 - 🔐 Zero Trust Architecture dengan Keycloak JWT validation
@@ -12,6 +20,22 @@ API Gateway for Seed Certification System with Zero Trust Architecture, integrat
 - 🗑️ Auto-cleanup temporary files
 - 📊 Comprehensive audit logging
 - 🛡️ Role-based access control (RBAC)
+- 🐳 Production-ready Docker support
+
+## Quick Start VPS
+
+```bash
+# Setup dan deploy dalam satu command
+./scripts/vps-setup.sh
+
+# Atau manual
+cp .env.docker.template .env.docker.local
+# Edit .env.docker.local dengan IP VPS dan secrets
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# Monitor logs
+docker-compose -f docker-compose.prod.yml logs -f
+```
 
 ## Prerequisites
 
@@ -20,6 +44,7 @@ API Gateway for Seed Certification System with Zero Trust Architecture, integrat
 - IPFS Cluster (port 9094)
 - Hyperledger Fabric network running
 - Redis (for Bull queue)
+- Docker & Docker Compose (untuk deployment)
 
 ## Installation
 
