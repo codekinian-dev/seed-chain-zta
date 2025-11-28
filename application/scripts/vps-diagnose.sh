@@ -43,8 +43,8 @@ else
     exit 1
 fi
 
-if command -v docker-compose &> /dev/null; then
-    COMPOSE_VERSION=$(docker-compose --version)
+if command -v docker compose &> /dev/null; then
+    COMPOSE_VERSION=$(docker compose --version)
     print_success "Docker Compose installed: $COMPOSE_VERSION"
 else
     print_error "Docker Compose is not installed"
@@ -208,10 +208,10 @@ echo ""
 
 # Offer quick actions
 echo "Quick Actions:"
-echo "1. View full logs:          docker-compose -f docker-compose.prod.yml logs -f"
-echo "2. Restart containers:      docker-compose -f docker-compose.prod.yml restart"
-echo "3. Rebuild and restart:     docker-compose -f docker-compose.prod.yml up -d --build"
-echo "4. Stop all:                docker-compose -f docker-compose.prod.yml down"
+echo "1. View full logs:          docker compose -f docker-compose.prod.yml logs -f"
+echo "2. Restart containers:      docker compose -f docker-compose.prod.yml restart"
+echo "3. Rebuild and restart:     docker compose -f docker-compose.prod.yml up -d --build"
+echo "4. Stop all:                docker compose -f docker-compose.prod.yml down"
 echo "5. Check health:            docker inspect seed-api-gateway-prod | grep -A 10 Health"
 echo ""
 
@@ -229,7 +229,7 @@ echo "Saving full diagnostic report to: $REPORT_FILE"
     docker info
     echo ""
     echo "Docker Compose Config:"
-    docker-compose -f docker-compose.prod.yml config
+    docker compose -f docker-compose.prod.yml config
     echo ""
     echo "Container Status:"
     docker ps -a

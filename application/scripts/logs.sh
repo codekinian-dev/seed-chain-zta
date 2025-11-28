@@ -80,5 +80,5 @@ else
     echo "Available containers:"
     docker ps -a --format '{{.Names}}'
     echo ""
-    echo "Try running: docker-compose -f docker-compose.prod.yml up -d"
+    echo "Try running: docker compose -f docker-compose.prod.yml up -d"
 fi

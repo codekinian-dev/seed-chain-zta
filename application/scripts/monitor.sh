@@ -50,7 +50,7 @@ while true; do
             log "WARNING: Container failed $CONSECUTIVE_FAILURES times consecutively"
             log "Attempting restart..."
             
-            docker-compose -f docker-compose.prod.yml up -d api-gateway
+            docker compose -f docker-compose.prod.yml up -d api-gateway
             RESTART_COUNT=$((RESTART_COUNT + 1))
             
             log "Restart attempt #$RESTART_COUNT completed"
