@@ -50,7 +50,8 @@
       "url": "grpcs://143.198.199.79:7050",
       "grpcOptions": {
         "ssl-target-name-override": "chain-orderer.jabarchain.me",
-        "grpc-max-send-message-length": 15,
+        "grpc.max_receive_message_length": 209715200,
+        "grpc.max_send_message_length": 209715200,
         "grpc.keepalive_time_ms": 360000,
         "grpc.keepalive_timeout_ms": 180000
       },
@@ -64,6 +65,8 @@
       "url": "grpcs://143.198.199.79:7051",
       "grpcOptions": {
         "ssl-target-name-override": "pusat.chain-bpsbp.jabarchain.me",
+        "grpc.max_receive_message_length": 209715200,
+        "grpc.max_send_message_length": 209715200,
         "grpc.keepalive_time_ms": 360000,
         "grpc.keepalive_timeout_ms": 180000,
         "grpc.http2.min_time_between_pings_ms": 120000
@@ -76,6 +79,8 @@
       "url": "grpcs://143.198.199.79:8051",
       "grpcOptions": {
         "ssl-target-name-override": "cert.chain-bpsbp.jabarchain.me",
+        "grpc.max_receive_message_length": 209715200,
+        "grpc.max_send_message_length": 209715200,
         "grpc.keepalive_time_ms": 360000,
         "grpc.keepalive_timeout_ms": 180000,
         "grpc.http2.min_time_between_pings_ms": 120000

@@ -2,6 +2,9 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import { Rate } from 'k6/metrics';
+import { FormData } from 'https://jslib.k6.io/formdata/0.0.2/index.js';
+import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
+import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
 // Custom metrics
 const errorRate = new Rate('errors');
@@ -9,9 +12,10 @@ const errorRate = new Rate('errors');
 // K6 options - Load test configuration
 export const options = {
     stages: [
-        { duration: '30s', target: 5 },   // Gradual ramp up to 5 users
-        { duration: '60s', target: 10 },  // Ramp to 10 users
-        { duration: '60s', target: 10 },  // Stay at 10 users for 60s
+        { duration: '30s', target: 5 },   // Baseline: 5 users
+        { duration: '60s', target: 5 },   // Stay at baseline (5 users)
+        { duration: '30s', target: 50 },  // Stress test: ramp to 50 users
+        { duration: '60s', target: 50 },  // Stay at stress level (50 users)
         { duration: '10s', target: 0 },   // Ramp down to 0
     ],
     thresholds: {
@@ -22,10 +26,10 @@ export const options = {
 };
 
 // Keycloak and API configuration
-const KEYCLOAK_URL = 'http://localhost:6080';
+const KEYCLOAK_URL = 'https://auth.jabarchain.me';
 const KEYCLOAK_REALM = 'SeedCertificationRealm';
 const KEYCLOAK_CLIENT_ID = 'seed-cert-frontend'; // Public client - no secret required
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = 'https://gateway.jabarchain.me';
 
 // Multiple test user credentials for concurrent load testing
 // Each VU will use a different user to avoid session conflicts
@@ -92,8 +96,7 @@ function generateSeedBatchData(iteration) {
         seedSourceNumber: `SRC-${timestamp}-${iteration}`,
         origin: origins[iteration % origins.length],
         iupNumber: `IUP-${timestamp}-${Math.floor(Math.random() * 10000)}`,
-        seedClass: seedClasses[iteration % seedClasses.length],
-        documentName: `seed_document_${iteration}.pdf`
+        seedClass: seedClasses[iteration % seedClasses.length]
     };
 }
 
@@ -111,21 +114,35 @@ export default function () {
         return;
     }
 
-    // Step 2: Create seed batch using load test endpoint
+    // Step 2: Create seed batch using standard endpoint with file upload
     const iteration = __ITER;
     const seedData = generateSeedBatchData(iteration);
 
-    const createUrl = `${API_BASE_URL}/api/seed-batches/load-test`;
+    const createUrl = `${API_BASE_URL}/api/seed-batches`;
+
+    // Read PDF file (binary data)
+    const pdfFile = open('./documents/test.pdf', 'b');
+
+    // Create multipart form data
+    const formData = new FormData();
+    formData.append('varietyName', seedData.varietyName);
+    formData.append('commodity', seedData.commodity);
+    formData.append('harvestDate', seedData.harvestDate);
+    formData.append('seedSourceNumber', seedData.seedSourceNumber);
+    formData.append('origin', seedData.origin);
+    formData.append('iupNumber', seedData.iupNumber);
+    formData.append('seedClass', seedData.seedClass);
+    formData.append('document', http.file(pdfFile, 'test.pdf', 'application/pdf'));
 
     const params = {
         headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data; boundary=' + formData.boundary,
         },
         tags: { name: 'CreateSeedBatch' },
     };
 
-    const response = http.post(createUrl, JSON.stringify(seedData), params);
+    const response = http.post(createUrl, formData.body(), params);
 
     // Validate response
     const checkRes = check(response, {
@@ -191,4 +208,20 @@ export function setup() {
  */
 export function teardown(data) {
     console.log('=== K6 Load Test Completed ===');
+}
+
+/**
+ * Handle Summary - Generate HTML report with timestamp
+ */
+export function handleSummary(data) {
+    const now = new Date();
+    const timestamp = now.toISOString()
+        .replace(/T/, '_')
+        .replace(/:/g, '-')
+        .replace(/\..+/, ''); // Format: 2025-11-28_14-30-45
+
+    return {
+        [`reports/report-${timestamp}.html`]: htmlReport(data),
+        'stdout': textSummary(data, { indent: ' ', enableColors: true }),
+    };
 }

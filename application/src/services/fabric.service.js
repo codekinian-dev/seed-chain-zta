@@ -65,6 +65,14 @@ class FabricGateway {
                 eventHandlerOptions: {
                     commitTimeout: 300,
                     endorseTimeout: 300
+                },
+                // Increase gRPC message size limits to handle large responses (e.g., queryAllSeedBatches)
+                clientTlsIdentity: undefined,
+                grpcOptions: {
+                    'grpc.max_receive_message_length': 200 * 1024 * 1024, // 200MB
+                    'grpc.max_send_message_length': 200 * 1024 * 1024,    // 200MB
+                    'grpc.keepalive_time_ms': 120000,
+                    'grpc.keepalive_timeout_ms': 20000
                 }
             }); logger.info('[Fabric] Connected to gateway');
 

@@ -28,6 +28,12 @@ fi
 
 echo -e "${GREEN}✓ K6 installed${NC}"
 
+# Create reports directory if it doesn't exist
+if [ ! -d "reports" ]; then
+    mkdir -p reports
+    echo -e "${GREEN}✓ Reports directory created${NC}"
+fi
+
 # Check if services are running
 echo ""
 echo "Checking services..."
@@ -88,3 +94,6 @@ esac
 
 echo ""
 echo -e "${GREEN}Test completed!${NC}"
+echo ""
+echo -e "${YELLOW}HTML Report saved in: ${NC}reports/report-*.html"
+echo -e "${YELLOW}Open the latest report with: ${NC}open \$(ls -t reports/*.html | head -1)"
