@@ -31,7 +31,6 @@ services:
     environment:
       - IPFS_PROFILE=server
       - IPFS_PATH=/data/ipfs
-      - IPFS_NODE_2_GATEWAY_PORT=9091
     ports:
       - "4002:4001" # Swarm TCP (mapped to host 4002)
       - "4002:4001/udp" # Swarm UDP (mapped to host 4002)
