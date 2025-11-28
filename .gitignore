@@ -224,3 +224,5 @@ idp_keycloak/tests/coverage/
 blockchain/caliper/report*.html
 blockchain/caliper/workspace/
 blockchain/caliper/*.log
+documents/*.pdf
+/documents/*.pdf

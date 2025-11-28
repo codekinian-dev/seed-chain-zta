@@ -144,6 +144,10 @@ export default function () {
 
     const response = http.post(createUrl, formData.body(), params);
 
+    // Log full response for debugging
+    console.log(`Response Status: ${response.status}`);
+    console.log(`Response Body: ${response.body ? String(response.body).substring(0, 500) : 'No body'}`);
+
     // Validate response
     const checkRes = check(response, {
         'Create seed batch - status 200 or 201': (r) => r.status === 200 || r.status === 201,
@@ -161,7 +165,7 @@ export default function () {
     const isSuccess = response.status === 200 || response.status === 201;
 
     if (!isSuccess) {
-        const errorBody = response.body ? String(response.body).substring(0, 200) : 'No response body';
+        const errorBody = response.body ? String(response.body).substring(0, 500) : 'No response body';
         console.error(`Create seed batch failed: ${response.status} - ${errorBody}`);
         errorRate.add(1);
     } else {
