@@ -133,9 +133,9 @@ build_image() {
     print_info "Building Docker image..."
     
     if [ "$1" = "--no-cache" ]; then
-        docker-compose build --no-cache
+        docker compose build --no-cache
     else
-        docker-compose build
+        docker compose build
     fi
     
     if [ $? -eq 0 ]; then
@@ -150,7 +150,7 @@ build_image() {
 start_services() {
     print_info "Starting services..."
     
-    docker-compose --env-file .env.docker.local up -d
+    docker compose --env-file .env.docker.local up -d
     
     if [ $? -eq 0 ]; then
         print_info "✓ Services started"
@@ -169,7 +169,7 @@ check_health() {
     
     # Check Redis
     print_info "Checking Redis..."
-    if docker-compose exec -T redis redis-cli ping | grep -q "PONG"; then
+    if docker compose exec -T redis redis-cli ping | grep -q "PONG"; then
         print_info "✓ Redis is healthy"
     else
         print_warn "Redis health check failed"
@@ -192,7 +192,7 @@ check_health() {
     
     if [ $attempt -eq $max_attempts ]; then
         print_error "API Gateway health check timeout"
-        print_info "Check logs with: docker-compose logs api-gateway"
+        print_info "Check logs with: docker compose logs api-gateway"
         exit 1
     fi
     
@@ -211,11 +211,11 @@ check_health() {
 # Show status
 show_status() {
     print_info "Services status:"
-    docker-compose ps
+    docker compose ps
     
     print_info "\nView logs with:"
-    echo "  docker-compose logs -f api-gateway"
-    echo "  docker-compose logs -f redis"
+    echo "  docker compose logs -f api-gateway"
+    echo "  docker compose logs -f redis"
     
     print_info "\nAccess API:"
     echo "  Health: http://localhost:3001/api/health"
@@ -225,7 +225,7 @@ show_status() {
 # Stop services
 stop_services() {
     print_info "Stopping services..."
-    docker-compose down
+    docker compose down
     print_info "✓ Services stopped"
 }
 
@@ -236,7 +236,7 @@ clean_all() {
     
     if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
         print_info "Cleaning up..."
-        docker-compose down -v
+        docker compose down -v
         docker system prune -f
         print_info "✓ Cleanup completed"
     else
@@ -287,9 +287,9 @@ main() {
             ;;
         logs)
             if [ -n "$2" ]; then
-                docker-compose logs -f "$2"
+                docker compose logs -f "$2"
             else
-                docker-compose logs -f api-gateway
+                docker compose logs -f api-gateway
             fi
             ;;
         health)
