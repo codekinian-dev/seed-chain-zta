@@ -40,13 +40,11 @@ const API_BASE_URL = 'https://gateway.jabarchain.me';
 
 // Multiple test user credentials for concurrent load testing
 // Each VU will use a different user to avoid session conflicts
-const TEST_USERS = [
-    { username: 'producer_test', password: 'Test123!' },
-    { username: 'producer_test2', password: 'Test123!' },
-    { username: 'producer_test3', password: 'Test123!' },
-    { username: 'producer_test4', password: 'Test123!' },
-    { username: 'producer_test5', password: 'Test123!' },
-];
+const TEST_USERS = Array.from({ length: 49 }, (_, i) => ({
+    username: `producer_test${i + 1}`,
+    password: 'Test123!',
+}));
+
 
 /**
  * Get access token from Keycloak
