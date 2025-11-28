@@ -9,6 +9,9 @@ import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 // Custom metrics
 const errorRate = new Rate('errors');
 
+// Load PDF file once at init stage (global scope)
+const pdfFile = open('./documents/test.pdf', 'b');
+
 // K6 options - Load test configuration
 export const options = {
     stages: [
@@ -119,9 +122,6 @@ export default function () {
     const seedData = generateSeedBatchData(iteration);
 
     const createUrl = `${API_BASE_URL}/api/seed-batches`;
-
-    // Read PDF file (binary data)
-    const pdfFile = open('./documents/test.pdf', 'b');
 
     // Create multipart form data
     const formData = new FormData();
