@@ -49,7 +49,8 @@ if [ "$USE_EXISTING" != true ]; then
     
     # Generate secrets
     echo "Generating secure secrets..."
-    KEYCLOAK_SECRET=$(openssl rand -hex 32)
+    # KEYCLOAK_SECRET=$(openssl rand -hex 32)
+    KEYCLOAK_SECRET="E9BYWOE5NW6TSgT2XvJG7wzfJbA2kK15"
     SESSION_SECRET=$(openssl rand -base64 32)
     
     echo -e "${GREEN}✓ Secrets generated${NC}"
