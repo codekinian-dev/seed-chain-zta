@@ -10,7 +10,7 @@ services:
       - "4001:4001" # Swarm TCP
       - "4001:4001/udp" # Swarm UDP
       - "5001:5001" # API
-      - "9090:9091" # Gateway
+      - "9091:9091" # Gateway
     volumes:
       - ./data/ipfs-node-1:/data/ipfs
       - ./scripts:/scripts
@@ -31,6 +31,7 @@ services:
     environment:
       - IPFS_PROFILE=server
       - IPFS_PATH=/data/ipfs
+      - IPFS_NODE_2_GATEWAY_PORT=9091
     ports:
       - "4002:4001" # Swarm TCP (mapped to host 4002)
       - "4002:4001/udp" # Swarm UDP (mapped to host 4002)
@@ -51,7 +52,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    entrypoint: [ "/scripts/docker-entrypoint-wrapper.sh", "2" ]
+    entrypoint: [ "/scripts/entrypoint.sh", "2" ]
 
   ipfs-cluster-1:
     image: ipfs/ipfs-cluster:latest
