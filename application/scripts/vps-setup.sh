@@ -120,19 +120,18 @@ echo -e "${GREEN}✓ Directories created${NC}"
 # Build and start
 echo ""
 echo -e "${BLUE}Step 4: Building Docker images...${NC}"
-docker-compose -f docker-compose.prod.yml build
+docker compose -f docker-compose.prod.yml build
 
 echo ""
 echo -e "${BLUE}Step 5: Starting services...${NC}"
-docker-compose -f docker-compose.prod.yml up -d
-
+docker compose -f docker-compose.prod.yml up -d
 echo ""
 echo -e "${BLUE}Step 6: Waiting for services to be healthy...${NC}"
 sleep 10
 
 # Check status
 echo ""
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 echo ""
 echo -e "${GREEN}========================================="
@@ -140,10 +139,10 @@ echo "  Deployment Complete!"
 echo "=========================================${NC}"
 echo ""
 echo "Service Status:"
-docker-compose -f docker-compose.prod.yml ps --format "table {{.Name}}\t{{.Status}}"
+docker compose -f docker-compose.prod.yml ps --format "table {{.Name}}\t{{.Status}}"
 echo ""
 echo "Next steps:"
-echo "1. Check logs:        docker-compose -f docker-compose.prod.yml logs -f"
+echo "1. Check logs:        docker compose -f docker-compose.prod.yml logs -f"
 echo "2. Test health:       curl http://localhost:3001/api/health/liveness"
 echo "3. View API docs:     http://${VPS_IP}:3001/api-docs"
 echo "4. Run diagnostics:   ./scripts/vps-diagnose.sh"
