@@ -115,7 +115,7 @@ const enforceTimeRestriction = () => {
         const currentHour = now.getHours();
 
         // Check restricted hours (22:00 - 06:00)
-        const isRestricted = currentHour >= 22 || currentHour < 6;
+        const isRestricted = currentHour >= 22 || currentHour < 4;
 
         if (isRestricted) {
             logger.warn('[Policy] Time restriction enforced', {
