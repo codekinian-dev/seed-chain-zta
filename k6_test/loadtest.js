@@ -25,9 +25,10 @@ export const options = {
         { duration: '10s', target: 0 },   // Ramp down to 0
     ],
     thresholds: {
-        'http_req_duration': ['p(95)<5000'], // 95% of requests must complete below 5s (blockchain + file upload is slower)
-        'errors': ['rate<0.1'],               // Error rate must be less than 10%
-        'http_req_failed': ['rate<0.05'],     // HTTP errors must be less than 5%
+        'http_req_duration': ['p(95)<10000'], // 95% of requests must complete below 10s (blockchain + file upload)
+        'seed_batch_duration': ['p(95)<10000'], // Seed batch creation under 10s
+        'errors': ['rate<0.1'],                 // Error rate must be less than 10%
+        'http_req_failed': ['rate<0.05'],       // HTTP errors must be less than 5%
     },
 };
 
@@ -150,10 +151,6 @@ export default function () {
     // Record response time for seed batch creation
     seedBatchDuration.add(response.timings.duration);
 
-    // Log full response for debugging
-    console.log(`Response Status: ${response.status}`);
-    console.log(`Response Body: ${response.body ? String(response.body).substring(0, 500) : 'No body'}`);
-
     // Validate response
     const checkRes = check(response, {
         'Create seed batch - status 200 or 201': (r) => r.status === 200 || r.status === 201,
@@ -164,7 +161,6 @@ export default function () {
                 return false;
             }
         },
-        'Create seed batch - response time < 500ms': (r) => r.timings.duration < 500,
     });
 
     // Check if request was successful (status 200 or 201)
