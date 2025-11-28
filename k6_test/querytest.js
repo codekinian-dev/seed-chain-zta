@@ -85,7 +85,7 @@ function getAccessToken(userIndex) {
  * Generate random batch ID from batch-1 to batch-5000
  */
 function getRandomBatchId() {
-    const batchNumber = Math.floor(Math.random() * 5000) + 1;
+    const batchNumber = Math.floor(Math.random() * 500) + 1;
     return `BATCH-${batchNumber}`;
 }
 
