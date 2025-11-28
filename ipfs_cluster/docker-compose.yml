@@ -10,7 +10,7 @@ services:
       - "4001:4001" # Swarm TCP
       - "4001:4001/udp" # Swarm UDP
       - "5001:5001" # API
-      - "9091:9091" # Gateway
+      - "9090:9091" # Gateway
     volumes:
       - ./data/ipfs-node-1:/data/ipfs
       - ./scripts:/scripts
