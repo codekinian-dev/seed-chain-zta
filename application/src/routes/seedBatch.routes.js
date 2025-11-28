@@ -157,7 +157,7 @@ router.post(
 router.get(
     '/:id',
     protect(),
-    enforcePolicy('seed_batch', 'read'),
+    // enforcePolicy('seed_batch', 'read'),
     validateParams(idSchema),
     asyncHandler(seedBatchController.querySeedBatch)
 );
