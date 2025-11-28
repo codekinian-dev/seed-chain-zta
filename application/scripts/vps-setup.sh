@@ -60,7 +60,7 @@ if [ "$USE_EXISTING" != true ]; then
     cp .env.docker.template .env.docker.local
     
     # Replace placeholders
-    sed -i.bak "s|KEYCLOAK_URL=http://YOUR_VPS_IP:8080|KEYCLOAK_URL=http://${VPS_IP}:8080|g" .env.docker.local
+    sed -i.bak "s|KEYCLOAK_URL=http://YOUR_VPS_IP:8080|KEYCLOAK_URL=https://${VPS_IP}:6080|g" .env.docker.local
     sed -i.bak "s|IPFS_HOST=YOUR_VPS_IP|IPFS_HOST=${VPS_IP}|g" .env.docker.local
     sed -i.bak "s|KEYCLOAK_CLIENT_SECRET=REPLACE_WITH_YOUR_KEYCLOAK_CLIENT_SECRET|KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_SECRET}|g" .env.docker.local
     sed -i.bak "s|SESSION_SECRET=REPLACE_WITH_YOUR_SESSION_SECRET|SESSION_SECRET=${SESSION_SECRET}|g" .env.docker.local
