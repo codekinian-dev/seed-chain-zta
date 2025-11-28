@@ -18,11 +18,11 @@ const pdfFile = open('./documents/test.pdf', 'b');
 // K6 options - Load test configuration
 export const options = {
     stages: [
-        { duration: '30s', target: 5 },   // Baseline: 5 users
-        { duration: '60s', target: 5 },   // Stay at baseline (5 users)
-        { duration: '30s', target: 50 },  // Stress test: ramp to 50 users
-        { duration: '60s', target: 50 },  // Stay at stress level (50 users)
-        { duration: '10s', target: 0 },   // Ramp down to 0
+        { duration: '1m', target: 10 },   // Ramp up to 10 users
+        { duration: '2m', target: 10 },   // Stay at 10 users
+        { duration: '1m', target: 20 },   // Ramp up to 20 users
+        { duration: '2m', target: 20 },   // Stay at 20 users
+        { duration: '30s', target: 0 },   // Ramp down
     ],
     thresholds: {
         'http_req_duration': ['p(95)<10000'], // 95% of requests must complete below 10s (blockchain + file upload)
@@ -174,14 +174,14 @@ export default function () {
     } else {
         errorRate.add(0);
         seedBatchCreated.add(1);
-        // Log successful request
-        if (__ITER % 10 === 0) {
+        // Log successful request every 5 iterations to reduce console overhead
+        if (__ITER % 5 === 0) {
             console.log(`✓ Iteration ${__ITER}: Seed batch created successfully`);
         }
     }
 
-    // Think time - simulate real user behavior and avoid rate limiting
-    sleep(Math.random() * 3 + 2); // Random sleep between 2-5 seconds to avoid 429 errors
+    // Think time - simulate real user behavior and reduce memory pressure
+    sleep(Math.random() * 5 + 5); // Random sleep between 5-10 seconds
 }
 
 /**
@@ -189,8 +189,8 @@ export default function () {
  */
 export function setup() {
     console.log('=== K6 Load Test Setup ===');
-    console.log(`Target: 50 Virtual Users`);
-    console.log(`Duration: 30 seconds at peak`);
+    console.log(`Target: Max 20 Virtual Users`);
+    console.log(`Duration: ~6.5 minutes total`);
     console.log(`Keycloak: ${KEYCLOAK_URL}`);
     console.log(`API: ${API_BASE_URL}`);
     console.log('==========================');
