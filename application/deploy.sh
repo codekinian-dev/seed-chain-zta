@@ -35,7 +35,7 @@ check_prerequisites() {
     print_info "✓ Docker is installed"
     
     # Check Docker Compose
-    if ! command -v docker-compose &> /dev/null; then
+    if ! command -v docker compose &> /dev/null; then
         print_error "Docker Compose is not installed. Please install Docker Compose first."
         exit 1
     fi
