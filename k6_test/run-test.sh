@@ -54,10 +54,10 @@ fi
 
 echo ""
 echo "Select test scenario:"
-echo "  1) Smoke Test (1 VU, 10s) - Quick validation"
-echo "  2) Load Test (50 VUs, 30s) - Standard load"
-echo "  3) Stress Test (100 VUs, 60s) - High load"
-echo "  4) Spike Test (200 VUs, 30s) - Sudden spike"
+echo "  1) Smoke Test (1 VU, 1 min) - Quick validation"
+echo "  2) Load Test (20 VUs, ~6.5 min) - Standard load with gradual ramp"
+echo "  3) Stress Test (30 VUs, ~8 min) - High load test"
+echo "  4) Light Test (5 VUs, 3 min) - Light continuous load"
 echo "  5) Custom - Enter your own parameters"
 echo ""
 
@@ -66,19 +66,19 @@ read -p "Enter choice [1-5]: " choice
 case $choice in
     1)
         echo -e "${GREEN}Running Smoke Test...${NC}"
-        k6 run --vus 1 --duration 10s loadtest.js
+        k6 run --vus 1 --duration 1m loadtest.js
         ;;
     2)
-        echo -e "${GREEN}Running Load Test...${NC}"
+        echo -e "${GREEN}Running Load Test (gradual ramp to 20 VUs)...${NC}"
         k6 run loadtest.js
         ;;
     3)
-        echo -e "${GREEN}Running Stress Test...${NC}"
-        k6 run --vus 100 --duration 60s loadtest.js
+        echo -e "${GREEN}Running Stress Test (30 VUs)...${NC}"
+        k6 run --stages '1m:10,2m:10,1m:20,2m:20,1m:30,2m:30,30s:0' loadtest.js
         ;;
     4)
-        echo -e "${GREEN}Running Spike Test...${NC}"
-        k6 run --vus 200 --duration 30s loadtest.js
+        echo -e "${GREEN}Running Light Test (5 VUs)...${NC}"
+        k6 run --vus 5 --duration 3m loadtest.js
         ;;
     5)
         read -p "Enter number of VUs: " vus
