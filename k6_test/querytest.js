@@ -13,14 +13,21 @@ const queryNotFound = new Counter('query_not_found');
 
 // K6 options - Query test configuration
 export const options = {
+    // stages: [
+    //     { duration: '30s', target: 10 },   // Ramp up to 10 users
+    //     { duration: '1m', target: 10 },    // Stay at 10 users
+    //     { duration: '30s', target: 30 },   // Ramp up to 30 users
+    //     { duration: '1m', target: 30 },    // Stay at 30 users
+    //     { duration: '30s', target: 50 },   // Ramp up to 50 users
+    //     { duration: '1m', target: 50 },    // Stay at 50 users
+    //     { duration: '30s', target: 0 },    // Ramp down
+    // ],
     stages: [
-        { duration: '30s', target: 10 },   // Ramp up to 10 users
-        { duration: '1m', target: 10 },    // Stay at 10 users
-        { duration: '30s', target: 30 },   // Ramp up to 30 users
-        { duration: '1m', target: 30 },    // Stay at 30 users
-        { duration: '30s', target: 50 },   // Ramp up to 50 users
-        { duration: '1m', target: 50 },    // Stay at 50 users
-        { duration: '30s', target: 0 },    // Ramp down
+        { duration: '1m', target: 10 },   // Ramp up to 10 users
+        { duration: '2m', target: 10 },   // Stay at 10 users
+        { duration: '1m', target: 20 },   // Ramp up to 20 users
+        { duration: '2m', target: 20 },   // Stay at 20 users
+        { duration: '30s', target: 0 },   // Ramp down
     ],
     thresholds: {
         'http_req_duration': ['p(95)<2000'],  // 95% of requests must complete below 2s (query is fast)
