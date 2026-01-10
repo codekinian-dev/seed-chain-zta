@@ -6,9 +6,37 @@ const ipfsService = require('../services/ipfs.service');
 const fabricService = require('../services/fabric.service');
 const transactionService = require('../services/transaction.service');
 const queueService = require('../services/queue.service');
+const identityService = require('../services/identity.service');
 const { cleanupFile } = require('../middleware/upload');
 const { AppError } = require('../middleware/error');
 const { getUserUUID } = require('../middleware/auth');
+
+/**
+ * Helper function to get or create user identity for Fabric
+ * @param {Object} req - Express request with Keycloak auth
+ * @returns {Promise<string>} User ID for Fabric operations
+ */
+const ensureUserIdentity = async (req) => {
+    const token = req.kauth?.grant?.access_token?.content;
+    if (!token) {
+        throw new AppError('User authentication invalid - no token found', 401);
+    }
+
+    const userId = token.sub; // Keycloak user UUID
+
+    // Check if user has Fabric identity
+    const hasIdentity = await identityService.hasIdentity(userId);
+
+    if (!hasIdentity) {
+        // User doesn't have Fabric identity yet - need to enroll first
+        throw new AppError(
+            'User identity not found. Please call POST /api/v1/identity/enroll first.',
+            403
+        );
+    }
+
+    return userId;
+};
 
 /**
  * Create new seed batch with IPFS document upload
@@ -33,13 +61,9 @@ const createSeedBatch = async (req, res) => {
             tokenContent: req.kauth?.grant?.access_token?.content
         });
 
-        // Get user UUID
-        const userUUID = getUserUUID(req);
+        // Get user UUID and ensure they have Fabric identity
+        const userUUID = await ensureUserIdentity(req);
         console.log('User UUID result:', userUUID);
-
-        if (!userUUID) {
-            throw new AppError('User authentication invalid - no user ID found', 401);
-        }
 
         // Create transaction log
         transactionService.createTransaction('CREATE_SEED_BATCH', {
@@ -75,7 +99,7 @@ const createSeedBatch = async (req, res) => {
             filename: req.file.originalname
         });
 
-        // Step 2: Submit to blockchain
+        // Step 2: Submit to blockchain using user's identity
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'STARTED', {
             cid: uploadedCid
         });
@@ -98,7 +122,8 @@ const createSeedBatch = async (req, res) => {
             uploadedCid // seedSourceIpfsCid
         ];
 
-        const result = await fabricService.invokeChaincode('createSeedBatch', args);
+        // Use user-specific identity for the transaction
+        const result = await fabricService.invokeAsUser(userUUID, 'createSeedBatch', args);
 
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'COMPLETED', {
             batchId,
@@ -163,8 +188,11 @@ const submitCertification = async (req, res) => {
     let uploadedCid = null;
 
     try {
+        // Get user identity
+        const userUUID = await ensureUserIdentity(req);
+
         transactionService.createTransaction('SUBMIT_CERTIFICATION', {
-            userId: getUserUUID(req),
+            userId: userUUID,
             batchId,
             body: req.body
         });
@@ -176,7 +204,7 @@ const submitCertification = async (req, res) => {
         logger.info(`[Controller] Submitting certification`, {
             txId,
             batchId,
-            userId: getUserUUID(req)
+            userId: userUUID
         });
 
         // Upload to IPFS
@@ -184,7 +212,7 @@ const submitCertification = async (req, res) => {
         uploadedCid = await ipfsService.uploadFile(req.file.path);
         transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid });
 
-        // Submit to blockchain
+        // Submit to blockchain using user identity
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'STARTED');
 
         const args = [
@@ -193,7 +221,7 @@ const submitCertification = async (req, res) => {
             uploadedCid
         ];
 
-        const result = await fabricService.invokeChaincode('submitCertification', args);
+        const result = await fabricService.invokeAsUser(userUUID, 'submitCertification', args);
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'COMPLETED', { transactionId: result });
 
         transactionService.success(txId, { batchId, cid: uploadedCid, transactionId: result });
@@ -239,8 +267,11 @@ const recordInspection = async (req, res) => {
     let uploadedCid = null;
 
     try {
+        // Get user identity
+        const userUUID = await ensureUserIdentity(req);
+
         transactionService.createTransaction('RECORD_INSPECTION', {
-            userId: getUserUUID(req),
+            userId: userUUID,
             batchId,
             body: req.body
         });
@@ -252,7 +283,7 @@ const recordInspection = async (req, res) => {
         logger.info(`[Controller] Recording inspection`, {
             txId,
             batchId,
-            userId: getUserUUID(req)
+            userId: userUUID
         });
 
         // Upload to IPFS
@@ -260,17 +291,17 @@ const recordInspection = async (req, res) => {
         uploadedCid = await ipfsService.uploadFile(req.file.path);
         transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid });
 
-        // Submit to blockchain
+        // Submit to blockchain using user identity
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'STARTED');
 
         const args = [
             batchId,
             req.body.inspectionResult,
             uploadedCid,
-            getUserUUID(req) // inspectorFieldUUID
+            userUUID // inspectorFieldUUID
         ];
 
-        const result = await fabricService.invokeChaincode('recordInspection', args);
+        const result = await fabricService.invokeAsUser(userUUID, 'recordInspection', args);
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'COMPLETED', { transactionId: result });
 
         transactionService.success(txId, { batchId, cid: uploadedCid, transactionId: result });
@@ -315,8 +346,11 @@ const evaluateInspection = async (req, res) => {
     const { id: batchId } = req.params;
 
     try {
+        // Get user identity
+        const userUUID = await ensureUserIdentity(req);
+
         transactionService.createTransaction('EVALUATE_INSPECTION', {
-            userId: getUserUUID(req),
+            userId: userUUID,
             batchId,
             body: req.body
         });
@@ -324,7 +358,7 @@ const evaluateInspection = async (req, res) => {
         logger.info(`[Controller] Evaluating inspection`, {
             txId,
             batchId,
-            userId: getUserUUID(req)
+            userId: userUUID
         });
 
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'STARTED');
@@ -333,10 +367,10 @@ const evaluateInspection = async (req, res) => {
             batchId,
             req.body.evaluationNote,
             req.body.approvalStatus,
-            getUserUUID(req) // inspectorChiefUUID
+            userUUID // inspectorChiefUUID
         ];
 
-        const result = await fabricService.invokeChaincode('evaluateInspection', args);
+        const result = await fabricService.invokeAsUser(userUUID, 'evaluateInspection', args);
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'COMPLETED', { transactionId: result });
 
         transactionService.success(txId, { batchId, transactionId: result });
@@ -374,8 +408,11 @@ const issueCertificate = async (req, res) => {
     let uploadedCid = null;
 
     try {
+        // Get user identity
+        const userUUID = await ensureUserIdentity(req);
+
         transactionService.createTransaction('ISSUE_CERTIFICATE', {
-            userId: getUserUUID(req),
+            userId: userUUID,
             batchId,
             body: req.body
         });
@@ -387,7 +424,7 @@ const issueCertificate = async (req, res) => {
         logger.info(`[Controller] Issuing certificate`, {
             txId,
             batchId,
-            userId: getUserUUID(req)
+            userId: userUUID
         });
 
         // Upload to IPFS
@@ -403,10 +440,10 @@ const issueCertificate = async (req, res) => {
             req.body.expiryMonths,
             req.file.originalname,
             uploadedCid,
-            getUserUUID(req)
+            userUUID // issuerUUID
         ];
 
-        const result = await fabricService.invokeChaincode('issueCertificate', args);
+        const result = await fabricService.invokeAsUser(userUUID, 'issueCertificate', args);
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'COMPLETED', { transactionId: result });
 
         transactionService.success(txId, { batchId, cid: uploadedCid, transactionId: result });
@@ -452,8 +489,11 @@ const distributeSeed = async (req, res) => {
     const { id: batchId } = req.params;
 
     try {
+        // Get user identity
+        const userUUID = await ensureUserIdentity(req);
+
         transactionService.createTransaction('DISTRIBUTE_SEED', {
-            userId: getUserUUID(req),
+            userId: userUUID,
             batchId,
             body: req.body
         });
@@ -461,7 +501,7 @@ const distributeSeed = async (req, res) => {
         logger.info(`[Controller] Distributing seed`, {
             txId,
             batchId,
-            userId: getUserUUID(req)
+            userId: userUUID
         });
 
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'STARTED');
@@ -472,7 +512,7 @@ const distributeSeed = async (req, res) => {
             req.body.quantity.toString()
         ];
 
-        const result = await fabricService.invokeChaincode('distributeSeed', args);
+        const result = await fabricService.invokeAsUser(userUUID, 'distributeSeed', args);
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'COMPLETED', { transactionId: result });
 
         transactionService.success(txId, { batchId, transactionId: result });
@@ -509,12 +549,15 @@ const querySeedBatch = async (req, res) => {
     try {
         const { id: batchId } = req.params;
 
+        // Get user identity for query
+        const userUUID = await ensureUserIdentity(req);
+
         logger.info(`[Controller] Querying seed batch`, {
             batchId,
-            userId: getUserUUID(req)
+            userId: userUUID
         });
 
-        const seedBatch = await fabricService.queryChaincode('querySeedBatch', [batchId]);
+        const seedBatch = await fabricService.queryAsUser(userUUID, 'querySeedBatch', [batchId]);
 
         res.status(200).json({
             success: true,
@@ -536,11 +579,14 @@ const querySeedBatch = async (req, res) => {
  */
 const queryAllSeedBatches = async (req, res) => {
     try {
+        // Get user identity for query
+        const userUUID = await ensureUserIdentity(req);
+
         logger.info(`[Controller] Querying all seed batches`, {
-            userId: getUserUUID(req)
+            userId: userUUID
         });
 
-        const result = await fabricService.queryChaincode('queryAllSeedBatches', []);
+        const result = await fabricService.queryAsUser(userUUID, 'queryAllSeedBatches', []);
 
         // Validate result
         if (!result) {
@@ -576,14 +622,16 @@ const getHistory = async (req, res) => {
     try {
         const { id: batchId } = req.params;
 
+        // Get user identity for query
+        const userUUID = await ensureUserIdentity(req);
+
         logger.info(`[Controller] Getting history for seed batch`, {
             batchId,
-            userId: getUserUUID(req)
+            userId: userUUID
         });
 
         // Get history with block information including previous block hash
-        // const history = await fabricService.getHistoryWithBlockInfo(batchId);
-        const history = await fabricService.queryChaincode('getHistory', [batchId]);
+        const history = await fabricService.queryAsUser(userUUID, 'getHistory', [batchId]);
 
         res.status(200).json({
             success: true,
@@ -608,12 +656,8 @@ const createSeedBatchLoadTest = async (req, res) => {
     const txId = uuidv4();
 
     try {
-        // Get user UUID
-        const userUUID = getUserUUID(req);
-
-        if (!userUUID) {
-            throw new AppError('User authentication invalid - no user ID found', 401);
-        }
+        // Get user identity
+        const userUUID = await ensureUserIdentity(req);
 
         logger.info(`[Controller] Creating seed batch (load test mode)`, {
             txId,
@@ -646,7 +690,8 @@ const createSeedBatchLoadTest = async (req, res) => {
             mockCid
         ];
 
-        const result = await fabricService.invokeChaincode('createSeedBatch', args);
+        // Use user-specific identity for the transaction
+        const result = await fabricService.invokeAsUser(userUUID, 'createSeedBatch', args);
 
         logger.transaction(txId, 'SUCCESS', {
             batchId,

@@ -115,9 +115,11 @@ const initializeServices = async () => {
         // Import and setup routes (after auth middleware)
         const healthRoutes = require('./routes/health.routes');
         const seedBatchRoutes = require('./routes/seedBatch.routes');
+        const identityRoutes = require('./routes/identity.routes');
 
         app.use('/api/health', healthRoutes);
         app.use('/api/seed-batches', seedBatchRoutes);
+        app.use('/api/v1/identity', identityRoutes);
 
         // Swagger UI documentation
         const swaggerUi = require('swagger-ui-express');
@@ -146,6 +148,12 @@ const initializeServices = async () => {
 
         // Global error handler
         app.use(errorHandler);
+
+        // Initialize Identity Service (for CA enrollment)
+        logger.info('[Server] Initializing Identity Service...');
+        const identityService = require('./services/identity.service');
+        await identityService.initialize();
+        logger.info('[Server] ✓ Identity Service initialized');
 
         // Connect to Fabric Gateway
         logger.info('[Server] Connecting to Fabric network...');

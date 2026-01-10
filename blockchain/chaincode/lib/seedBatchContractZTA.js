@@ -1,6 +1,11 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
  * Zero Trust Architecture (ZTA) Enhanced Version
+ * 
+ * Updated for per-user identity from Keycloak integration:
+ * - Each user has their own private key and certificate
+ * - Role is embedded in certificate attributes during CA enrollment
+ * - keycloak_id attribute links to Keycloak user UUID
  */
 
 'use strict';
@@ -16,7 +21,7 @@ class SeedBatchContractZTA extends Contract {
     _verifyIdentityAndContext(ctx, requiredRole, requiredPermissions = []) {
         const cid = new ClientIdentity(ctx.stub);
 
-        // 1. Verify Role (RBAC) - Support multiple roles in single user
+        // 1. Verify Role (RBAC) - Each user has specific role in their certificate
         const roleAttr = cid.getAttributeValue(requiredRole);
         if (!roleAttr || roleAttr !== 'true') {
             this._logSecurityEvent(ctx, 'ACCESS_DENIED', `Role mismatch. Required: ${requiredRole}, User doesn't have this role attribute`);
@@ -44,12 +49,18 @@ class SeedBatchContractZTA extends Contract {
             throw new Error(`Akses ditolak. Status user: ${userStatus}. Harus 'active'.`);
         }
 
-        // 5. Build Identity Context with deterministic timestamp
+        // 5. Get Keycloak ID if available (links to IDP)
+        const keycloakId = cid.getAttributeValue('keycloak_id');
+        const username = cid.getAttributeValue('username');
+
+        // 6. Build Identity Context with deterministic timestamp
         const txTimestamp = ctx.stub.getTxTimestamp();
         const timestamp = new Date(txTimestamp.seconds.toInt() * 1000).toISOString();
 
         const identityContext = {
             userID: cid.getID(),
+            keycloakId: keycloakId || null,
+            username: username || null,
             role: requiredRole,
             mspId: mspId,
             timestamp: timestamp,
@@ -77,6 +88,8 @@ class SeedBatchContractZTA extends Contract {
             action: action,
             resourceId: resourceId,
             userID: identityContext.userID,
+            keycloakId: identityContext.keycloakId,
+            username: identityContext.username,
             role: identityContext.role,
             mspId: identityContext.mspId,
             details: details,
@@ -135,12 +148,60 @@ class SeedBatchContractZTA extends Contract {
         }
 
         const resource = await this.getSeedBatch(ctx, resourceId);
-        const userUUID = this._getUUIDFromUserID(identityContext.userID);
+
+        // Use keycloakId if available, otherwise extract from userID
+        const userUUID = identityContext.keycloakId || this._getUUIDFromUserID(identityContext.userID);
 
         if (resource.producer_id !== userUUID) {
             this._logSecurityEvent(ctx, 'UNAUTHORIZED_ACCESS',
                 `User ${userUUID} attempted to access resource owned by ${resource.producer_id}`);
             throw new Error(`Akses ditolak. Anda tidak memiliki hak akses ke resource ini.`);
+        }
+
+        return true;
+    }
+
+    // =========================================================
+    // ZERO TRUST: Verify User UUID matches identity
+    // =========================================================
+    _verifyUserUUID(identityContext, providedUUID, fieldName) {
+        // Get the user's UUID from keycloak_id attribute or extract from userID
+        const userUUID = identityContext.keycloakId || this._getUUIDFromUserID(identityContext.userID);
+
+        if (providedUUID !== userUUID) {
+            throw new Error(`UUID yang diberikan (${fieldName}) tidak cocok dengan identitas Anda. ` +
+                `Expected: ${userUUID}, Got: ${providedUUID}`);
+        }
+
+        return true;
+    }
+
+    // =========================================================
+    // ZERO TRUST: Verify Resource Ownership
+    // =========================================================
+    _verifyResourceOwnership(identityContext, seedBatch, ownerType) {
+        // Get caller's keycloak_id
+        const callerKeycloakId = identityContext.keycloakId;
+
+        if (!callerKeycloakId) {
+            throw new Error('Identity tidak memiliki keycloak_id. Akses ditolak.');
+        }
+
+        let ownerKeycloakId;
+        let ownerField;
+
+        switch (ownerType) {
+            case 'producer':
+                ownerKeycloakId = seedBatch.producer_keycloak_id;
+                ownerField = 'producer_keycloak_id';
+                break;
+            default:
+                throw new Error(`Tipe owner tidak dikenal: ${ownerType}`);
+        }
+
+        if (callerKeycloakId !== ownerKeycloakId) {
+            throw new Error(`Akses ditolak. Anda bukan pemilik resource ini. ` +
+                `Resource ${ownerField}: ${ownerKeycloakId}, Your ID: ${callerKeycloakId}`);
         }
 
         return true;
@@ -208,15 +269,26 @@ class SeedBatchContractZTA extends Contract {
     }
 
     // =========================================================
-    // HELPER: Extract UUID from User ID
+    // HELPER: Extract UUID from User ID (Certificate CN)
+    // For users enrolled via Fabric CA with Keycloak ID as enrollment ID,
+    // the CN will be the Keycloak UUID
     // =========================================================
     _getUUIDFromUserID(userID) {
+        // Try to extract CN from X.509 DN format
         const parts = userID.split('/');
         const cnPart = parts.find(p => p.startsWith('CN='));
         if (cnPart) {
             return cnPart.substring(3);
         }
         return userID;
+    }
+
+    // =========================================================
+    // HELPER: Get User's Keycloak UUID from identity context
+    // Priority: keycloakId attribute > CN from certificate
+    // =========================================================
+    _getUserKeycloakId(identityContext) {
+        return identityContext.keycloakId || this._getUUIDFromUserID(identityContext.userID);
     }
 
     // =========================================================
@@ -239,6 +311,9 @@ class SeedBatchContractZTA extends Contract {
         this._validateRequired('seedSourceDocName', seedSourceDocName);
         this._validateIPFSCid('seedSourceIpfsCid', seedSourceIpfsCid);
 
+        // ZTA: Verify producerUUID matches the caller's identity
+        this._verifyUserUUID(identity, producerUUID, 'producerUUID');
+
         const exists = await this.seedBatchExists(ctx, id);
         if (exists) {
             throw new Error(`Batch benih ${id} sudah ada.`);
@@ -249,6 +324,7 @@ class SeedBatchContractZTA extends Contract {
             name: this._sanitizeInput(seedSourceDocName),
             cid: seedSourceIpfsCid,
             uploaded_by: identity.userID,
+            uploaded_by_keycloak: identity.keycloakId,
             uploaded_at: identity.timestamp,
             doc_type: 'seed_source'
         };
@@ -264,16 +340,22 @@ class SeedBatchContractZTA extends Contract {
             origin: this._sanitizeInput(origin),
             iup_number: this._sanitizeInput(iupNumber),
 
-            // Identity tracking
+            // Identity tracking (using Keycloak UUID)
             producer_id: producerUUID,
+            producer_keycloak_id: identity.keycloakId,
             created_by: identity.userID,
+            created_by_keycloak: identity.keycloakId,
+            created_by_username: identity.username,
             created_at: identity.timestamp,
             created_msp: identity.mspId,
 
-            // Inspector IDs
+            // Inspector IDs (will be filled by respective roles)
             inspector_field_id: '',
+            inspector_field_keycloak_id: '',
             inspector_chief_id: '',
+            inspector_chief_keycloak_id: '',
             issuer_id: '',
+            issuer_keycloak_id: '',
 
             seed_class: seedClass,
             label_color: this._getLabelColor(seedClass),
@@ -287,6 +369,7 @@ class SeedBatchContractZTA extends Contract {
             // ZTA: Version control
             version: 1,
             last_modified_by: identity.userID,
+            last_modified_by_keycloak: identity.keycloakId,
             last_modified_at: identity.timestamp
         };
 
@@ -297,7 +380,8 @@ class SeedBatchContractZTA extends Contract {
             variety: varietyName,
             commodity: commodity,
             seedClass: seedClass,
-            seedSourceDoc: seedSourceDocName
+            seedSourceDoc: seedSourceDocName,
+            producerKeycloakId: identity.keycloakId
         }, identity);
 
         return JSON.stringify(seedBatch);
@@ -319,10 +403,15 @@ class SeedBatchContractZTA extends Contract {
             throw new Error(`Status harus REGISTERED. Status saat ini: ${seedBatch.current_status}`);
         }
 
+        // ZTA: Verify caller is the owner (producer) of this batch
+        this._verifyResourceOwnership(identity, seedBatch, 'producer');
+
         const newDoc = {
             name: this._sanitizeInput(documentName),
             cid: ipfsCid,
             uploaded_by: identity.userID,
+            uploaded_by_keycloak: identity.keycloakId,
+            uploaded_by_username: identity.username,
             uploaded_at: identity.timestamp,
             doc_type: 'certification_request'
         };
@@ -330,15 +419,18 @@ class SeedBatchContractZTA extends Contract {
         seedBatch.documents.push(newDoc);
         seedBatch.current_status = 'SUBMITTED';
         seedBatch.submitted_at = identity.timestamp;
+        seedBatch.submitted_by_keycloak = identity.keycloakId;
         seedBatch.version += 1;
         seedBatch.last_modified_by = identity.userID;
+        seedBatch.last_modified_by_keycloak = identity.keycloakId;
         seedBatch.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
         await this._logAuditTrail(ctx, 'SUBMIT_CERTIFICATION', id, {
             documentName: documentName,
-            ipfsCid: ipfsCid
+            ipfsCid: ipfsCid,
+            submitterKeycloakId: identity.keycloakId
         }, identity);
 
         return JSON.stringify(seedBatch);
@@ -355,6 +447,9 @@ class SeedBatchContractZTA extends Contract {
         this._validateIPFSCid('ipfsInspectionCid', ipfsInspectionCid);
         this._validateUUID('inspectorFieldUUID', inspectorFieldUUID);
 
+        // ZTA: Verify caller's identity matches the provided UUID
+        this._verifyUserUUID(identity, inspectorFieldUUID, 'inspectorFieldUUID');
+
         const seedBatch = await this.getSeedBatch(ctx, id);
 
         if (seedBatch.current_status !== 'SUBMITTED') {
@@ -362,12 +457,14 @@ class SeedBatchContractZTA extends Contract {
         }
 
         // ZTA: Prevent duplicate inspection by same inspector
-        if (seedBatch.inspector_field_id === inspectorFieldUUID) {
+        if (seedBatch.inspector_field_keycloak_id === identity.keycloakId) {
             throw new Error('Petugas ini sudah melakukan inspeksi pada batch ini.');
         }
 
         seedBatch.inspector_field_id = inspectorFieldUUID;
+        seedBatch.inspector_field_keycloak_id = identity.keycloakId;
         seedBatch.inspected_by = identity.userID;
+        seedBatch.inspected_by_username = identity.username;
         seedBatch.inspected_at = identity.timestamp;
         seedBatch.current_status = 'INSPECTED';
 
@@ -376,6 +473,8 @@ class SeedBatchContractZTA extends Contract {
             result: this._sanitizeInput(inspectionResult),
             cid: ipfsInspectionCid,
             uploaded_by: identity.userID,
+            uploaded_by_keycloak: identity.keycloakId,
+            uploaded_by_username: identity.username,
             uploaded_at: identity.timestamp,
             doc_type: 'field_inspection',
             inspector_msp: identity.mspId
@@ -384,12 +483,14 @@ class SeedBatchContractZTA extends Contract {
 
         seedBatch.version += 1;
         seedBatch.last_modified_by = identity.userID;
+        seedBatch.last_modified_by_keycloak = identity.keycloakId;
         seedBatch.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
         await this._logAuditTrail(ctx, 'RECORD_INSPECTION', id, {
             inspectorUUID: inspectorFieldUUID,
+            inspectorKeycloakId: identity.keycloakId,
             result: inspectionResult
         }, identity);
 
@@ -407,6 +508,9 @@ class SeedBatchContractZTA extends Contract {
         this._validateRequired('approvalStatus', approvalStatus);
         this._validateUUID('inspectorChiefUUID', inspectorChiefUUID);
 
+        // ZTA: Verify caller's identity matches the provided UUID
+        this._verifyUserUUID(identity, inspectorChiefUUID, 'inspectorChiefUUID');
+
         if (approvalStatus !== 'APPROVE' && approvalStatus !== 'REJECT') {
             throw new Error(`approvalStatus harus 'APPROVE' atau 'REJECT'.`);
         }
@@ -418,14 +522,16 @@ class SeedBatchContractZTA extends Contract {
         }
 
         // ZTA: Prevent self-evaluation (chief cannot evaluate own field inspection)
-        if (seedBatch.inspector_field_id === inspectorChiefUUID) {
+        if (seedBatch.inspector_field_keycloak_id === identity.keycloakId) {
             this._logSecurityEvent(ctx, 'CONFLICT_OF_INTEREST',
-                `Chief ${inspectorChiefUUID} attempted to evaluate own field inspection`);
+                `Chief ${identity.keycloakId} attempted to evaluate own field inspection`);
             throw new Error('Ketua tim tidak boleh mengevaluasi inspeksi yang dilakukan sendiri.');
         }
 
         seedBatch.inspector_chief_id = inspectorChiefUUID;
+        seedBatch.inspector_chief_keycloak_id = identity.keycloakId;
         seedBatch.evaluated_by = identity.userID;
+        seedBatch.evaluated_by_username = identity.username;
         seedBatch.evaluated_at = identity.timestamp;
 
         if (approvalStatus === 'REJECT') {
@@ -446,7 +552,9 @@ class SeedBatchContractZTA extends Contract {
             note: this._sanitizeInput(evaluationNote),
             status: approvalStatus,
             evaluator_id: inspectorChiefUUID,
+            evaluator_keycloak_id: identity.keycloakId,
             evaluator_user: identity.userID,
+            evaluator_username: identity.username,
             evaluated_at: identity.timestamp,
             doc_type: 'chief_evaluation',
             evaluator_msp: identity.mspId
@@ -455,13 +563,15 @@ class SeedBatchContractZTA extends Contract {
 
         seedBatch.version += 1;
         seedBatch.last_modified_by = identity.userID;
+        seedBatch.last_modified_by_keycloak = identity.keycloakId;
         seedBatch.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
         await this._logAuditTrail(ctx, 'EVALUATE_INSPECTION', id, {
             approvalStatus: approvalStatus,
-            note: evaluationNote
+            note: evaluationNote,
+            evaluatorKeycloakId: identity.keycloakId
         }, identity);
 
         return JSON.stringify(seedBatch);
@@ -479,6 +589,9 @@ class SeedBatchContractZTA extends Contract {
         this._validateRequired('certDocumentName', certDocumentName);
         this._validateIPFSCid('certIpfsCid', certIpfsCid);
         this._validateUUID('issuerUUID', issuerUUID);
+
+        // ZTA: Verify caller's identity matches the provided UUID
+        this._verifyUserUUID(identity, issuerUUID, 'issuerUUID');
 
         const months = parseInt(expiryDateMonths);
         if (isNaN(months) || months <= 0 || months > 120) {
@@ -506,7 +619,9 @@ class SeedBatchContractZTA extends Contract {
         expiryDate.setMonth(expiryDate.getMonth() + months);
 
         seedBatch.issuer_id = issuerUUID;
+        seedBatch.issuer_keycloak_id = identity.keycloakId;
         seedBatch.issued_by = identity.userID;
+        seedBatch.issued_by_username = identity.username;
         seedBatch.issued_at = identity.timestamp;
         seedBatch.cert_number = this._sanitizeInput(certNumber);
         seedBatch.cert_issue_date = now.toISOString();
@@ -519,6 +634,8 @@ class SeedBatchContractZTA extends Contract {
             name: this._sanitizeInput(certDocumentName),
             cid: certIpfsCid,
             uploaded_by: identity.userID,
+            uploaded_by_keycloak: identity.keycloakId,
+            uploaded_by_username: identity.username,
             uploaded_at: identity.timestamp,
             doc_type: 'certificate',
             cert_number: certNumber
@@ -527,6 +644,7 @@ class SeedBatchContractZTA extends Contract {
 
         seedBatch.version += 1;
         seedBatch.last_modified_by = identity.userID;
+        seedBatch.last_modified_by_keycloak = identity.keycloakId;
         seedBatch.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
@@ -537,7 +655,8 @@ class SeedBatchContractZTA extends Contract {
         await this._logAuditTrail(ctx, 'ISSUE_CERTIFICATE', id, {
             certNumber: certNumber,
             expiryMonths: months,
-            expiryDate: expiryDate.toISOString()
+            expiryDate: expiryDate.toISOString(),
+            issuerKeycloakId: identity.keycloakId
         }, identity);
 
         return JSON.stringify(seedBatch);
@@ -560,12 +679,14 @@ class SeedBatchContractZTA extends Contract {
 
         // ZTA: Log critical security action
         this._logSecurityEvent(ctx, 'CERTIFICATE_REVOCATION',
-            `Certificate ${seedBatch.cert_number} for batch ${id} is being revoked. Reason: ${reason}`);
+            `Certificate ${seedBatch.cert_number} for batch ${id} is being revoked by ${identity.keycloakId}. Reason: ${reason}`);
 
         seedBatch.current_status = 'REVOKED';
         const txTimestamp = ctx.stub.getTxTimestamp();
         seedBatch.cert_revoke_date = new Date(txTimestamp.seconds.toInt() * 1000).toISOString();
         seedBatch.revoked_by = identity.userID;
+        seedBatch.revoked_by_keycloak = identity.keycloakId;
+        seedBatch.revoked_by_username = identity.username;
         seedBatch.revoked_at = identity.timestamp;
         seedBatch.revoker_msp = identity.mspId;
 
@@ -573,6 +694,8 @@ class SeedBatchContractZTA extends Contract {
             name: 'Berita Acara Pencabutan',
             reason: this._sanitizeInput(reason),
             revoked_by: identity.userID,
+            revoked_by_keycloak: identity.keycloakId,
+            revoked_by_username: identity.username,
             revoked_at: identity.timestamp,
             doc_type: 'revocation',
             revoker_msp: identity.mspId
@@ -581,6 +704,7 @@ class SeedBatchContractZTA extends Contract {
 
         seedBatch.version += 1;
         seedBatch.last_modified_by = identity.userID;
+        seedBatch.last_modified_by_keycloak = identity.keycloakId;
         seedBatch.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
@@ -590,7 +714,8 @@ class SeedBatchContractZTA extends Contract {
 
         await this._logAuditTrail(ctx, 'REVOKE_CERTIFICATE', id, {
             certNumber: seedBatch.cert_number,
-            reason: reason
+            reason: reason,
+            revokerKeycloakId: identity.keycloakId
         }, identity);
 
         return JSON.stringify(seedBatch);
@@ -617,31 +742,37 @@ class SeedBatchContractZTA extends Contract {
             throw new Error(`Hanya benih bersertifikat yang boleh diedarkan.`);
         }
 
+        // ZTA: Verify caller is the owner (producer) of this batch
+        this._verifyResourceOwnership(identity, seedBatch, 'producer');
+
         // ZTA: Verify certificate not expired (using transaction timestamp)
         const txTimestamp = ctx.stub.getTxTimestamp();
         const now = new Date(txTimestamp.seconds.toInt() * 1000);
         const expiry = new Date(seedBatch.cert_expiry_date);
         if (now > expiry) {
             this._logSecurityEvent(ctx, 'EXPIRED_CERTIFICATE_USE',
-                `Attempt to distribute batch ${id} with expired certificate ${seedBatch.cert_number}`);
+                `Attempt to distribute batch ${id} with expired certificate ${seedBatch.cert_number} by ${identity.keycloakId}`);
             throw new Error(`Sertifikat kadaluarsa pada ${expiry.toISOString()}.`);
         }
 
         // ZTA: Check if certificate is revoked
         if (seedBatch.current_status === 'REVOKED') {
             this._logSecurityEvent(ctx, 'REVOKED_CERTIFICATE_USE',
-                `Attempt to distribute batch ${id} with revoked certificate ${seedBatch.cert_number}`);
+                `Attempt to distribute batch ${id} with revoked certificate ${seedBatch.cert_number} by ${identity.keycloakId}`);
             throw new Error('Sertifikat telah dicabut. Distribusi tidak diizinkan.');
         }
 
         seedBatch.current_status = 'DISTRIBUTED';
         seedBatch.distributed_at = identity.timestamp;
+        seedBatch.distributed_by_keycloak = identity.keycloakId;
 
         const distDoc = {
             name: 'Bukti Distribusi',
             location: this._sanitizeInput(distributionLocation),
             quantity: qty,
             distributed_by: identity.userID,
+            distributed_by_keycloak: identity.keycloakId,
+            distributed_by_username: identity.username,
             distributed_at: identity.timestamp,
             doc_type: 'distribution',
             distributor_msp: identity.mspId
@@ -650,13 +781,15 @@ class SeedBatchContractZTA extends Contract {
 
         seedBatch.version += 1;
         seedBatch.last_modified_by = identity.userID;
+        seedBatch.last_modified_by_keycloak = identity.keycloakId;
         seedBatch.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
         await this._logAuditTrail(ctx, 'DISTRIBUTE_SEED', id, {
             location: distributionLocation,
-            quantity: qty
+            quantity: qty,
+            distributorKeycloakId: identity.keycloakId
         }, identity);
 
         return JSON.stringify(seedBatch);
@@ -674,6 +807,8 @@ class SeedBatchContractZTA extends Contract {
         const identity = {
             userID: cid.getID(),
             role: cid.getAttributeValue('role') || 'unknown',
+            keycloakId: cid.getAttributeValue('keycloak_id') || '',
+            username: cid.getAttributeValue('username') || '',
             mspId: cid.getMSPID(),
             timestamp: new Date(txTimestamp.seconds.toInt() * 1000).toISOString(),
             txId: ctx.stub.getTxID(),
@@ -681,7 +816,8 @@ class SeedBatchContractZTA extends Contract {
         };
 
         await this._logAuditTrail(ctx, 'READ_HISTORY', id, {
-            accessType: 'full_history'
+            accessType: 'full_history',
+            accessorKeycloakId: identity.keycloakId
         }, identity);
 
         const iterator = await ctx.stub.getHistoryForKey(id);
@@ -824,29 +960,32 @@ class SeedBatchContractZTA extends Contract {
     }
 
     // =========================================================
-    // Query by Producer (with strict ownership check)
+    // Query by Producer (with strict ownership check using keycloak_id)
     // =========================================================
-    async querySeedBatchesByProducer(ctx, producerUUID) {
+    async querySeedBatchesByProducer(ctx, producerKeycloakId) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
 
-        // ZTA: Strict ownership verification
-        const userUUID = this._getUUIDFromUserID(identity.userID);
-        if (producerUUID !== userUUID) {
+        // ZTA: Strict ownership verification using keycloak_id
+        if (!identity.keycloakId) {
+            throw new Error('Identity tidak memiliki keycloak_id. Akses ditolak.');
+        }
+
+        if (producerKeycloakId !== identity.keycloakId) {
             this._logSecurityEvent(ctx, 'UNAUTHORIZED_QUERY',
-                `Producer ${userUUID} attempted to query batches of ${producerUUID}`);
+                `Producer ${identity.keycloakId} attempted to query batches of ${producerKeycloakId}`);
             throw new Error(`Anda hanya bisa melihat batch benih milik Anda sendiri.`);
         }
 
-        this._validateUUID('producerUUID', producerUUID);
+        this._validateUUID('producerKeycloakId', producerKeycloakId);
 
-        await this._logAuditTrail(ctx, 'QUERY_BY_PRODUCER', producerUUID, {
-            producerUUID: producerUUID
+        await this._logAuditTrail(ctx, 'QUERY_BY_PRODUCER', producerKeycloakId, {
+            producerKeycloakId: producerKeycloakId
         }, identity);
 
         const queryString = {
             selector: {
                 docType: 'SeedBatch',
-                producer_id: producerUUID
+                producer_keycloak_id: producerKeycloakId
             }
         };
 

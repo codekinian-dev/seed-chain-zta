@@ -1,7 +1,12 @@
 #!/bin/bash
 #
-# Script untuk setup single appUser dengan combined roles untuk dApp
-# UUIDs akan dikirim sebagai parameter ke chaincode
+# Script untuk setup admin identity untuk Fabric CA
+# User identities akan di-generate otomatis saat register via Keycloak
+#
+# Flow:
+# 1. User register di Keycloak (IDP)
+# 2. Application memanggil Fabric CA untuk generate private key
+# 3. Enroll dan simpan wallet di application/wallet
 #
 
 set -e
@@ -9,12 +14,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BLOCKCHAIN_DIR="$(dirname "$SCRIPT_DIR")"
 NETWORK_DIR="$BLOCKCHAIN_DIR/network"
+APPLICATION_DIR="$(dirname "$BLOCKCHAIN_DIR")/application"
 
 source "$BLOCKCHAIN_DIR/.env"
 
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m'
 
 print_message() {
@@ -25,114 +33,180 @@ print_warning() {
     echo -e "${YELLOW}$1${NC}"
 }
 
-# Single appUser for dApp - will handle all roles
-APP_USER="appUser"
+print_error() {
+    echo -e "${RED}$1${NC}"
+}
+
+print_info() {
+    echo -e "${BLUE}$1${NC}"
+}
 
 # Fabric environment
 export FABRIC_CFG_PATH="$BLOCKCHAIN_DIR/config"
 export ORDERER_CA="$NETWORK_DIR/organizations/ordererOrganizations/${DOMAIN_SUFFIX}/orderers/${ORDERER_DOMAIN}/tls/tlscacerts/tls-localhost-${ORDERER_CA_PORT}-ca-orderer.pem"
 
-# Function to set peer environment
-set_peer_env() {
-    local org=$1
-    local username=$2
-    local domain=$3
-    local peer_port=$4
-    local msp_id=$5
-    local peer_name=$6
-    
-    export CORE_PEER_LOCALMSPID="$msp_id"
-    export CORE_PEER_TLS_ROOTCERT_FILE="$NETWORK_DIR/organizations/peerOrganizations/$domain/peers/$peer_name.$domain/tls/ca.crt"
-    export CORE_PEER_MSPCONFIGPATH="$NETWORK_DIR/organizations/peerOrganizations/$domain/users/${username}@${domain}/msp"
-    export CORE_PEER_ADDRESS="localhost:$peer_port"
-    export CORE_PEER_TLS_ENABLED=true
-}
+# Wallet directory in application
+WALLET_DIR="$APPLICATION_DIR/wallet"
 
-# Function to join user to channel
-join_user_to_channel() {
+# Function to enroll CA admin and store in application wallet
+enroll_admin() {
     local org=$1
-    local username=$2
+    local ca_port=$2
     local domain=$3
-    local peer_port=$4
-    local msp_id=$5
-    local peer_name=$6
+    local msp_id=$4
+    local admin_name=${5:-admin}
+    local admin_secret=${6:-adminpw}
     
-    print_message "Joining user $username to channel benihchannel..."
-    
-    set_peer_env "$org" "$username" "$domain" "$peer_port" "$msp_id" "$peer_name"
-    
-    # Fetch channel block
-    peer channel fetch 0 benihchannel.block \
-        -o localhost:${ORDERER_PORT} \
-        --ordererTLSHostnameOverride ${ORDERER_DOMAIN} \
-        -c benihchannel \
-        --tls \
-        --cafile "$ORDERER_CA" 2>/dev/null || true
-    
-    # Join channel
-    peer channel join -b benihchannel.block 2>/dev/null || print_warning "Already joined or join failed (this is OK if already joined)"
-    
-    # Create ca.crt symlink for MSP structure
-    local user_msp_dir="$NETWORK_DIR/organizations/peerOrganizations/$domain/users/${username}@${domain}/msp"
-    if [ ! -f "$user_msp_dir/cacerts/ca.crt" ]; then
-        local ca_file=$(ls "$user_msp_dir/cacerts/" | head -n 1)
-        if [ -n "$ca_file" ]; then
-            ln -sf "$ca_file" "$user_msp_dir/cacerts/ca.crt"
-            print_message "✓ Created ca.crt symlink for $username"
-        fi
-    fi
-    
-    # Verify
-    if peer channel list 2>/dev/null | grep -q "benihchannel"; then
-        print_message "✓ User $username successfully joined channel benihchannel"
-        return 0
-    else
-        print_warning "⚠ User $username may not have joined channel (check manually)"
-        return 1
-    fi
-}
-
-# Function to enroll single appUser with combined roles
-enroll_app_user() {
-    local org=$1
-    local username=$2
-    local ca_port=$3
-    local domain=$4
+    print_message "\n=========================================="
+    print_message "Enrolling CA Admin for: $org"
+    print_message "==========================================\n"
     
     export FABRIC_CA_CLIENT_HOME=$NETWORK_DIR/organizations/fabric-ca/$org
     
-    # Register appUser with ALL roles as comma-separated attributes
-    fabric-ca-client register \
-        --caname ca-$org \
-        --id.name $username \
-        --id.secret apppw \
-        --id.type client \
-        --id.attrs "role_producer=true:ecert,role_pbt_field=true:ecert,role_pbt_chief=true:ecert,role_lsm_head=true:ecert" \
-        --tls.certfiles $NETWORK_DIR/organizations/fabric-ca/$org/ca-cert.pem \
-        -u https://localhost:$ca_port 2>/dev/null || true
+    # Enroll admin
+    print_info "Enrolling admin identity..."
     
-    # Enroll with all role attributes
+    local admin_msp_dir="$NETWORK_DIR/organizations/peerOrganizations/$domain/users/${admin_name}@${domain}/msp"
+    mkdir -p "$admin_msp_dir"
+    
     fabric-ca-client enroll \
-        -u https://${username}:apppw@localhost:$ca_port \
+        -u https://${admin_name}:${admin_secret}@localhost:$ca_port \
         --caname ca-$org \
-        --enrollment.attrs "role_producer,role_pbt_field,role_pbt_chief,role_lsm_head" \
-        -M $NETWORK_DIR/organizations/peerOrganizations/$domain/users/${username}@${domain}/msp \
+        -M "$admin_msp_dir" \
         --tls.certfiles $NETWORK_DIR/organizations/fabric-ca/$org/ca-cert.pem
     
+    # Copy NodeOUs config
     cp $NETWORK_DIR/organizations/peerOrganizations/$domain/msp/config.yaml \
-       $NETWORK_DIR/organizations/peerOrganizations/$domain/users/${username}@${domain}/msp/config.yaml
+       "$admin_msp_dir/config.yaml"
     
-    print_message "✓ $username enrolled with combined roles: producer, pbt_field, pbt_chief, lsm_head"
+    print_message "✓ Admin enrolled successfully"
+    
+    # Create wallet for admin
+    create_wallet_for_admin "$admin_name" "$domain" "$msp_id" "$admin_msp_dir"
 }
 
-print_message "Setting up single appUser for dApp..."
+# Function to create wallet in application directory
+create_wallet_for_admin() {
+    local username=$1
+    local domain=$2
+    local msp_id=$3
+    local user_msp_dir=$4
+    
+    print_info "Creating wallet for $username in application..."
+    
+    # Create wallet directory
+    mkdir -p "$WALLET_DIR"
+    
+    # Get certificate
+    local cert_file=$(ls "$user_msp_dir/signcerts/" 2>/dev/null | head -n 1)
+    if [ -z "$cert_file" ]; then
+        print_error "✗ Certificate not found for $username"
+        return 1
+    fi
+    local cert_path="$user_msp_dir/signcerts/$cert_file"
+    
+    # Get private key
+    local key_file=$(ls "$user_msp_dir/keystore/" 2>/dev/null | head -n 1)
+    if [ -z "$key_file" ]; then
+        print_error "✗ Private key not found for $username"
+        return 1
+    fi
+    local key_path="$user_msp_dir/keystore/$key_file"
+    
+    # Read certificate and key content
+    local cert_content=$(cat "$cert_path" | awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}')
+    local key_content=$(cat "$key_path" | awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}')
+    
+    # Create wallet identity JSON (Fabric SDK wallet format)
+    cat > "$WALLET_DIR/$username.id" << EOF
+{
+    "credentials": {
+        "certificate": "${cert_content}",
+        "privateKey": "${key_content}"
+    },
+    "mspId": "${msp_id}",
+    "type": "X.509",
+    "version": 1
+}
+EOF
+    
+    # Create metadata file
+    cat > "$WALLET_DIR/$username.metadata.json" << EOF
+{
+    "userId": "${username}",
+    "username": "${username}",
+    "mspId": "${msp_id}",
+    "domain": "${domain}",
+    "role": "admin",
+    "enrolledAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+    "isAdmin": true
+}
+EOF
+    
+    print_message "✓ Wallet created for $username at $WALLET_DIR"
+    return 0
+}
 
-# Create appUser in BPSBP (can also be created in Disbun, choose one)
-enroll_app_user "bpsbp" "$APP_USER" $BPSBP_CA_PORT $BPSBP_DOMAIN
-join_user_to_channel "bpsbp" "$APP_USER" "$BPSBP_DOMAIN" "$BPSBP_PEER0_PORT" "$BPSBP_MSP_ID" "pusat"
+# Function to copy CA TLS certificate to application
+copy_ca_tls_cert() {
+    local org=$1
+    
+    print_info "Copying CA TLS certificate to application..."
+    
+    local ca_tls_cert="$NETWORK_DIR/organizations/fabric-ca/$org/ca-cert.pem"
+    local app_config_dir="$APPLICATION_DIR/config"
+    
+    mkdir -p "$app_config_dir"
+    
+    if [ -f "$ca_tls_cert" ]; then
+        cp "$ca_tls_cert" "$app_config_dir/ca-cert-$org.pem"
+        print_message "✓ CA TLS certificate copied to $app_config_dir/ca-cert-$org.pem"
+    else
+        print_warning "CA TLS certificate not found at $ca_tls_cert"
+    fi
+}
 
-# Cleanup
-rm -f benihchannel.block
+# Main execution
+main() {
+    print_message "=========================================="
+    print_message "Setup Admin Identity for Fabric CA"
+    print_message "==========================================\n"
+    
+    print_info "This script sets up the admin identity required for"
+    print_info "the application to register new user identities."
+    print_info ""
+    print_info "User identities will be created automatically when"
+    print_info "users register through Keycloak (IDP)."
+    print_info ""
+    
+    # Create wallet directory
+    mkdir -p "$WALLET_DIR"
+    print_message "Wallet directory: $WALLET_DIR\n"
+    
+    # Enroll admin for BPSBP organization
+    enroll_admin "bpsbp" "$BPSBP_CA_PORT" "$BPSBP_DOMAIN" "$BPSBP_MSP_ID" "admin" "adminpw"
+    
+    # Copy CA TLS certificate
+    copy_ca_tls_cert "bpsbp"
+    
+    print_message "\n=========================================="
+    print_message "✓ Admin setup completed successfully!"
+    print_message "==========================================\n"
+    
+    print_info "Next steps:"
+    print_info "1. Configure application/.env with CA settings:"
+    print_info "   FABRIC_CA_URL=https://localhost:$BPSBP_CA_PORT"
+    print_info "   FABRIC_CA_NAME=ca-bpsbp"
+    print_info "   FABRIC_CA_TLS_CERT=./config/ca-cert-bpsbp.pem"
+    print_info "   FABRIC_CA_ADMIN_USER=admin"
+    print_info "   FABRIC_CA_ADMIN_SECRET=adminpw"
+    print_info ""
+    print_info "2. When users register via Keycloak, call:"
+    print_info "   POST /api/v1/identity/enroll"
+    print_info ""
+    print_info "3. User identities will be stored in:"
+    print_info "   $WALLET_DIR/<keycloak-user-id>.id"
+}
 
-print_message "\n✓ appUser created and joined to channel successfully"
-print_message "Note: UUIDs (producer, inspector_field, inspector_chief, issuer) will be sent as parameters to chaincode"
+# Run main function
+main "$@"
