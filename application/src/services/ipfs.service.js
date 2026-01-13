@@ -165,8 +165,8 @@ class IPFSService {
      */
     async isAvailable() {
         try {
-            // Check IPFS node (not cluster) for version
-            const response = await axios.post(`${this.ipfsNodeUrl}/version`, null, {
+            // Check IPFS Cluster API for version
+            const response = await axios.get(`${this.apiUrl}/version`, {
                 timeout: 5000
             });
             return response.status === 200;

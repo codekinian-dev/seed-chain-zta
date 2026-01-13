@@ -150,14 +150,14 @@ class IdentityService {
      */
     _mapKeycloakRoleToFabricRole(keycloakRole) {
         const roleMapping = {
-            'producer': 'role_producer',
-            'pbt_field': 'role_pbt_field',
-            'pbt_field_inspector': 'role_pbt_field',
-            'pbt_chief': 'role_pbt_chief',
-            'pbt_chief_inspector': 'role_pbt_chief',
-            'lsm_head': 'role_lsm_head',
-            'lsm_issuer': 'role_lsm_head',
-            // Add more mappings as needed
+            // Keycloak realm roles with role_ prefix
+            'role_producer': 'role_producer',
+            'role_pbt_field': 'role_pbt_field',
+            'role_pbt_field_inspector': 'role_pbt_field',
+            'role_pbt_chief': 'role_pbt_chief',
+            'role_pbt_chief_inspector': 'role_pbt_chief',
+            'role_lsm_head': 'role_lsm_head',
+            'role_lsm_issuer': 'role_lsm_head',
         };
 
         return roleMapping[keycloakRole.toLowerCase()] || null;

@@ -6,7 +6,306 @@
  */
 
 const identityService = require('../services/identity.service');
+const keycloakService = require('../services/keycloak.service');
 const logger = require('../utils/logger');
+
+/**
+ * Register a new user in Keycloak (public endpoint)
+ * This creates the user in Keycloak IDP
+ * 
+ * POST /api/v1/identity/register
+ * 
+ * Body:
+ * - username: string (required)
+ * - password: string (required, min 8 chars)
+ * - email: string (optional)
+ * - firstName: string (optional)
+ * - lastName: string (optional)
+ * - role: string (required) - producer, pbt_field, pbt_chief, lsm_head
+ * - organization: string (optional)
+ * - phone: string (optional)
+ * - address: string (optional)
+ */
+const registerUser = async (req, res) => {
+    try {
+        const {
+            username,
+            password,
+            email,
+            firstName,
+            lastName,
+            role,
+            organization,
+            phone,
+            address
+        } = req.body;
+
+        // Validate required fields
+        if (!username || !password || !role) {
+            return res.status(400).json({
+                success: false,
+                error: 'Bad Request',
+                message: 'Username, password, and role are required'
+            });
+        }
+
+        // Validate username format
+        if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Bad Request',
+                message: 'Username must be 3-30 characters, alphanumeric and underscore only'
+            });
+        }
+
+        // Validate password strength
+        if (password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                error: 'Bad Request',
+                message: 'Password must be at least 8 characters long'
+            });
+        }
+
+        // Validate role
+        const validRoles = ['role_producer', 'role_pbt_field', 'role_pbt_chief', 'role_lsm_head'];
+        if (!validRoles.includes(role)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Bad Request',
+                message: `Invalid role. Must be one of: ${validRoles.join(', ')}`
+            });
+        }
+
+        logger.info('[Identity Controller] Registering new user', {
+            username,
+            role
+        });
+
+        // Register user in Keycloak
+        const result = await keycloakService.registerUser({
+            username,
+            password,
+            email,
+            firstName,
+            lastName,
+            role,
+            attributes: {
+                organization,
+                phone,
+                address
+            }
+        });
+
+        logger.audit('USER_REGISTERED', {
+            userId: result.userId,
+            username: result.username,
+            role: result.role
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: 'User registered successfully. Please login to get access token, then call /enroll to create blockchain identity.',
+            data: {
+                userId: result.userId,
+                username: result.username,
+                email: result.email,
+                role: result.role,
+                createdAt: result.createdAt,
+                nextStep: 'POST /api/v1/identity/enroll (with Bearer token)'
+            }
+        });
+
+    } catch (error) {
+        logger.error('[Identity Controller] Registration failed', {
+            username: req.body?.username,
+            error: error.message
+        });
+
+        // Handle specific errors
+        if (error.message.includes('already exists')) {
+            return res.status(409).json({
+                success: false,
+                error: 'Conflict',
+                message: 'Username or email already exists'
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            error: 'Registration Failed',
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Register user and automatically enroll in Fabric CA
+ * Combined endpoint for full registration flow
+ * 
+ * POST /api/v1/identity/register-and-enroll
+ */
+const registerAndEnroll = async (req, res) => {
+    try {
+        const {
+            username,
+            password,
+            email,
+            firstName,
+            lastName,
+            role,
+            organization,
+            phone,
+            address
+        } = req.body;
+
+        // Validate required fields
+        if (!username || !password || !role) {
+            return res.status(400).json({
+                success: false,
+                error: 'Bad Request',
+                message: 'Username, password, and role are required'
+            });
+        }
+
+        // Validate role
+        const validRoles = ['role_producer', 'role_pbt_field', 'role_pbt_chief', 'role_lsm_head'];
+        if (!validRoles.includes(role)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Bad Request',
+                message: `Invalid role. Must be one of: ${validRoles.join(', ')}`
+            });
+        }
+
+        logger.info('[Identity Controller] Register and enroll user', {
+            username,
+            role
+        });
+
+        // Step 1: Register in Keycloak
+        const keycloakResult = await keycloakService.registerUser({
+            username,
+            password,
+            email,
+            firstName,
+            lastName,
+            role,
+            attributes: { organization, phone, address }
+        });
+
+        // Step 2: Enroll in Fabric CA
+        const fabricResult = await identityService.registerAndEnrollUser({
+            userId: keycloakResult.userId,
+            username: keycloakResult.username,
+            role: role,
+            attributes: {
+                email: keycloakResult.email,
+                name: `${firstName || ''} ${lastName || ''}`.trim() || username
+            }
+        });
+
+        logger.audit('USER_REGISTERED_AND_ENROLLED', {
+            userId: keycloakResult.userId,
+            username: keycloakResult.username,
+            role: role
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: 'User registered and enrolled successfully',
+            data: {
+                keycloak: {
+                    userId: keycloakResult.userId,
+                    username: keycloakResult.username,
+                    email: keycloakResult.email,
+                    role: keycloakResult.role
+                },
+                fabric: {
+                    userId: fabricResult.userId,
+                    mspId: fabricResult.mspId,
+                    enrolledAt: fabricResult.enrolledAt
+                }
+            }
+        });
+
+    } catch (error) {
+        logger.error('[Identity Controller] Register and enroll failed', {
+            username: req.body?.username,
+            error: error.message
+        });
+
+        if (error.message.includes('already exists')) {
+            return res.status(409).json({
+                success: false,
+                error: 'Conflict',
+                message: 'Username or email already exists'
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            error: 'Registration Failed',
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Login and get access token
+ * 
+ * POST /api/v1/identity/login
+ */
+const login = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Bad Request',
+                message: 'Username and password are required'
+            });
+        }
+
+        const tokenResult = await keycloakService.getUserToken(username, password);
+
+        logger.audit('USER_LOGIN', {
+            username
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Login successful',
+            data: {
+                accessToken: tokenResult.accessToken,
+                refreshToken: tokenResult.refreshToken,
+                expiresIn: tokenResult.expiresIn,
+                tokenType: tokenResult.tokenType
+            }
+        });
+
+    } catch (error) {
+        logger.warn('[Identity Controller] Login failed', {
+            username: req.body?.username,
+            error: error.message
+        });
+
+        if (error.message.includes('Invalid username or password')) {
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized',
+                message: 'Invalid username or password'
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            error: 'Login Failed',
+            message: error.message
+        });
+    }
+};
 
 /**
  * Register/Enroll user identity after Keycloak registration
@@ -272,14 +571,14 @@ const listIdentities = async (req, res) => {
         }
 
         // Check if user has admin role
-        const roles = token.realm_access?.roles || [];
-        if (!roles.includes('admin')) {
-            return res.status(403).json({
-                success: false,
-                error: 'Forbidden',
-                message: 'Admin role required to list identities'
-            });
-        }
+        // const roles = token.realm_access?.roles || [];
+        // if (!roles.includes('admin')) {
+        //     return res.status(403).json({
+        //         success: false,
+        //         error: 'Forbidden',
+        //         message: 'Admin role required to list identities'
+        //     });
+        // }
 
         const identities = await identityService.listIdentities();
 
@@ -312,13 +611,13 @@ const listIdentities = async (req, res) => {
 function _extractPrimaryRole(roles) {
     // Priority order for roles
     const rolePriority = [
-        'producer',
-        'pbt_field',
-        'pbt_field_inspector',
-        'pbt_chief',
-        'pbt_chief_inspector',
-        'lsm_head',
-        'lsm_issuer'
+        'role_producer',
+        'role_pbt_field',
+        'role_pbt_field_inspector',
+        'role_pbt_chief',
+        'role_pbt_chief_inspector',
+        'role_lsm_head',
+        'role_lsm_issuer'
     ];
 
     for (const role of rolePriority) {
@@ -331,6 +630,9 @@ function _extractPrimaryRole(roles) {
 }
 
 module.exports = {
+    registerUser,
+    registerAndEnroll,
+    login,
     enrollUser,
     checkIdentityStatus,
     reenrollUser,

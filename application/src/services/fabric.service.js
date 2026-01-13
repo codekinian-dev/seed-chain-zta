@@ -43,11 +43,15 @@ class FabricGateway {
             identity: userId,
             discovery: {
                 enabled: true,
-                asLocalhost: true
+                asLocalhost: false,  // Remote VPS - don't convert to localhost
+                // Filter to only use configured peers and orderers
+                filterPeers: true,
+                filterOrderers: true
             },
             eventHandlerOptions: {
                 commitTimeout: 300,
-                endorseTimeout: 300
+                endorseTimeout: 300,
+                strategy: require('fabric-network').DefaultEventHandlerStrategies.MSPID_SCOPE_ANYFORTX
             },
             clientTlsIdentity: undefined,
             grpcOptions: {

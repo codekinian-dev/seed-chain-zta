@@ -12,8 +12,7 @@
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     }
   },
-  "servers": [
-    {
+  "servers": [{
       "url": "http://localhost:3001",
       "description": "Development server"
     },
@@ -22,10 +21,13 @@
       "description": "Production server"
     }
   ],
-  "tags": [
-    {
+  "tags": [{
       "name": "Health",
       "description": "Health check and monitoring endpoints"
+    },
+    {
+      "name": "Identity",
+      "description": "User identity management - registration, login, and blockchain enrollment"
     },
     {
       "name": "Seed Batches",
@@ -131,17 +133,316 @@
         }
       }
     },
+    "/api/v1/identity/register": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "Register new user in Keycloak",
+        "description": "Creates a new user in Keycloak IDP. This is the first step of the registration flow. After registration, user should login to get access token, then call /enroll to create blockchain identity.",
+        "operationId": "registerUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Username or email already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/login": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "Login and get access token",
+        "description": "Authenticates user and returns Keycloak access token. Use this token in Authorization header for other API calls.",
+        "operationId": "loginUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/register-and-enroll": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "Register and automatically enroll user",
+        "description": "Combined endpoint that registers user in Keycloak and automatically enrolls them in Fabric CA. This creates both the IDP identity and blockchain identity in one step.",
+        "operationId": "registerAndEnrollUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered and enrolled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterAndEnrollResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "409": {
+            "description": "Username or email already exists"
+          }
+        }
+      }
+    },
+    "/api/v1/identity/enroll": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "Enroll user identity in Fabric CA",
+        "description": "Registers the authenticated user with Fabric CA and creates wallet identity. Should be called after user registers/logs in via Keycloak. The CA will generate a private key and certificate for the user.",
+        "operationId": "enrollUser",
+        "security": [{
+          "bearerAuth": []
+        }],
+        "responses": {
+          "201": {
+            "description": "User enrolled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "User identity already exists"
+          },
+          "401": {
+            "description": "Unauthorized - valid Keycloak token required"
+          }
+        }
+      }
+    },
+    "/api/v1/identity/status": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "Check user identity status",
+        "description": "Check if the authenticated user has a Fabric identity in the wallet",
+        "operationId": "checkIdentityStatus",
+        "security": [{
+          "bearerAuth": []
+        }],
+        "responses": {
+          "200": {
+            "description": "Identity status retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/v1/identity/reenroll": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "Re-enroll user identity",
+        "description": "Refresh the user's certificate (re-enrollment). Use this when certificate is about to expire.",
+        "operationId": "reenrollUser",
+        "security": [{
+          "bearerAuth": []
+        }],
+        "responses": {
+          "200": {
+            "description": "Re-enrollment successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User identity not found"
+          }
+        }
+      }
+    },
+    "/api/v1/identity/revoke": {
+      "post": {
+        "tags": ["Identity"],
+        "summary": "Revoke user identity",
+        "description": "Revoke the user's certificate. Admin only operation.",
+        "operationId": "revokeUser",
+        "security": [{
+          "bearerAuth": []
+        }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userId"],
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "description": "User ID to revoke"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Reason for revocation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Identity revoked successfully"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - admin role required"
+          }
+        }
+      }
+    },
+    "/api/v1/identity/list": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "List all identities",
+        "description": "List all user identities in the wallet. Admin only operation.",
+        "operationId": "listIdentities",
+        "security": [{
+          "bearerAuth": []
+        }],
+        "responses": {
+          "200": {
+            "description": "List of identities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "count": {
+                          "type": "integer"
+                        },
+                        "identities": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden - admin role required"
+          }
+        }
+      }
+    },
     "/api/seed-batches": {
       "get": {
         "tags": ["Seed Batches"],
         "summary": "Get all seed batches",
         "description": "Retrieve list of all seed batches from blockchain",
         "operationId": "getAllSeedBatches",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "security": [{
+          "bearerAuth": []
+        }],
         "responses": {
           "200": {
             "description": "List of seed batches",
@@ -173,11 +474,9 @@
         "summary": "Create new seed batch",
         "description": "Create a new seed batch with document upload (Producer role required)",
         "operationId": "createSeedBatch",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "security": [{
+          "bearerAuth": []
+        }],
         "requestBody": {
           "required": true,
           "content": {
@@ -311,23 +610,19 @@
         "summary": "Get seed batch by ID",
         "description": "Retrieve detailed information about a specific seed batch",
         "operationId": "getSeedBatch",
-        "security": [
-          {
-            "bearerAuth": []
+        "security": [{
+          "bearerAuth": []
+        }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Seed batch ID",
+          "schema": {
+            "type": "string",
+            "example": "BATCH-20251120-001"
           }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Seed batch ID",
-            "schema": {
-              "type": "string",
-              "example": "BATCH-20251120-001"
-            }
-          }
-        ],
+        }],
         "responses": {
           "200": {
             "description": "Seed batch details",
@@ -358,18 +653,16 @@
         "summary": "Get seed batch history",
         "description": "Retrieve complete transaction history of a seed batch from blockchain",
         "operationId": "getSeedBatchHistory",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Seed batch ID",
-            "schema": {
-              "type": "string",
-              "example": "BATCH-20251120-001"
-            }
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Seed batch ID",
+          "schema": {
+            "type": "string",
+            "example": "BATCH-20251120-001"
           }
-        ],
+        }],
         "responses": {
           "200": {
             "description": "Seed batch history",
@@ -403,22 +696,18 @@
         "summary": "Submit certification request",
         "description": "Submit seed batch for certification (Producer role required)",
         "operationId": "submitCertification",
-        "security": [
-          {
-            "bearerAuth": []
+        "security": [{
+          "bearerAuth": []
+        }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Seed batch ID",
+          "schema": {
+            "type": "string"
           }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Seed batch ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        }],
         "requestBody": {
           "required": true,
           "content": {
@@ -475,22 +764,18 @@
         "summary": "Record field inspection",
         "description": "Record field inspection results with photo (Field Inspector role required)",
         "operationId": "recordInspection",
-        "security": [
-          {
-            "bearerAuth": []
+        "security": [{
+          "bearerAuth": []
+        }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Seed batch ID",
+          "schema": {
+            "type": "string"
           }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Seed batch ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        }],
         "requestBody": {
           "required": true,
           "content": {
@@ -548,22 +833,18 @@
         "summary": "Evaluate inspection result",
         "description": "Evaluate field inspection results (Chief Inspector role required)",
         "operationId": "evaluateInspection",
-        "security": [
-          {
-            "bearerAuth": []
+        "security": [{
+          "bearerAuth": []
+        }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Seed batch ID",
+          "schema": {
+            "type": "string"
           }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Seed batch ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        }],
         "requestBody": {
           "required": true,
           "content": {
@@ -621,22 +902,18 @@
         "summary": "Issue certificate",
         "description": "Issue seed certification (LSM Head role required)",
         "operationId": "issueCertificate",
-        "security": [
-          {
-            "bearerAuth": []
+        "security": [{
+          "bearerAuth": []
+        }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Seed batch ID",
+          "schema": {
+            "type": "string"
           }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Seed batch ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        }],
         "requestBody": {
           "required": true,
           "content": {
@@ -702,22 +979,18 @@
         "summary": "Record seed distribution",
         "description": "Record seed distribution to farmers (Producer role required)",
         "operationId": "distributeSeed",
-        "security": [
-          {
-            "bearerAuth": []
+        "security": [{
+          "bearerAuth": []
+        }],
+        "parameters": [{
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Seed batch ID",
+          "schema": {
+            "type": "string"
           }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Seed batch ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        }],
         "requestBody": {
           "required": true,
           "content": {
@@ -954,6 +1227,277 @@
           "statusCode": {
             "type": "number",
             "description": "HTTP status code"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["username", "password", "role"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Unique username (3-30 chars, alphanumeric and underscore)",
+            "example": "farmer1",
+            "minLength": 3,
+            "maxLength": 30
+          },
+          "password": {
+            "type": "string",
+            "description": "Password (minimum 8 characters)",
+            "example": "SecurePass123",
+            "minLength": 8
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address",
+            "example": "farmer1@example.com"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "User first name",
+            "example": "John"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "User last name",
+            "example": "Doe"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["producer", "pbt_field", "pbt_chief", "lsm_head"],
+            "description": "User role in the system",
+            "example": "producer"
+          },
+          "organization": {
+            "type": "string",
+            "description": "User organization",
+            "example": "Farm ABC"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Phone number",
+            "example": "081234567890"
+          },
+          "address": {
+            "type": "string",
+            "description": "Address",
+            "example": "Jl. Pertanian No. 1, Bandung"
+          }
+        }
+      },
+      "RegisterResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "User registered successfully. Please login to get access token, then call /enroll to create blockchain identity."
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string",
+                "description": "Keycloak user UUID",
+                "example": "550e8400-e29b-41d4-a716-446655440000"
+              },
+              "username": {
+                "type": "string",
+                "example": "farmer1"
+              },
+              "email": {
+                "type": "string",
+                "example": "farmer1@example.com"
+              },
+              "role": {
+                "type": "string",
+                "example": "producer"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "nextStep": {
+                "type": "string",
+                "example": "POST /api/v1/identity/enroll (with Bearer token)"
+              }
+            }
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "farmer1"
+          },
+          "password": {
+            "type": "string",
+            "example": "SecurePass123"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Login successful"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "accessToken": {
+                "type": "string",
+                "description": "JWT access token for API calls"
+              },
+              "refreshToken": {
+                "type": "string",
+                "description": "JWT refresh token"
+              },
+              "expiresIn": {
+                "type": "integer",
+                "description": "Token expiry in seconds",
+                "example": 300
+              },
+              "tokenType": {
+                "type": "string",
+                "example": "Bearer"
+              }
+            }
+          }
+        }
+      },
+      "EnrollResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "User enrolled successfully"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "userId": {
+                "type": "string",
+                "description": "Keycloak user UUID"
+              },
+              "username": {
+                "type": "string"
+              },
+              "mspId": {
+                "type": "string",
+                "example": "BPSBPBenihMSP"
+              },
+              "role": {
+                "type": "string",
+                "example": "producer"
+              },
+              "enrolledAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "RegisterAndEnrollResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "User registered and enrolled successfully"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "keycloak": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  }
+                }
+              },
+              "fabric": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "mspId": {
+                    "type": "string"
+                  },
+                  "enrolledAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "IdentityStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "hasIdentity": {
+                "type": "boolean",
+                "description": "Whether user has a Fabric identity",
+                "example": true
+              },
+              "identity": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "userId": {
+                    "type": "string"
+                  },
+                  "mspId": {
+                    "type": "string",
+                    "example": "BPSBPBenihMSP"
+                  },
+                  "type": {
+                    "type": "string",
+                    "example": "X.509"
+                  }
+                }
+              }
+            }
           }
         }
       }

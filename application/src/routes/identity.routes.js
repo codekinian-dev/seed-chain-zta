@@ -11,6 +11,169 @@ const { keycloak } = require('../middleware/auth');
 
 /**
  * @swagger
+ * /api/v1/identity/register:
+ *   post:
+ *     summary: Register new user in Keycloak
+ *     description: |
+ *       Creates a new user in Keycloak IDP. This is the first step of the
+ *       registration flow. After registration, user should login to get
+ *       access token, then call /enroll to create blockchain identity.
+ *     tags: [Identity]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *               - role
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Unique username (3-30 chars, alphanumeric and underscore)
+ *               password:
+ *                 type: string
+ *                 description: Password (minimum 8 characters)
+ *               email:
+ *                 type: string
+ *                 description: User email address
+ *               firstName:
+ *                 type: string
+ *                 description: User first name
+ *               lastName:
+ *                 type: string
+ *                 description: User last name
+ *               role:
+ *                 type: string
+ *                 enum: [producer, pbt_field, pbt_chief, lsm_head]
+ *                 description: User role in the system
+ *               organization:
+ *                 type: string
+ *                 description: User organization
+ *               phone:
+ *                 type: string
+ *                 description: Phone number
+ *               address:
+ *                 type: string
+ *                 description: Address
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Invalid input data
+ *       409:
+ *         description: Username or email already exists
+ *       500:
+ *         description: Registration failed
+ */
+router.post('/register',
+    identityController.registerUser
+);
+
+/**
+ * @swagger
+ * /api/v1/identity/register-and-enroll:
+ *   post:
+ *     summary: Register and automatically enroll user
+ *     description: |
+ *       Combined endpoint that registers user in Keycloak and automatically
+ *       enrolls them in Fabric CA. This creates both the IDP identity and
+ *       blockchain identity in one step.
+ *     tags: [Identity]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *               - role
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [producer, pbt_field, pbt_chief, lsm_head]
+ *               organization:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered and enrolled successfully
+ *       400:
+ *         description: Invalid input data
+ *       409:
+ *         description: Username or email already exists
+ *       500:
+ *         description: Registration failed
+ */
+router.post('/register-and-enroll',
+    identityController.registerAndEnroll
+);
+
+/**
+ * @swagger
+ * /api/v1/identity/login:
+ *   post:
+ *     summary: Login and get access token
+ *     description: |
+ *       Authenticates user and returns Keycloak access token.
+ *       Use this token in Authorization header for other API calls.
+ *     tags: [Identity]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                 refreshToken:
+ *                   type: string
+ *                 expiresIn:
+ *                   type: number
+ *       401:
+ *         description: Invalid credentials
+ *       500:
+ *         description: Login failed
+ */
+router.post('/login',
+    identityController.login
+);
+
+/**
+ * @swagger
  * /api/v1/identity/enroll:
  *   post:
  *     summary: Enroll user identity in Fabric CA

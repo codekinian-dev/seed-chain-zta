@@ -16,7 +16,7 @@ async function setupWallet() {
 
     try {
         // Paths
-        const mspPath = path.resolve(__dirname, '../../blockchain/network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp');
+        const mspPath = path.resolve(__dirname, '../../crypto-config/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp');
         const walletPath = path.resolve(__dirname, '../wallet');
 
         console.log('📁 MSP Path:', mspPath);
