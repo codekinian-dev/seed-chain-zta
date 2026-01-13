@@ -6,8 +6,12 @@
 # Jalankan sekali di blockchain server untuk
 # membuat folder public berisi TLS certificates
 #
+# Cara pakai:
+#   ./setup-tls-public.sh                    # Auto-detect dari lokasi script
+#   BLOCKCHAIN_PATH=/root/tesis ./setup-tls-public.sh  # Manual set path
+#
 # Struktur yang dibuat:
-#   /root/fabric-network/tls-public/
+#   <BLOCKCHAIN_PATH>/network/tls-public/
 #   ├── orderer/
 #   │   └── orderer-tls-ca.crt
 #   ├── peers/
@@ -18,9 +22,13 @@
 #   └── bundle.tar.gz
 # =========================================
 
-# Configuration
-# Path ke folder blockchain/network di server
-BLOCKCHAIN_PATH="${BLOCKCHAIN_PATH:-/root/blockchain}"
+# Auto-detect path dari lokasi script ini
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Script berada di blockchain/scripts/, jadi parent adalah blockchain/
+AUTO_DETECTED_PATH="$(dirname "$SCRIPT_DIR")"
+
+# Configuration - gunakan env var atau auto-detect
+BLOCKCHAIN_PATH="${BLOCKCHAIN_PATH:-$AUTO_DETECTED_PATH}"
 ORGANIZATIONS_PATH="$BLOCKCHAIN_PATH/network/organizations"
 PUBLIC_TLS_PATH="$BLOCKCHAIN_PATH/network/tls-public"
 
@@ -31,6 +39,12 @@ echo ""
 echo "Source: $ORGANIZATIONS_PATH"
 echo "Destination: $PUBLIC_TLS_PATH"
 echo ""
+
+# Buat symlink agar path selalu sama
+mkdir -p /var/www
+rm -rf /var/www/fabric-tls
+
+ln -s "$PUBLIC_TLS_PATH" /var/www/fabric-tls
 
 # Create public directory
 rm -rf "$PUBLIC_TLS_PATH"

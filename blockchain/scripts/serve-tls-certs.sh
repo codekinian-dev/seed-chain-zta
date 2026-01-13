@@ -7,15 +7,19 @@
 # menyediakan TLS certificates via HTTP
 #
 # Cara pakai:
-#   chmod +x serve-tls-certs.sh
-#   ./serve-tls-certs.sh
+#   ./serve-tls-certs.sh                    # Auto-detect dari lokasi script
+#   BLOCKCHAIN_PATH=/root/tesis ./serve-tls-certs.sh  # Manual set path
 #
 # Certificates akan tersedia di:
-#   http://<blockchain-server>:8443/tls/
+#   http://<blockchain-server>:8443/
 # =========================================
 
-# Configuration - sesuaikan dengan path di blockchain server
-BLOCKCHAIN_PATH="${BLOCKCHAIN_PATH:-/root/blockchain}"
+# Auto-detect path dari lokasi script ini
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AUTO_DETECTED_PATH="$(dirname "$SCRIPT_DIR")"
+
+# Configuration - gunakan env var atau auto-detect
+BLOCKCHAIN_PATH="${BLOCKCHAIN_PATH:-$AUTO_DETECTED_PATH}"
 ORGANIZATIONS_PATH="$BLOCKCHAIN_PATH/network/organizations"
 SERVE_PORT="${SERVE_PORT:-8443}"
 
