@@ -66,8 +66,8 @@ cp "$ORGANIZATIONS_PATH/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.
 cp "$ORGANIZATIONS_PATH/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls/ca.crt" \
    "$PUBLIC_TLS_PATH/peers/cert-tls-ca.crt" 2>/dev/null && echo "  ✅ Peer cert TLS CA"
 
-# Fabric CA TLS
-cp "$ORGANIZATIONS_PATH/peerOrganizations/chain-bpsbp.jabarchain.me/ca/ca-cert.pem" \
+# Fabric CA TLS - dari folder fabric-ca
+cp "$ORGANIZATIONS_PATH/fabric-ca/bpsbp/ca-cert.pem" \
    "$PUBLIC_TLS_PATH/ca/ca-bpsbp-tls.pem" 2>/dev/null && echo "  ✅ Fabric CA TLS"
 
 # Create bundle
