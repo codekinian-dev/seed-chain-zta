@@ -9,7 +9,7 @@
 # Configuration
 BLOCKCHAIN_SERVER="${BLOCKCHAIN_SERVER:-206.189.82.125}"
 BLOCKCHAIN_USER="${BLOCKCHAIN_USER:-root}"
-BLOCKCHAIN_CRYPTO_PATH="${BLOCKCHAIN_CRYPTO_PATH:-/root/fabric-network/organizations}"
+BLOCKCHAIN_CRYPTO_PATH="${BLOCKCHAIN_CRYPTO_PATH:-/root/blockchain/network/organizations}"
 
 # Local paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

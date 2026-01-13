@@ -19,9 +19,10 @@
 # =========================================
 
 # Configuration
-FABRIC_NETWORK_PATH="${FABRIC_NETWORK_PATH:-/root/fabric-network}"
-ORGANIZATIONS_PATH="$FABRIC_NETWORK_PATH/organizations"
-PUBLIC_TLS_PATH="$FABRIC_NETWORK_PATH/tls-public"
+# Path ke folder blockchain/network di server
+BLOCKCHAIN_PATH="${BLOCKCHAIN_PATH:-/root/blockchain}"
+ORGANIZATIONS_PATH="$BLOCKCHAIN_PATH/network/organizations"
+PUBLIC_TLS_PATH="$BLOCKCHAIN_PATH/network/tls-public"
 
 echo "========================================="
 echo "Setup TLS Public Directory"

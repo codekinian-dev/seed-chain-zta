@@ -15,8 +15,8 @@
 # =========================================
 
 # Configuration - sesuaikan dengan path di blockchain server
-FABRIC_NETWORK_PATH="${FABRIC_NETWORK_PATH:-/root/fabric-network}"
-ORGANIZATIONS_PATH="$FABRIC_NETWORK_PATH/organizations"
+BLOCKCHAIN_PATH="${BLOCKCHAIN_PATH:-/root/blockchain}"
+ORGANIZATIONS_PATH="$BLOCKCHAIN_PATH/network/organizations"
 SERVE_PORT="${SERVE_PORT:-8443}"
 
 # Create temporary directory for TLS certs
