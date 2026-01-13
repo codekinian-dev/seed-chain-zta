@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Redis for Bull Queue
+  redis:
+    image: redis:7-alpine
+    container_name: seed-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - seed-network
+
+  # API Gateway Application (untuk server terpisah dari blockchain)
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: seed-api-gateway
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      # Override untuk Docker-specific settings
+      - NODE_ENV=production
+      - FABRIC_WALLET_PATH=/app/wallet
+      - FABRIC_NETWORK_PATH=/app/config/connection-profile.json
+      - LOG_DIR=/app/logs
+      # Redis menggunakan service name, bukan localhost
+      - REDIS_HOST=redis
+
+    volumes:
+      # Mount wallet from host (setelah enroll via Fabric CA)
+      - ./wallet:/app/wallet:ro
+
+      # Mount HANYA TLS certificates (bukan seluruh crypto-config)
+      # TLS certs ini jarang berubah, hanya perlu sync sekali
+      - ./tls-certs:/app/tls-certs:ro
+
+      # Mount logs for persistence
+      - ./logs:/app/logs
+
+      # Mount uploads (temporary files)
+      - uploads-data:/app/uploads
+
+      # Mount connection profile untuk remote server
+      - ./config/connection-profile-remote.json:/app/config/connection-profile.json:ro
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health/liveness', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" ]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+    networks:
+      - seed-network
+
+    extra_hosts:
+      # Allow container to access services on host machine
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  redis-data:
+    driver: local
+  uploads-data:
+    driver: local
+
+networks:
+  seed-network:
+    driver: bridge
