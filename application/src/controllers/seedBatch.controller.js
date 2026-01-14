@@ -618,6 +618,7 @@ const queryAllSeedBatches = async (req, res) => {
 /**
  * Query seed batches by current user (producer only)
  * Returns only seed batches owned by the logged-in user
+ * Note: Uses queryAllSeedBatches + application-layer filtering because LevelDB doesn't support rich queries
  */
 const queryMySeedBatches = async (req, res) => {
     try {
@@ -628,11 +629,12 @@ const queryMySeedBatches = async (req, res) => {
             userId: userUUID
         });
 
-        // Call chaincode with user's keycloak_id
+        // Call queryAllSeedBatches and filter at application layer
+        // (LevelDB doesn't support CouchDB rich queries)
         const result = await fabricService.queryAsUser(
             userUUID,
-            'querySeedBatchesByProducer',
-            [userUUID]
+            'queryAllSeedBatches',
+            []
         );
 
         // Validate result
@@ -645,12 +647,24 @@ const queryMySeedBatches = async (req, res) => {
             });
         }
 
-        const seedBatches = Array.isArray(result) ? result : [];
+        const allBatches = Array.isArray(result) ? result : [];
+
+        // Filter batches by producer_keycloak_id at application layer
+        const userBatches = allBatches.filter(batch => {
+            const record = batch.Record || batch;
+            return record.producer_keycloak_id === userUUID;
+        });
+
+        logger.info(`[Controller] Filtered seed batches for user`, {
+            userId: userUUID,
+            totalBatches: allBatches.length,
+            userBatches: userBatches.length
+        });
 
         res.status(200).json({
             success: true,
-            count: seedBatches.length,
-            data: seedBatches
+            count: userBatches.length,
+            data: userBatches
         });
 
     } catch (error) {
