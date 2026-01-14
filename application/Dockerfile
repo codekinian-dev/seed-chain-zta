@@ -38,9 +38,14 @@ COPY --chown=nodejs:nodejs . .
 # Copy swagger documentation
 COPY --chown=nodejs:nodejs swagger.json ./swagger.json
 
-# Create necessary directories
+# Create necessary directories with proper permissions
 RUN mkdir -p logs uploads wallet && \
-    chown -R nodejs:nodejs logs uploads wallet
+    chown -R nodejs:nodejs logs uploads wallet && \
+    chmod -R 755 logs uploads wallet
+
+# Copy entrypoint script
+COPY --chown=nodejs:nodejs docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Switch to non-root user
 USER nodejs
@@ -53,7 +58,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3001/api/health/liveness', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
+ENTRYPOINT ["dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 
 # Start application
 CMD ["node", "src/server.js"]
