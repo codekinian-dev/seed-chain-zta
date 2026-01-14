@@ -616,6 +616,54 @@ const queryAllSeedBatches = async (req, res) => {
 };
 
 /**
+ * Query seed batches by current user (producer only)
+ * Returns only seed batches owned by the logged-in user
+ */
+const queryMySeedBatches = async (req, res) => {
+    try {
+        // Get user identity
+        const userUUID = await ensureUserIdentity(req);
+
+        logger.info(`[Controller] Querying seed batches for user`, {
+            userId: userUUID
+        });
+
+        // Call chaincode with user's keycloak_id
+        const result = await fabricService.queryAsUser(
+            userUUID,
+            'querySeedBatchesByProducer',
+            [userUUID]
+        );
+
+        // Validate result
+        if (!result) {
+            logger.warn('[Controller] Chaincode returned null/undefined result');
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: []
+            });
+        }
+
+        const seedBatches = Array.isArray(result) ? result : [];
+
+        res.status(200).json({
+            success: true,
+            count: seedBatches.length,
+            data: seedBatches
+        });
+
+    } catch (error) {
+        logger.error(`[Controller] Error querying user seed batches`, {
+            error: error.message,
+            userId: req.kauth?.grant?.access_token?.content?.sub
+        });
+
+        throw new AppError('Failed to query your seed batches', 500, error.message);
+    }
+};
+
+/**
  * Get seed batch history
  */
 const getHistory = async (req, res) => {
@@ -733,5 +781,6 @@ module.exports = {
     distributeSeed,
     querySeedBatch,
     queryAllSeedBatches,
+    queryMySeedBatches,
     getHistory
 };

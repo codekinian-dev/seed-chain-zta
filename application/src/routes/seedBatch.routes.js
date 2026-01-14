@@ -150,6 +150,18 @@ router.post(
 );
 
 /**
+ * @route   GET /api/seed-batches/my-batches
+ * @desc    Get seed batches owned by current user (producer only)
+ * @access  Protected - role_producer
+ */
+router.get(
+    '/my-batches',
+    protect(),
+    enforcePolicy('seed_batch', 'read'),
+    asyncHandler(seedBatchController.queryMySeedBatches)
+);
+
+/**
  * @route   GET /api/seed-batches/:id
  * @desc    Get seed batch by ID
  * @access  Protected
