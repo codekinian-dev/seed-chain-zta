@@ -7,7 +7,11 @@ services:
       dockerfile: Dockerfile
     container_name: seed-frontend
     ports:
-      - "3001:80"
+      - "80:80"      # HTTP
+      - "443:443"    # HTTPS
+    volumes:
+      # Mount SSL certificates
+      - ./ssl:/etc/nginx/ssl:ro
     restart: unless-stopped
     networks:
       - seed-network

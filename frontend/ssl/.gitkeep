@@ -1,0 +1,9 @@
+# SSL certificates directory
+
+# Add your SSL certificates here:
+
+# - fullchain.pem
+
+# - privkey.pem
+
+# Don't commit actual certificates!
