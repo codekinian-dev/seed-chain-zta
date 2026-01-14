@@ -63,7 +63,7 @@ router.post(
 router.post(
     '/:id/submit',
     protect(),
-    enforcePolicy('seed_batch', 'submit'),
+    enforcePolicy('certification_request', 'submit'),
     validateParams(idSchema),
     upload.single('document'),
     handleUploadError,
@@ -189,10 +189,12 @@ router.get(
 /**
  * @route   GET /api/seed-batches/:id/history
  * @desc    Get seed batch history
- * @access  Public (but authentication recommended)
+ * @access  Protected
  */
 router.get(
     '/:id/history',
+    protect(),
+    enforcePolicy('seed_batch', 'read'),
     validateParams(idSchema),
     asyncHandler(seedBatchController.getHistory)
 );
