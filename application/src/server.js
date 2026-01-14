@@ -78,9 +78,9 @@ app.use(morgan(morganFormat, {
     }
 }));
 
-// Body parser
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// Body parser - increased limit for file uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Middleware will be initialized in initializeServices()
 // (Session, Keycloak, Routes will be setup after auth initialization)
