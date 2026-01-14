@@ -13,12 +13,12 @@
     }
   },
   "servers": [{
-      "url": "http://localhost:3001",
-      "description": "Development server"
+      "url": "https://gateway.jabarchain.me",
+      "description": "Production server"
     },
     {
-      "url": "https://api.seed-certification.example.com",
-      "description": "Production server"
+      "url": "http://localhost:3001",
+      "description": "Development server"
     }
   ],
   "tags": [{
