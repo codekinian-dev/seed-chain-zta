@@ -39,8 +39,8 @@ services:
     environment:
       - NODE_ENV=production
     volumes:
-      # Mount wallet from host (read-only)
-      - ./wallet:/app/wallet:ro
+      # Mount wallet from host (read-write for user enrollment)
+      - ./wallet:/app/wallet
 
       # Mount crypto-config for TLS certificates
       - ./crypto-config:/app/crypto-config:ro

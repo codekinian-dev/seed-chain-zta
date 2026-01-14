@@ -41,8 +41,8 @@ services:
       - REDIS_HOST=redis
 
     volumes:
-      # Mount wallet from host (setelah enroll via Fabric CA)
-      - ./wallet:/app/wallet:ro
+      # Mount wallet from host (read-write for user enrollment)
+      - ./wallet:/app/wallet
 
       # Mount HANYA TLS certificates (bukan seluruh crypto-config)
       # TLS certs ini jarang berubah, hanya perlu sync sekali
