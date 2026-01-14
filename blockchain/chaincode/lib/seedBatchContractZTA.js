@@ -961,6 +961,7 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // Query by Producer (with strict ownership check using keycloak_id)
+    // LevelDB-compatible: uses getStateByRange + filter instead of rich query
     // =========================================================
     async querySeedBatchesByProducer(ctx, producerKeycloakId) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
@@ -982,14 +983,30 @@ class SeedBatchContractZTA extends Contract {
             producerKeycloakId: producerKeycloakId
         }, identity);
 
-        const queryString = {
-            selector: {
-                docType: 'SeedBatch',
-                producer_keycloak_id: producerKeycloakId
-            }
-        };
+        // LevelDB-compatible: iterate all states and filter by producer
+        const iterator = await ctx.stub.getStateByRange('', '');
+        const allResults = [];
 
-        return await this._getQueryResultForQueryString(ctx, JSON.stringify(queryString));
+        let result = await iterator.next();
+        while (!result.done) {
+            const res = result.value;
+            try {
+                const record = JSON.parse(res.value.toString('utf8'));
+                // Filter: only SeedBatch with matching producer_keycloak_id
+                if (record.docType === 'SeedBatch' && record.producer_keycloak_id === producerKeycloakId) {
+                    allResults.push({
+                        Key: res.key,
+                        Record: record
+                    });
+                }
+            } catch (err) {
+                console.log(`Error parsing record: ${err}`);
+            }
+            result = await iterator.next();
+        }
+
+        await iterator.close();
+        return JSON.stringify(allResults);
     }
 
     // =========================================================
