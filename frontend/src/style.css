@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-surface text-ink antialiased;
+  }
+
+  body {
+    @apply min-h-screen font-sans bg-surface;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-xl shadow-soft rounded-3xl border border-white/40;
+  }
+
+  .primary-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-white font-semibold px-5 py-3 transition hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-400;
+  }
+
+  .secondary-button {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-primary/30 text-primary font-semibold px-5 py-3 transition hover:border-primary hover:text-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-200;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink placeholder:text-ink/50 focus:border-primary-400 focus:ring-2 focus:ring-primary/30 transition;
+  }
+
+  .panel-card {
+    @apply rounded-3xl border border-ink/10 bg-white shadow-soft;
+  }
+
+  .search-input {
+    @apply w-full rounded-2xl border border-ink/10 bg-white py-3 pl-12 pr-4 text-sm text-ink placeholder:text-ink/40 focus:border-primary focus:ring-2 focus:ring-primary/20 transition;
+  }
+
+  .status-pill {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+
+  .input-label {
+    @apply mb-2 block text-sm font-semibold text-ink/70;
+  }
+
+  .input-group {
+    @apply flex flex-col;
+  }
+
+  .text-input {
+    @apply w-full rounded-xl border border-ink/10 bg-white px-4 py-3 text-sm text-ink placeholder:text-ink/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition;
+  }
+
+  .badge-dot {
+    @apply inline-flex h-2 w-2 rounded-full bg-primary;
+  }
+
+  .section-title {
+    @apply text-sm font-semibold uppercase tracking-widest text-ink/40;
+  }
+}
