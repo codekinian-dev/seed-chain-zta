@@ -11,7 +11,7 @@
 #   BLOCKCHAIN_PATH=/root/tesis ./setup-tls-public.sh  # Manual set path
 #
 # Struktur yang dibuat:
-#   <BLOCKCHAIN_PATH>/network/tls-public/
+#   /var/www/tls-public/   (untuk nginx)
 #   ├── orderer/
 #   │   └── orderer-tls-ca.crt
 #   ├── peers/
@@ -30,7 +30,9 @@ AUTO_DETECTED_PATH="$(dirname "$SCRIPT_DIR")"
 # Configuration - gunakan env var atau auto-detect
 BLOCKCHAIN_PATH="${BLOCKCHAIN_PATH:-$AUTO_DETECTED_PATH}"
 ORGANIZATIONS_PATH="$BLOCKCHAIN_PATH/network/organizations"
-PUBLIC_TLS_PATH="$BLOCKCHAIN_PATH/network/tls-public"
+
+# Nginx public path - harus di luar /root agar www-data bisa akses
+PUBLIC_TLS_PATH="/var/www/tls-public"
 
 echo "========================================="
 echo "Setup TLS Public Directory"
@@ -40,14 +42,7 @@ echo "Source: $ORGANIZATIONS_PATH"
 echo "Destination: $PUBLIC_TLS_PATH"
 echo ""
 
-# Buat symlink agar path selalu sama untuk nginx
-mkdir -p /var/www
-rm -rf /var/www/tls-public
-
-ln -s "$PUBLIC_TLS_PATH" /var/www/tls-public
-echo "✅ Symlink created: /var/www/tls-public -> $PUBLIC_TLS_PATH"
-
-# Create public directory
+# Create public directory (copy ke /var/www, bukan symlink ke /root)
 rm -rf "$PUBLIC_TLS_PATH"
 mkdir -p "$PUBLIC_TLS_PATH/orderer"
 mkdir -p "$PUBLIC_TLS_PATH/peers"
@@ -78,7 +73,8 @@ cd "$PUBLIC_TLS_PATH"
 tar -czf bundle.tar.gz orderer peers ca
 echo "  ✅ bundle.tar.gz created"
 
-# Set permissions (readable by all, but directory owned by root)
+# Set permissions agar nginx (www-data) bisa baca
+chown -R www-data:www-data "$PUBLIC_TLS_PATH"
 chmod -R 644 "$PUBLIC_TLS_PATH"/*
 chmod 755 "$PUBLIC_TLS_PATH" "$PUBLIC_TLS_PATH/orderer" "$PUBLIC_TLS_PATH/peers" "$PUBLIC_TLS_PATH/ca"
 
