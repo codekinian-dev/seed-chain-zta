@@ -31,6 +31,7 @@ services:
     env_file:
       - .env
     environment:
+      - TZ=Asia/Jakarta
       # Override untuk Docker-specific settings
       - NODE_ENV=production
       - FABRIC_WALLET_PATH=/app/wallet
@@ -53,6 +54,9 @@ services:
 
       # Mount connection profile from host (Docker version with crypto-config paths)
       - ./config/connection-profile-docker.json:/app/config/connection-profile.json:ro
+
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
     depends_on:
       redis:

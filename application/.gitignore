@@ -17,6 +17,7 @@ uploads/
 # Wallet (will be copied from blockchain)
 wallet/
 crypto-config/
+tls-certs/
 
 # Coverage
 coverage/
