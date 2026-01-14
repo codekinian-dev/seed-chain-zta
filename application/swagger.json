@@ -434,6 +434,61 @@
         }
       }
     },
+    "/api/seed-batches/my-batches": {
+      "get": {
+        "tags": ["Seed Batches"],
+        "summary": "Get seed batches owned by current user",
+        "description": "Retrieve list of seed batches created by the currently logged-in producer. Only returns batches where the producer_keycloak_id matches the authenticated user's ID.",
+        "operationId": "getMySeedBatches",
+        "security": [{
+          "bearerAuth": []
+        }],
+        "responses": {
+          "200": {
+            "description": "List of user's seed batches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "count": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SeedBatch"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - authentication required"
+          },
+          "403": {
+            "description": "Forbidden - producer role required or user identity not enrolled"
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/seed-batches": {
       "get": {
         "tags": ["Seed Batches"],
