@@ -40,11 +40,12 @@ echo "Source: $ORGANIZATIONS_PATH"
 echo "Destination: $PUBLIC_TLS_PATH"
 echo ""
 
-# Buat symlink agar path selalu sama
+# Buat symlink agar path selalu sama untuk nginx
 mkdir -p /var/www
-rm -rf /var/www/fabric-tls
+rm -rf /var/www/tls-public
 
-ln -s "$PUBLIC_TLS_PATH" /var/www/fabric-tls
+ln -s "$PUBLIC_TLS_PATH" /var/www/tls-public
+echo "✅ Symlink created: /var/www/tls-public -> $PUBLIC_TLS_PATH"
 
 # Create public directory
 rm -rf "$PUBLIC_TLS_PATH"
