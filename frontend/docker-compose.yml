@@ -7,11 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: seed-frontend
     ports:
-      - "80:80"      # HTTP
-      - "443:443"    # HTTPS
-    volumes:
-      # Mount SSL certificates
-      - ./ssl:/etc/nginx/ssl:ro
+      - "3002:80"    # Internal HTTP only, Nginx native akan proxy ke sini
     restart: unless-stopped
     networks:
       - seed-network
