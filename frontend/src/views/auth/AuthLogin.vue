@@ -1,17 +1,38 @@
 <script setup>
-import { reactive } from 'vue'
-import { RouterLink } from 'vue-router'
+import { reactive, ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import AuthLayout from '../../layouts/AuthLayout.vue'
+import { useAuth } from '../../composables/useAuth'
+
+const router = useRouter()
+const { login, isLoading, error } = useAuth()
 
 const form = reactive({
-  email: '',
+  username: '',
   password: '',
   remember: true,
 })
 
-function handleSubmit() {
-  // Placeholder: integrate with actual auth flow later
-  console.table(form)
+const errorMessage = ref('')
+
+async function handleSubmit() {
+  errorMessage.value = ''
+  
+  try {
+    const response = await login({
+      username: form.username,
+      password: form.password,
+    })
+    
+    console.log('Login success:', response)
+    console.log('Token stored:', localStorage.getItem('access_token'))
+    
+    // Use replace instead of push to avoid guard loop
+    router.replace('/dashboard')
+  } catch (err) {
+    console.error('Login error:', err)
+    errorMessage.value = error.value || 'Login gagal. Periksa username dan password Anda.'
+  }
 }
 </script>
 
@@ -22,16 +43,27 @@ function handleSubmit() {
     highlight-title="SeedCertify Analytics"
     highlight-description="End-to-end insights across certification—from batch registration to final validation."
   >
+    <!-- Error Alert -->
+    <div v-if="errorMessage" class="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-800">
+      <div class="flex items-start">
+        <svg class="mr-3 h-5 w-5 flex-shrink-0 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+        <span>{{ errorMessage }}</span>
+      </div>
+    </div>
+
     <form class="space-y-5" @submit.prevent="handleSubmit">
       <div class="space-y-2">
-        <label class="text-sm font-medium text-ink" for="email">Email Address</label>
+        <label class="text-sm font-medium text-ink" for="username">Username</label>
         <input
-          id="email"
-          v-model="form.email"
-          type="email"
-          placeholder="name@email.com"
-          autocomplete="email"
+          id="username"
+          v-model="form.username"
+          type="text"
+          placeholder="Enter your username"
+          autocomplete="username"
           class="input-field"
+          :disabled="isLoading"
           required
         />
       </div>
@@ -48,6 +80,7 @@ function handleSubmit() {
           placeholder="Enter password"
           autocomplete="current-password"
           class="input-field"
+          :disabled="isLoading"
           required
           minlength="6"
         />
@@ -68,7 +101,16 @@ function handleSubmit() {
         </RouterLink>
       </div>
 
-      <button type="submit" class="primary-button w-full">Sign in to SeedCertify</button>
+      <button type="submit" class="primary-button w-full" :disabled="isLoading">
+        <span v-if="isLoading" class="flex items-center justify-center">
+          <svg class="mr-2 h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Signing in...
+        </span>
+        <span v-else>Sign in to SeedCertify</span>
+      </button>
     </form>
 
     <template #footer>

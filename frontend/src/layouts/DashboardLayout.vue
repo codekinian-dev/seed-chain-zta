@@ -1,6 +1,6 @@
 <script setup>
 import { computed, defineProps, ref } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   Bars3Icon,
   BellIcon,
@@ -15,7 +15,12 @@ import {
   Cog6ToothIcon,
   ClipboardDocumentListIcon,
   DocumentCheckIcon,
+  ChevronDownIcon,
+  UserCircleIcon,
+  ArrowLeftOnRectangleIcon,
 } from '@heroicons/vue/24/outline'
+import { useAuth } from '../composables/useAuth'
+import { USER_ROLE_LABELS } from '../utils/constants'
 
 defineProps({
   pageTitle: {
@@ -26,6 +31,41 @@ defineProps({
     type: String,
     default: '',
   },
+})
+
+const router = useRouter()
+const { user, logout } = useAuth()
+
+// Get user display info
+const userName = computed(() => {
+  if (user.value) {
+    if (user.value.firstName && user.value.lastName) {
+      return `${user.value.firstName} ${user.value.lastName}`
+    }
+    return user.value.username || user.value.name || 'User'
+  }
+  return 'User'
+})
+
+const userInitials = computed(() => {
+  const name = userName.value
+  if (name && name.length > 0) {
+    const parts = name.split(' ')
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase()
+    }
+    return name.substring(0, 2).toUpperCase()
+  }
+  return 'U'
+})
+
+const userRole = computed(() => {
+  if (user.value) {
+    const role = user.value.role || user.value.roles?.[0] || 'role_producer'
+    // Get label from constants or format it
+    return USER_ROLE_LABELS[role] || role.replace('role_', '').replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+  }
+  return 'User'
 })
 
 const navigation = [
@@ -45,6 +85,7 @@ const navigation = [
 const route = useRoute()
 
 const isSidebarOpen = ref(false)
+const isProfileDropdownOpen = ref(false)
 
 const activePath = computed(() => route.path)
 
@@ -54,6 +95,19 @@ function toggleSidebar() {
 
 function closeSidebar() {
   isSidebarOpen.value = false
+}
+
+function toggleProfileDropdown() {
+  isProfileDropdownOpen.value = !isProfileDropdownOpen.value
+}
+
+function closeProfileDropdown() {
+  isProfileDropdownOpen.value = false
+}
+
+function handleLogout() {
+  logout()
+  router.replace('/login')
 }
 </script>
 
@@ -144,14 +198,81 @@ function closeSidebar() {
 
             <div class="flex flex-wrap items-center justify-end flex-1 gap-3">
               <slot name="header-actions" />
-              <div class="flex items-center gap-3 px-4 py-2 border rounded-2xl border-ink/10 bg-white/80">
-                <div class="flex items-center justify-center w-10 h-10 font-semibold rounded-full bg-primary/15 text-primary">
-                  AR
-                </div>
-                <div class="hidden text-left lg:block">
-                  <p class="text-sm font-semibold text-ink">Arini Rahma</p>
-                  <p class="text-xs text-ink/60">Certification Admin</p>
-                </div>
+              
+              <!-- Profile Dropdown -->
+              <div class="relative">
+                <button 
+                  class="flex items-center gap-3 px-4 py-2 border rounded-2xl border-ink/10 bg-white/80 hover:border-primary/30 transition"
+                  @click="toggleProfileDropdown"
+                >
+                  <div class="flex items-center justify-center w-10 h-10 font-semibold rounded-full bg-primary/15 text-primary">
+                    {{ userInitials }}
+                  </div>
+                  <div class="hidden text-left lg:block">
+                    <p class="text-sm font-semibold text-ink">{{ userName }}</p>
+                    <p class="text-xs text-ink/60">{{ userRole }}</p>
+                  </div>
+                  <ChevronDownIcon class="w-4 h-4 text-ink/40 hidden lg:block" />
+                </button>
+
+                <!-- Dropdown Menu -->
+                <transition
+                  enter-active-class="transition duration-100 ease-out"
+                  enter-from-class="transform scale-95 opacity-0"
+                  enter-to-class="transform scale-100 opacity-100"
+                  leave-active-class="transition duration-75 ease-in"
+                  leave-from-class="transform scale-100 opacity-100"
+                  leave-to-class="transform scale-95 opacity-0"
+                >
+                  <div 
+                    v-if="isProfileDropdownOpen" 
+                    class="absolute right-0 mt-2 w-56 origin-top-right bg-white rounded-2xl shadow-lg ring-1 ring-black/5 border border-ink/10 py-2 z-50"
+                  >
+                    <!-- User Info -->
+                    <div class="px-4 py-3 border-b border-ink/10">
+                      <p class="text-sm font-semibold text-ink">{{ userName }}</p>
+                      <p class="text-xs text-ink/60">{{ userRole }}</p>
+                    </div>
+                    
+                    <!-- Menu Items -->
+                    <div class="py-1">
+                      <RouterLink 
+                        to="/profile" 
+                        class="flex items-center gap-3 px-4 py-2 text-sm text-ink/70 hover:bg-primary/5 hover:text-primary transition"
+                        @click="closeProfileDropdown"
+                      >
+                        <UserCircleIcon class="w-5 h-5" />
+                        <span>My Profile</span>
+                      </RouterLink>
+                      <RouterLink 
+                        to="/settings" 
+                        class="flex items-center gap-3 px-4 py-2 text-sm text-ink/70 hover:bg-primary/5 hover:text-primary transition"
+                        @click="closeProfileDropdown"
+                      >
+                        <Cog6ToothIcon class="w-5 h-5" />
+                        <span>Settings</span>
+                      </RouterLink>
+                    </div>
+                    
+                    <!-- Logout -->
+                    <div class="border-t border-ink/10 py-1">
+                      <button 
+                        class="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+                        @click="handleLogout"
+                      >
+                        <ArrowLeftOnRectangleIcon class="w-5 h-5" />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                </transition>
+
+                <!-- Backdrop to close dropdown -->
+                <div 
+                  v-if="isProfileDropdownOpen" 
+                  class="fixed inset-0 z-40" 
+                  @click="closeProfileDropdown"
+                />
               </div>
             </div>
           </div>
