@@ -70,16 +70,13 @@ const userRole = computed(() => {
 
 const navigation = [
   { name: 'Overview', to: '/dashboard', icon: Squares2X2Icon },
-  // { name: 'Permohonan', to: '/dashboard/applications', icon: InboxStackIcon },
-  // { name: 'Pengujian Mutu', to: '/dashboard/labs', icon: BeakerIcon },
-  // { name: 'Validasi Lapangan', to: '/dashboard/field-validation', icon: ShieldCheckIcon },
-  { name: 'Seed Source Evaluation', to: '/seed-source-evaluations', icon: ShieldCheckIcon },
-  { name: 'Seed Business Recommendation', to: '/seed-business-recommendations', icon: ClipboardDocumentListIcon },
   { name: 'Seed Batches', to: '/seed-batches', icon: CubeIcon },
-  { name: 'Pre-Planting Certification', to: '/certifications/pre-planting', icon: DocumentCheckIcon },
-  { name: 'Planting-Ready Certification', to: '/certifications/planting-ready', icon: DocumentCheckIcon },
-  { name: 'Seed Distribution', to: '/seed-distribution', icon: InboxStackIcon },
-  // { name: 'Analitik', to: '/dashboard/analytics', icon: ChartBarIcon },
+  // DISABLED: Features not yet integrated
+  // { name: 'Seed Source Evaluation', to: '/seed-source-evaluations', icon: ShieldCheckIcon },
+  // { name: 'Seed Business Recommendation', to: '/seed-business-recommendations', icon: ClipboardDocumentListIcon },
+  // { name: 'Pre-Planting Certification', to: '/certifications/pre-planting', icon: DocumentCheckIcon },
+  // { name: 'Planting-Ready Certification', to: '/certifications/planting-ready', icon: DocumentCheckIcon },
+  // { name: 'Seed Distribution', to: '/seed-distribution', icon: InboxStackIcon },
 ]
 
 const route = useRoute()
@@ -167,20 +164,10 @@ function handleLogout() {
             </nav>
           </div>
 
-          <div class="p-5 text-sm border rounded-3xl border-primary/15 bg-primary/5 text-ink/70">
-            <p class="text-xs font-semibold tracking-widest uppercase text-primary">SLA Monitoring</p>
-            <p class="mt-3 text-sm">
-              This week's SLA reached 86%. Keep field inspection schedules on time.
-            </p>
-            <button class="w-full mt-5 secondary-button">View Details</button>
-          </div>
+          
         </div>
 
-        <div class="p-5 mt-auto space-y-4 text-sm border rounded-3xl border-ink/10 bg-surface/80 text-ink/70">
-          <p class="font-semibold text-primary">Need quick help?</p>
-          <p>Contact our support center for certification guidance and field assistance.</p>
-          <button class="w-full secondary-button">Contact Support</button>
-        </div>
+        
       </aside>
 
       <div class="flex flex-col flex-1">
@@ -202,7 +189,7 @@ function handleLogout() {
               <!-- Profile Dropdown -->
               <div class="relative">
                 <button 
-                  class="flex items-center gap-3 px-4 py-2 border rounded-2xl border-ink/10 bg-white/80 hover:border-primary/30 transition"
+                  class="flex items-center gap-3 px-4 py-2 transition border rounded-2xl border-ink/10 bg-white/80 hover:border-primary/30"
                   @click="toggleProfileDropdown"
                 >
                   <div class="flex items-center justify-center w-10 h-10 font-semibold rounded-full bg-primary/15 text-primary">
@@ -212,7 +199,7 @@ function handleLogout() {
                     <p class="text-sm font-semibold text-ink">{{ userName }}</p>
                     <p class="text-xs text-ink/60">{{ userRole }}</p>
                   </div>
-                  <ChevronDownIcon class="w-4 h-4 text-ink/40 hidden lg:block" />
+                  <ChevronDownIcon class="hidden w-4 h-4 text-ink/40 lg:block" />
                 </button>
 
                 <!-- Dropdown Menu -->
@@ -226,7 +213,7 @@ function handleLogout() {
                 >
                   <div 
                     v-if="isProfileDropdownOpen" 
-                    class="absolute right-0 mt-2 w-56 origin-top-right bg-white rounded-2xl shadow-lg ring-1 ring-black/5 border border-ink/10 py-2 z-50"
+                    class="absolute right-0 z-50 w-56 py-2 mt-2 origin-top-right bg-white border shadow-lg rounded-2xl ring-1 ring-black/5 border-ink/10"
                   >
                     <!-- User Info -->
                     <div class="px-4 py-3 border-b border-ink/10">
@@ -238,7 +225,7 @@ function handleLogout() {
                     <div class="py-1">
                       <RouterLink 
                         to="/profile" 
-                        class="flex items-center gap-3 px-4 py-2 text-sm text-ink/70 hover:bg-primary/5 hover:text-primary transition"
+                        class="flex items-center gap-3 px-4 py-2 text-sm transition text-ink/70 hover:bg-primary/5 hover:text-primary"
                         @click="closeProfileDropdown"
                       >
                         <UserCircleIcon class="w-5 h-5" />
@@ -246,7 +233,7 @@ function handleLogout() {
                       </RouterLink>
                       <RouterLink 
                         to="/settings" 
-                        class="flex items-center gap-3 px-4 py-2 text-sm text-ink/70 hover:bg-primary/5 hover:text-primary transition"
+                        class="flex items-center gap-3 px-4 py-2 text-sm transition text-ink/70 hover:bg-primary/5 hover:text-primary"
                         @click="closeProfileDropdown"
                       >
                         <Cog6ToothIcon class="w-5 h-5" />
@@ -255,9 +242,9 @@ function handleLogout() {
                     </div>
                     
                     <!-- Logout -->
-                    <div class="border-t border-ink/10 py-1">
+                    <div class="py-1 border-t border-ink/10">
                       <button 
-                        class="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+                        class="flex items-center w-full gap-3 px-4 py-2 text-sm text-red-600 transition hover:bg-red-50"
                         @click="handleLogout"
                       >
                         <ArrowLeftOnRectangleIcon class="w-5 h-5" />

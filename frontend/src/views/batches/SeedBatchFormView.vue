@@ -1,4 +1,5 @@
 <script setup>
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ClipboardDocumentListIcon,
@@ -9,35 +10,117 @@ import {
   MapPinIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
+  PaperClipIcon,
 } from '@heroicons/vue/24/outline'
 import DashboardLayout from '../../layouts/DashboardLayout.vue'
+import { seedBatchService } from '../../services/api'
 
 const router = useRouter()
+const loading = ref(false)
+const error = ref(null)
+const success = ref(null)
+const selectedFile = ref(null)
+const createdBatchId = ref(null)
 
-const praOptions = [
-  { id: 'PT-2025-031', label: 'PT-2025-031 • Batch DxP Tenera-22 (Pre-planting passed)' },
-  { id: 'PT-2025-028', label: 'PT-2025-028 • Batch RRIM-600 (Awaiting verification)' },
-  { id: 'PT-2025-021', label: 'PT-2025-021 • Batch Liberika-15 (Pre-planting passed)' },
+const formData = reactive({
+  varietyName: '',
+  commodity: '',
+  harvestDate: '',
+  seedSourceNumber: '',
+  origin: '',
+  iupNumber: '',
+  seedClass: 'BD', // Default to BD (Breeder Seed)
+})
+
+const seedClassOptions = [
+  { value: 'BS', label: 'BS - Breeder Seed (Benih Penjenis)' },
+  { value: 'BD', label: 'BD - Foundation Seed (Benih Dasar)' },
+  { value: 'BP', label: 'BP - Stock Seed (Benih Pokok)' },
+  { value: 'BR', label: 'BR - Extension Seed (Benih Sebar)' },
 ]
 
-const dokumenChecklist = [
-  { id: 1, label: 'Harvest report', status: 'Not uploaded' },
-  { id: 2, label: 'Laboratory test result', status: 'Complete' },
-  { id: 3, label: 'Storage warehouse photos', status: 'Not uploaded' },
-]
-
-const timeline = [
-  { id: 1, title: 'Batch identity entered', detail: 'Done', tone: 'done' },
-  { id: 2, title: 'Upload batch documents', detail: 'Pending', tone: 'pending' },
-  { id: 3, title: 'Link to pre/planting-ready', detail: 'Pending', tone: 'pending' },
-]
-
-const statusToneClass = (tone) => {
-  const map = {
-    done: 'bg-primary/10 text-primary',
-    pending: 'bg-ink/5 text-ink/70',
+const handleFileChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      error.value = 'File size must be less than 10MB'
+      return
+    }
+    
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    if (!allowedTypes.includes(file.type)) {
+      error.value = 'File must be PDF or Word document'
+      return
+    }
+    
+    selectedFile.value = file
+    error.value = null
   }
-  return map[tone] ?? 'bg-ink/10 text-ink/70'
+}
+
+const isFormValid = computed(() => {
+  return (
+    formData.varietyName &&
+    formData.commodity &&
+    formData.harvestDate &&
+    formData.seedSourceNumber &&
+    formData.origin &&
+    formData.iupNumber &&
+    formData.seedClass &&
+    selectedFile.value
+  )
+})
+
+const handleSubmit = async () => {
+  if (!isFormValid.value) {
+    error.value = 'Please fill in all required fields and upload a document'
+    return
+  }
+
+  loading.value = true
+  error.value = null
+  success.value = null
+
+  try {
+    // Create FormData for multipart upload
+    const data = new FormData()
+    data.append('varietyName', formData.varietyName)
+    data.append('commodity', formData.commodity)
+    data.append('harvestDate', formData.harvestDate) // Send as YYYY-MM-DD
+    data.append('seedSourceNumber', formData.seedSourceNumber)
+    data.append('origin', formData.origin)
+    data.append('iupNumber', formData.iupNumber)
+    data.append('seedClass', formData.seedClass)
+    data.append('document', selectedFile.value)
+
+    console.log('Submitting seed batch:', {
+      varietyName: formData.varietyName,
+      commodity: formData.commodity,
+      harvestDate: formData.harvestDate,
+      seedSourceNumber: formData.seedSourceNumber,
+      origin: formData.origin,
+      iupNumber: formData.iupNumber,
+      seedClass: formData.seedClass,
+      fileName: selectedFile.value.name
+    })
+
+    const response = await seedBatchService.createBatch(data)
+    
+    success.value = 'Seed batch created successfully!'
+    createdBatchId.value = response.data?.batchId
+    
+    // Redirect after 2 seconds
+    setTimeout(() => {
+      router.push('/seed-batches')
+    }, 2000)
+  } catch (err) {
+    error.value = err.message || 'Failed to create seed batch'
+    console.error('Error creating batch:', err)
+  } finally {
+    loading.value = false
+  }
 }
 
 const goBackToList = () => router.push('/seed-batches')
@@ -45,22 +128,38 @@ const goBackToList = () => router.push('/seed-batches')
 
 <template>
   <DashboardLayout
-    page-title="Seed Batch Form"
-    page-subtitle="Record batch identity, lab test results, and link to pre/planting-ready certification."
+    page-title="Create Seed Batch"
+    page-subtitle="Record batch identity and upload seed source document."
   >
     <template #header-actions>
-      <button class="secondary-button">
-        <ClipboardDocumentListIcon class="w-5 h-5" />
-        Batch drafts
+      <button 
+        class="secondary-button" 
+        @click="goBackToList"
+        :disabled="loading"
+      >
+        Cancel
       </button>
-      <button class="primary-button">
-        Save batch
+      <button 
+        class="primary-button" 
+        @click="handleSubmit"
+        :disabled="!isFormValid || loading"
+      >
+        <span v-if="loading">Creating...</span>
+        <span v-else>Create Batch</span>
       </button>
     </template>
 
     <template #subheader-actions>
       <button class="secondary-button" @click="goBackToList">Back to list</button>
     </template>
+
+    <!-- Alert Messages -->
+    <div v-if="error" class="p-4 mb-6 text-sm text-red-700 bg-red-100 rounded-lg">
+      {{ error }}
+    </div>
+    <div v-if="success" class="p-4 mb-6 text-sm text-green-700 bg-green-100 rounded-lg">
+      {{ success }}
+    </div>
 
     <div class="grid gap-6 lg:grid-cols-[2fr,1fr]">
       <div class="space-y-6">
@@ -69,103 +168,85 @@ const goBackToList = () => router.push('/seed-batches')
             <DocumentTextIcon class="w-6 h-6 text-primary" />
             <div>
               <h3 class="text-lg font-semibold text-ink">Batch Identity</h3>
-              <p class="text-sm text-ink/60">Seed batch details and pre-planting linkage.</p>
+              <p class="text-sm text-ink/60">Seed batch details and basic information.</p>
             </div>
           </div>
 
           <div class="grid gap-4 mt-6 md:grid-cols-2">
-            <div class="input-group">
-              <label class="input-label">Batch ID</label>
-              <input type="text" class="text-input" placeholder="BT-2025-032" />
-            </div>
-            <div class="input-group">
-              <label class="input-label">Batch Name</label>
-              <input type="text" class="text-input" placeholder="Batch DxP Tenera-22" />
-            </div>
             <div class="input-group md:col-span-2">
-              <label class="input-label">Source estate</label>
-              <input type="text" class="text-input" placeholder="Seed Source Estate Citra" />
+              <label class="input-label">Variety Name *</label>
+              <input 
+                type="text" 
+                class="text-input" 
+                placeholder="e.g., DxP Tenera-22"
+                v-model="formData.varietyName"
+                :disabled="loading"
+              />
             </div>
             <div class="input-group">
-              <label class="input-label">Commodity</label>
-              <select class="text-input">
-                <option>Palm Oil</option>
-                <option>Rubber</option>
-                <option>Coffee</option>
-                <option>Cocoa</option>
+              <label class="input-label">Commodity *</label>
+              <input 
+                type="text" 
+                class="text-input" 
+                placeholder="e.g., Palm Oil, Rubber, Coffee"
+                v-model="formData.commodity"
+                :disabled="loading"
+              />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Harvest Date *</label>
+              <input 
+                type="date" 
+                class="text-input"
+                v-model="formData.harvestDate"
+                :disabled="loading"
+              />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Seed Source Number *</label>
+              <input 
+                type="text" 
+                class="text-input" 
+                placeholder="e.g., SSN-2025-001"
+                v-model="formData.seedSourceNumber"
+                :disabled="loading"
+              />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Origin *</label>
+              <input 
+                type="text" 
+                class="text-input" 
+                placeholder="e.g., West Java, Indonesia"
+                v-model="formData.origin"
+                :disabled="loading"
+              />
+            </div>
+            <div class="input-group">
+              <label class="input-label">IUP Number *</label>
+              <input 
+                type="text" 
+                class="text-input" 
+                placeholder="e.g., IUP-2025-001"
+                v-model="formData.iupNumber"
+                :disabled="loading"
+              />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Seed Class *</label>
+              <select 
+                class="text-input"
+                v-model="formData.seedClass"
+                :disabled="loading"
+              >
+                <option 
+                  v-for="option in seedClassOptions" 
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
               </select>
-            </div>
-            <div class="input-group">
-              <label class="input-label">Variety/Clone</label>
-              <input type="text" class="text-input" placeholder="DxP Tenera-22" />
-            </div>
-            <div class="input-group md:col-span-2">
-              <label class="input-label">Related pre-planting ID</label>
-              <select class="text-input">
-                <option disabled selected>Select a pre-planting application</option>
-                <option v-for="pra in praOptions" :key="pra.id">{{ pra.label }}</option>
-              </select>
-            </div>
-          </div>
-        </section>
-
-        <section class="p-6 panel-card">
-          <div class="flex items-center gap-3">
-            <BeakerIcon class="w-6 h-6 text-primary" />
-            <div>
-              <h3 class="text-lg font-semibold text-ink">Production & Quality</h3>
-              <p class="text-sm text-ink/60">Harvest volume, schedule, and lab results.</p>
-            </div>
-          </div>
-
-          <div class="grid gap-4 mt-6 md:grid-cols-2">
-            <div class="input-group">
-              <label class="input-label">Volume (seeds/seedlings)</label>
-              <input type="number" class="text-input" placeholder="50,000" />
-            </div>
-            <div class="input-group">
-              <label class="input-label">Harvest date</label>
-              <div class="flex items-center gap-2">
-                <CalendarDaysIcon class="w-5 h-5 text-ink/50" />
-                <input type="text" class="text-input" placeholder="05 October 2025" />
-              </div>
-            </div>
-            <div class="input-group">
-              <label class="input-label">Moisture content (%)</label>
-              <input type="number" class="text-input" placeholder="10" />
-            </div>
-            <div class="input-group">
-              <label class="input-label">Test status</label>
-              <select class="text-input">
-                <option>Awaiting result</option>
-                <option>Passed</option>
-                <option>Retest required</option>
-              </select>
-            </div>
-          </div>
-        </section>
-
-        <section class="p-6 panel-card">
-          <div class="flex items-center gap-3">
-            <MapPinIcon class="w-6 h-6 text-primary" />
-            <div>
-              <h3 class="text-lg font-semibold text-ink">Location & Storage</h3>
-              <p class="text-sm text-ink/60">Warehouse details and storage conditions.</p>
-            </div>
-          </div>
-
-          <div class="grid gap-4 mt-6 md:grid-cols-2">
-            <div class="input-group">
-              <label class="input-label">Storage warehouse</label>
-              <input type="text" class="text-input" placeholder="West Zone Main Warehouse" />
-            </div>
-            <div class="input-group">
-              <label class="input-label">Storage temperature (°C)</label>
-              <input type="number" class="text-input" placeholder="22" />
-            </div>
-            <div class="input-group md:col-span-2">
-              <label class="input-label">Condition notes</label>
-              <textarea class="text-input min-h-[120px]" placeholder="Warehouse cleanliness, ventilation, and batch labels."></textarea>
             </div>
           </div>
         </section>
@@ -174,40 +255,39 @@ const goBackToList = () => router.push('/seed-batches')
           <div class="flex items-center gap-3">
             <CloudArrowUpIcon class="w-6 h-6 text-primary" />
             <div>
-              <h3 class="text-lg font-semibold text-ink">Batch Documents</h3>
-              <p class="text-sm text-ink/60">Upload harvest report, lab results, and warehouse photos.</p>
+              <h3 class="text-lg font-semibold text-ink">Seed Source Document *</h3>
+              <p class="text-sm text-ink/60">Upload seed source documentation (PDF or Word, max 10MB).</p>
             </div>
           </div>
 
-          <div class="grid gap-4 mt-6 md:grid-cols-2">
+          <div class="mt-6">
             <div class="p-6 text-center border border-dashed rounded-2xl border-primary/30 bg-primary/5">
-              <p class="text-sm font-semibold text-primary">Drag & drop documents here</p>
-              <p class="mt-1 text-xs text-ink/60">PDF, JPG, PNG • max 20MB</p>
-              <button class="mx-auto mt-4 primary-button">
-                <CloudArrowUpIcon class="w-5 h-5" />
-                Choose files
-              </button>
-            </div>
-            <div class="space-y-3">
-              <div
-                v-for="item in dokumenChecklist"
-                :key="item.id"
-                class="flex items-center justify-between px-4 py-3 border rounded-xl border-ink/10 bg-surface"
-              >
-                <div class="flex items-center gap-3">
-                  <CheckCircleIcon
-                    v-if="item.status === 'Complete'"
-                    class="w-5 h-5 text-primary"
+              <CloudArrowUpIcon class="w-12 h-12 mx-auto text-primary" />
+              <p class="mt-2 text-sm font-semibold text-ink">
+                <label class="cursor-pointer text-primary hover:text-primary/80">
+                  Choose a file
+                  <input 
+                    type="file" 
+                    class="hidden" 
+                    accept=".pdf,.doc,.docx"
+                    @change="handleFileChange"
+                    :disabled="loading"
                   />
-                  <ExclamationTriangleIcon
-                    v-else
-                    class="w-5 h-5 text-sunshine"
-                  />
-                  <p class="text-sm font-semibold text-ink">{{ item.label }}</p>
-                </div>
-                <span :class="['status-pill', item.status === 'Complete' ? 'bg-primary/10 text-primary' : 'bg-sunshine/10 text-sunshine']">
-                  {{ item.status }}
-                </span>
+                </label>
+                or drag and drop
+              </p>
+              <p class="mt-1 text-xs text-ink/60">PDF, DOC, DOCX • max 10MB</p>
+              
+              <div v-if="selectedFile" class="flex items-center justify-center gap-2 px-4 py-2 mt-4 bg-white border rounded-lg border-ink/10">
+                <PaperClipIcon class="w-5 h-5 text-primary" />
+                <span class="text-sm text-ink">{{ selectedFile.name }}</span>
+                <button 
+                  @click="selectedFile = null" 
+                  class="ml-2 text-xs text-red-600 hover:text-red-800"
+                  :disabled="loading"
+                >
+                  Remove
+                </button>
               </div>
             </div>
           </div>
@@ -216,42 +296,76 @@ const goBackToList = () => router.push('/seed-batches')
 
       <aside class="space-y-6">
         <div class="p-6 panel-card">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <h3 class="text-lg font-semibold text-ink">Batch Progress</h3>
-              <p class="text-sm text-ink/60">Track form completion steps.</p>
+          <h3 class="text-lg font-semibold text-ink">Required Fields</h3>
+          <p class="mt-2 text-sm text-ink/60">Please complete all required fields marked with *</p>
+          
+          <div class="mt-4 space-y-2">
+            <div class="flex items-center gap-2">
+              <CheckCircleIcon 
+                :class="formData.varietyName ? 'text-primary' : 'text-ink/30'" 
+                class="w-5 h-5"
+              />
+              <span class="text-sm text-ink/70">Variety Name</span>
             </div>
-            <span class="status-pill bg-primary/10 text-primary">1/3 steps</span>
-          </div>
-          <div class="mt-6 space-y-3">
-            <div
-              v-for="step in timeline"
-              :key="step.id"
-              class="flex items-start justify-between px-4 py-3 bg-white border rounded-2xl border-ink/10"
-            >
-              <div>
-                <p class="text-sm font-semibold text-ink">{{ step.title }}</p>
-                <p class="text-xs text-ink/50">{{ step.detail }}</p>
-              </div>
-              <span :class="['status-pill', statusToneClass(step.tone)]">{{ step.tone === 'done' ? 'Done' : 'Pending' }}</span>
+            <div class="flex items-center gap-2">
+              <CheckCircleIcon 
+                :class="formData.commodity ? 'text-primary' : 'text-ink/30'" 
+                class="w-5 h-5"
+              />
+              <span class="text-sm text-ink/70">Commodity</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <CheckCircleIcon 
+                :class="formData.harvestDate ? 'text-primary' : 'text-ink/30'" 
+                class="w-5 h-5"
+              />
+              <span class="text-sm text-ink/70">Harvest Date</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <CheckCircleIcon 
+                :class="formData.seedSourceNumber ? 'text-primary' : 'text-ink/30'" 
+                class="w-5 h-5"
+              />
+              <span class="text-sm text-ink/70">Seed Source Number</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <CheckCircleIcon 
+                :class="formData.origin ? 'text-primary' : 'text-ink/30'" 
+                class="w-5 h-5"
+              />
+              <span class="text-sm text-ink/70">Origin</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <CheckCircleIcon 
+                :class="formData.iupNumber ? 'text-primary' : 'text-ink/30'" 
+                class="w-5 h-5"
+              />
+              <span class="text-sm text-ink/70">IUP Number</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <CheckCircleIcon 
+                :class="selectedFile ? 'text-primary' : 'text-ink/30'" 
+                class="w-5 h-5"
+              />
+              <span class="text-sm text-ink/70">Document Upload</span>
             </div>
           </div>
         </div>
 
         <div class="p-6 space-y-4 panel-card">
-          <h3 class="text-lg font-semibold text-ink">Batch checklist</h3>
+          <h3 class="text-lg font-semibold text-ink">What happens next?</h3>
           <ul class="space-y-3 text-sm text-ink/70">
             <li class="flex items-start gap-3">
-              <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary" />
-              <span>Batch linked to the source estate.</span>
+              <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
+              <span>Your batch will be created on the blockchain</span>
             </li>
             <li class="flex items-start gap-3">
-              <ExclamationTriangleIcon class="w-5 h-5 mt-0.5 text-sunshine" />
-              <span>Harvest report not uploaded.</span>
+              <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
+              <span>Document will be uploaded to IPFS</span>
             </li>
             <li class="flex items-start gap-3">
-              <ExclamationTriangleIcon class="w-5 h-5 mt-0.5 text-sunshine" />
-              <span>Warehouse photos not uploaded.</span>
+              <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
+              <span>You can submit for certification</span>
             </li>
           </ul>
         </div>

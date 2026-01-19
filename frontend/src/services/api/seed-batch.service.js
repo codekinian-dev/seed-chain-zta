@@ -29,11 +29,11 @@ const seedBatchService = {
 
     /**
      * Create new seed batch
-     * @param {Object} batchData - Seed batch data
+     * @param {FormData} batchData - Seed batch data (FormData with file)
      * @returns {Promise}
      */
     async createBatch(batchData) {
-        const response = await httpClient.post('/api/seed-batches', batchData)
+        const response = await httpClient.upload('/api/seed-batches', batchData)
         return response
     },
 
@@ -60,22 +60,22 @@ const seedBatchService = {
     /**
      * Submit certification request
      * @param {string} id - Batch ID
-     * @param {Object} data - Submission data
+     * @param {FormData} data - Submission data (FormData with file)
      * @returns {Promise}
      */
     async submitCertificationRequest(id, data) {
-        const response = await httpClient.post(`/api/seed-batches/${id}/submit`, data)
+        const response = await httpClient.upload(`/api/seed-batches/${id}/submit`, data)
         return response
     },
 
     /**
      * Record field inspection
      * @param {string} id - Batch ID
-     * @param {Object} inspectionData - Inspection data
+     * @param {FormData} inspectionData - Inspection data (FormData with file)
      * @returns {Promise}
      */
     async recordInspection(id, inspectionData) {
-        const response = await httpClient.post(`/api/seed-batches/${id}/inspect`, inspectionData)
+        const response = await httpClient.upload(`/api/seed-batches/${id}/inspect`, inspectionData)
         return response
     },
 
@@ -93,11 +93,11 @@ const seedBatchService = {
     /**
      * Issue certificate
      * @param {string} id - Batch ID
-     * @param {Object} certificateData - Certificate data
+     * @param {FormData} certificateData - Certificate data (FormData with file)
      * @returns {Promise}
      */
     async issueCertificate(id, certificateData) {
-        const response = await httpClient.post(`/api/seed-batches/${id}/certificate`, certificateData)
+        const response = await httpClient.upload(`/api/seed-batches/${id}/certificate`, certificateData)
         return response
     },
 

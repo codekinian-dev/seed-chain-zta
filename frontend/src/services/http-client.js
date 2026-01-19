@@ -52,6 +52,14 @@ class HttpClient {
                 errorData = { message: response.statusText }
             }
 
+            // Log detailed error for debugging
+            console.error('HTTP Error Response:', {
+                status: response.status,
+                statusText: response.statusText,
+                url: response.url,
+                errorData
+            })
+
             const error = new Error(errorData.message || 'Request failed')
             error.status = response.status
             error.data = errorData
@@ -91,9 +99,14 @@ class HttpClient {
      */
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`
+
+        // Use provided headers or build default headers
+        // This allows upload() to pass custom headers without Content-Type
+        const headers = options.headers || this.buildHeaders()
+
         const config = {
             ...options,
-            headers: this.buildHeaders(options.headers),
+            headers,
         }
 
         try {
@@ -164,6 +177,24 @@ class HttpClient {
     async upload(endpoint, formData, options = {}) {
         const headers = this.buildHeaders(options.headers)
         delete headers['Content-Type'] // Let browser set Content-Type with boundary
+
+        // Debug: Log token being sent
+        const token = this.getAuthToken()
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]))
+                console.log('[Upload Debug] Token payload:', {
+                    sub: payload.sub,
+                    username: payload.preferred_username,
+                    roles: payload.realm_access?.roles,
+                    exp: new Date(payload.exp * 1000).toISOString()
+                })
+            } catch (e) {
+                console.error('[Upload Debug] Failed to decode token:', e)
+            }
+        } else {
+            console.warn('[Upload Debug] No token found in localStorage!')
+        }
 
         return this.request(endpoint, {
             ...options,

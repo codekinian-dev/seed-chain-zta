@@ -39,18 +39,34 @@ const identityService = {
         // Handle different response formats from backend
         const token = response.access_token || response.accessToken || response.token || response.data?.access_token || response.data?.accessToken
         const refreshToken = response.refresh_token || response.refreshToken || response.data?.refresh_token || response.data?.refreshToken
-        const user = response.user || response.data?.user || { username: credentials.username }
 
-        // Store tokens
-        if (token) {
-            console.log('Storing token:', token.substring(0, 20) + '...')
+        if (!token) {
+            console.error('No token found in response:', response)
+            throw new Error('Login failed: No access token received')
+        }
+
+        // Decode JWT token to extract user info and roles
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            const user = {
+                id: payload.sub,
+                username: payload.preferred_username || credentials.username,
+                roles: payload.realm_access?.roles || [],
+                email: payload.email,
+                fullName: payload.name,
+            }
+
+            console.log('Decoded user from token:', user)
+
+            // Store tokens and user data
             localStorage.setItem('access_token', token)
             if (refreshToken) {
                 localStorage.setItem('refresh_token', refreshToken)
             }
             localStorage.setItem('user', JSON.stringify(user))
-        } else {
-            console.error('No token found in response:', response)
+        } catch (error) {
+            console.error('Failed to decode token:', error)
+            throw new Error('Login failed: Invalid token format')
         }
 
         return response
