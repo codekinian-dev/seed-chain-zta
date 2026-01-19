@@ -1,431 +1,291 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import {
-  InboxStackIcon,
-  ShieldCheckIcon,
-  BeakerIcon,
-  ChartBarSquareIcon,
-  ArrowTrendingUpIcon,
-  DocumentArrowDownIcon,
-  AdjustmentsHorizontalIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ArrowPathIcon,
+  ServerIcon,
+  UserCircleIcon,
 } from '@heroicons/vue/24/outline'
 import DashboardLayout from '../../layouts/DashboardLayout.vue'
-import MetricCard from '../../components/dashboard/MetricCard.vue'
+import { healthService, identityService } from '../../services/api'
 
-const metrics = [
-  {
-    title: 'Active Applications',
-    value: '128',
-    delta: 12.4,
-    deltaLabel: 'vs last month',
-    icon: InboxStackIcon,
-    accent: 'primary',
-  },
-  {
-    title: 'Batches in Testing',
-    value: '54 batches',
-    delta: -3.2,
-    deltaLabel: 'awaiting results',
-    icon: BeakerIcon,
-    accent: 'ocean',
-  },
-  {
-    title: 'Field Validations',
-    value: '32 locations',
-    delta: 8.6,
-    deltaLabel: 'closed this week',
-    icon: ShieldCheckIcon,
-    accent: 'sunshine',
-  },
-  {
-    title: 'Average Lead Time',
-    value: '14 days',
-    delta: -2.1,
-    deltaLabel: 'faster than target',
-    icon: ArrowTrendingUpIcon,
-    accent: 'primary',
-  },
-]
+// State
+const loading = ref(true)
+const healthStatus = ref(null)
+const identityStatus = ref(null)
+const healthError = ref(null)
+const identityError = ref(null)
 
-const applications = [
-  {
-    id: 'SC-2025-138',
-    applicant: 'PT Agro Makmur',
-    commodity: 'Palm Oil',
-    stage: 'Document Verification',
-    progress: 72,
-    sla: '3 days left',
-    updatedAt: '04 Oct 2025 • 09:12 WIB',
-    status: 'In Progress',
-    tone: 'warning',
-  },
-  {
-    id: 'SC-2025-133',
-    applicant: 'CV Sumber Benih',
-    commodity: 'Rubber',
-    stage: 'Quality Testing',
-    progress: 58,
-    sla: '5 days left',
-    updatedAt: '04 Oct 2025 • 08:20 WIB',
-    status: 'Awaiting Results',
-    tone: 'info',
-  },
-  {
-    id: 'SC-2025-129',
-    applicant: 'UPTD Benih Jabar',
-    commodity: 'Coffee',
-    stage: 'Field Validation',
-    progress: 92,
-    sla: '1 day left',
-    updatedAt: '03 Oct 2025 • 16:40 WIB',
-    status: 'Priority',
-    tone: 'critical',
-  },
-  {
-    id: 'SC-2025-125',
-    applicant: 'PT Tropika Sejahtera',
-    commodity: 'Coconut',
-    stage: 'Certificate',
-    progress: 100,
-    sla: 'Done',
-    updatedAt: '03 Oct 2025 • 11:05 WIB',
-    status: 'Completed',
-    tone: 'success',
-  },
-]
+// Get current user
+const currentUser = identityService.getCurrentUser()
 
-const teamActivities = [
-  {
-    id: 1,
-    title: 'Bogor Lab uploaded moisture test results for batch Tenera-19',
-    actor: 'Bogor Lab',
-    time: '08:45 WIB',
-    label: 'Laboratory',
-    tone: 'info',
-  },
-  {
-    id: 2,
-    title: 'Field inspection for Mitra Hijau confirmed by west zone team',
-    actor: 'Arini Rahma',
-    time: '07:30 WIB',
-    label: 'Field Validation',
-    tone: 'success',
-  },
-  {
-    id: 3,
-    title: 'Application #SC-2025-127 requested document revision',
-    actor: 'UPTD Jatim',
-    time: 'Yesterday • 17:10 WIB',
-    label: 'Needs Follow-up',
-    tone: 'warning',
-  },
-]
+// Load health status
+const loadHealthStatus = async () => {
+  try {
+    healthError.value = null
+    const response = await healthService.getHealth()
+    healthStatus.value = response.data || response
+  } catch (error) {
+    console.error('Failed to load health status:', error)
+    healthError.value = error.message || 'Failed to check system health'
+    healthStatus.value = { status: 'error' }
+  }
+}
 
-const scheduleItems = [
-  {
-    id: 1,
-    title: 'Field inspection — Citra Lestari Estate',
-    detail: 'Wednesday, 09:00 WIB • West Zone Validation Team',
-    tone: 'primary',
-  },
-  {
-    id: 2,
-    title: 'Lab review — Batch Tenera-17',
-    detail: 'Thursday, 13:30 WIB • Lab Lead',
-    tone: 'ocean',
-  },
-  {
-    id: 3,
-    title: 'Provincial certification coordination meeting',
-    detail: 'Friday, 15:00 WIB • Regional Coordinator',
-    tone: 'sunshine',
-  },
-]
+// Load identity status
+const loadIdentityStatus = async () => {
+  if (!currentUser) {
+    identityStatus.value = { enrolled: false, message: 'No user logged in' }
+    return
+  }
 
-const complianceNotes = [
-  {
-    id: 1,
-    title: 'Seed warehouse audit Q3',
-    status: 'Follow-up 2/3',
-    tone: 'warning',
-    checklist: [
-      'Complete moisture meter calibration before 8 October',
-      'Upload storage photo documentation to the system',
-    ],
-  },
-  {
-    id: 2,
-    title: 'Quality alert — Batch Java-21',
-    status: 'Action required',
-    tone: 'critical',
-    description: 'Seedling density below standard. Do re-sampling before distribution.',
-  },
-  {
-    id: 3,
-    title: 'Vendor evaluation checklist',
-    status: '80% complete',
-    tone: 'info',
-    progress: 80,
-  },
-]
+  try {
+    identityError.value = null
+    const response = await identityService.getStatus(currentUser.username)
+    identityStatus.value = response.data || response
+  } catch (error) {
+    console.error('Failed to load identity status:', error)
+    identityError.value = error.message || 'Failed to check enrollment status'
+    identityStatus.value = { enrolled: false, error: true }
+  }
+}
 
-const progressBreakdown = [
-  { label: 'Application Received', value: 82, color: 'bg-primary' },
-  { label: 'Lab Testing', value: 65, color: 'bg-ocean' },
-  { label: 'Field Validation', value: 48, color: 'bg-sunshine' },
-  { label: 'Certificate Issued', value: 36, color: 'bg-forest' },
-]
+// Load all data
+const loadData = async () => {
+  loading.value = true
+  await Promise.all([
+    loadHealthStatus(),
+    loadIdentityStatus()
+  ])
+  loading.value = false
+}
 
-const overallCompletion = computed(() => {
-  const maxValue = Math.max(...progressBreakdown.map((item) => item.value))
-  return Math.round((progressBreakdown.at(-1).value / maxValue) * 100)
+// Refresh data
+const refresh = () => {
+  loadData()
+}
+
+onMounted(() => {
+  loadData()
 })
-
-const statusToneClass = (tone) => {
-  const map = {
-    success: 'bg-primary/10 text-primary',
-    warning: 'bg-sunshine/10 text-sunshine',
-    info: 'bg-ocean/10 text-ocean',
-    critical: 'bg-red-100 text-red-500',
-  }
-  return map[tone] ?? 'bg-ink/10 text-ink/70'
-}
-
-const scheduleToneClass = (tone) => {
-  const map = {
-    primary: 'bg-primary/10 text-primary',
-    ocean: 'bg-ocean/10 text-ocean',
-    sunshine: 'bg-sunshine/10 text-sunshine',
-  }
-  return map[tone] ?? 'bg-ink/10 text-ink/70'
-}
-
-const complianceToneClass = (tone) => {
-  const map = {
-    success: 'border-primary/30',
-    warning: 'border-sunshine/40',
-    info: 'border-ocean/30',
-    critical: 'border-red-200 bg-red-50',
-  }
-  return map[tone] ?? 'border-ink/10'
-}
 </script>
 
 <template>
-  <DashboardLayout page-title="Certification Overview" page-subtitle="Latest snapshot as of 4 October 2025">
+  <DashboardLayout 
+    page-title="System Overview" 
+    page-subtitle="Health status and user enrollment information"
+  >
     <template #header-actions>
-      <button class="secondary-button hidden md:inline-flex">
-        <DocumentArrowDownIcon class="h-5 w-5" />
-        Export CSV
-      </button>
-      <button class="primary-button">
-        New Application
+      <button 
+        class="secondary-button" 
+        @click="refresh"
+        :disabled="loading"
+      >
+        <ArrowPathIcon class="w-5 h-5" :class="{ 'animate-spin': loading }" />
+        Refresh
       </button>
     </template>
 
-    <template #subheader-actions>
-      <div class="flex flex-wrap items-center gap-2">
-        <button class="secondary-button">
-          <AdjustmentsHorizontalIcon class="h-5 w-5" />
-          Filter Status
-        </button>
-        <button class="secondary-button hidden sm:inline-flex">This Week's SLA</button>
-        <button class="secondary-button hidden lg:inline-flex">Table Columns</button>
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="inline-block w-8 h-8 border-4 rounded-full border-t-transparent border-primary animate-spin"></div>
+        <p class="mt-2 text-sm text-ink/60">Loading system status...</p>
       </div>
-    </template>
+    </div>
 
-    <section class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-      <MetricCard
-        v-for="metric in metrics"
-        :key="metric.title"
-        v-bind="metric"
-      />
-    </section>
-
-    <section class="grid gap-6 xl:grid-cols-[2fr,1fr]">
-      <div class="panel-card overflow-hidden">
-        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-ink/10 px-6 py-5">
-          <div>
-            <h3 class="text-lg font-semibold text-ink">Latest Applications</h3>
-            <p class="text-sm text-ink/60">Status summary of the last four submitted applications.</p>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <button class="secondary-button hidden sm:inline-flex">
-              <DocumentArrowDownIcon class="h-5 w-5" />
-              Export
-            </button>
-            <button class="secondary-button">View All</button>
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-ink/10 text-sm">
-            <thead class="bg-surface">
-              <tr>
-                <th scope="col" class="table-header px-6 py-3">Application ID</th>
-                <th scope="col" class="table-header px-6 py-3">Applicant</th>
-                <th scope="col" class="table-header px-6 py-3">Stage</th>
-                <th scope="col" class="table-header px-6 py-3">Progress</th>
-                <th scope="col" class="table-header px-6 py-3 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-ink/10">
-              <tr
-                v-for="app in applications"
-                :key="app.id"
-                class="bg-white transition hover:bg-primary/5"
-              >
-                <td class="px-6 py-4 align-top">
-                  <div class="space-y-1">
-                    <p class="font-semibold text-ink">{{ app.id }}</p>
-                    <p class="text-xs text-ink/50">{{ app.updatedAt }}</p>
-                  </div>
-                </td>
-                <td class="px-6 py-4 align-top">
-                  <div class="space-y-1">
-                    <p class="font-semibold text-ink">{{ app.applicant }}</p>
-                    <p class="text-xs text-ink/50">Commodity: {{ app.commodity }}</p>
-                  </div>
-                </td>
-                <td class="px-6 py-4 align-top">
-                  <span class="status-pill bg-surface text-ink/70">{{ app.stage }}</span>
-                </td>
-                <td class="px-6 py-4 align-top">
-                  <div class="h-2 w-36 rounded-full bg-ink/10">
-                    <div class="h-2 rounded-full bg-primary" :style="{ width: app.progress + '%' }" />
-                  </div>
-                  <p class="mt-2 text-xs text-ink/50">{{ app.sla }}</p>
-                </td>
-                <td class="px-6 py-4 align-top text-right">
-                  <span :class="['status-pill', statusToneClass(app.tone)]">{{ app.status }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="space-y-6">
-        <div class="panel-card p-6">
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <h3 class="text-lg font-semibold text-ink">Team Activity</h3>
-              <p class="text-sm text-ink/60">Cross-unit updates in the last 24 hours.</p>
+    <!-- Content -->
+    <div v-else class="grid gap-6 md:grid-cols-2">
+      <!-- Health Status Card -->
+      <section class="panel-card p-6">
+        <div class="flex items-start justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="p-3 rounded-lg bg-primary/10">
+              <ServerIcon class="w-6 h-6 text-primary" />
             </div>
-            <button class="secondary-button">View All</button>
+            <div>
+              <h3 class="text-lg font-semibold text-ink">API Health Status</h3>
+              <p class="text-sm text-ink/60">System connectivity and availability</p>
+            </div>
           </div>
-          <ul class="mt-6 space-y-4">
-            <li
-              v-for="activity in teamActivities"
-              :key="activity.id"
-              class="rounded-2xl border border-ink/10 bg-surface/80 px-4 py-3"
-            >
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <p class="text-sm font-semibold text-ink">{{ activity.title }}</p>
-                <span :class="['status-pill', statusToneClass(activity.tone)]">{{ activity.label }}</span>
-              </div>
-              <p class="mt-2 text-xs text-ink/50">{{ activity.actor }} • {{ activity.time }}</p>
-            </li>
-          </ul>
         </div>
 
-        <div class="panel-card space-y-6 p-6">
-          <div class="flex items-center justify-between">
+        <div v-if="healthError" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-start gap-3">
+            <XCircleIcon class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 class="text-lg font-semibold text-ink">Certification Performance</h3>
-              <p class="text-sm text-ink/60">Cycle speed across stages.</p>
+              <p class="text-sm font-semibold text-red-900">Health Check Failed</p>
+              <p class="text-sm text-red-700 mt-1">{{ healthError }}</p>
             </div>
-            <ChartBarSquareIcon class="h-10 w-10 text-primary" />
           </div>
-          <div class="rounded-3xl bg-surface/70 p-5">
-            <div class="flex items-baseline justify-between">
+        </div>
+
+        <div v-else-if="healthStatus" class="space-y-4">
+          <!-- Overall Status -->
+          <div class="p-4 rounded-lg" :class="healthStatus.status === 'healthy' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
+            <div class="flex items-center gap-3">
+              <CheckCircleIcon v-if="healthStatus.status === 'healthy'" class="w-6 h-6 text-green-600" />
+              <XCircleIcon v-else class="w-6 h-6 text-red-600" />
               <div>
-                <p class="text-xs font-semibold uppercase tracking-widest text-ink/40">Final completion</p>
-                <p class="text-3xl font-semibold text-ink">{{ overallCompletion }}%</p>
-              </div>
-              <span class="status-pill bg-primary/10 text-primary">Target 60%</span>
-            </div>
-            <div class="mt-6 space-y-4">
-              <div v-for="stage in progressBreakdown" :key="stage.label" class="space-y-2">
-                <div class="flex items-center justify-between text-sm text-ink/60">
-                  <span>{{ stage.label }}</span>
-                  <span class="font-semibold text-ink">{{ stage.value }} batches</span>
-                </div>
-                <div class="h-2 w-full rounded-full bg-ink/10">
-                  <div :class="[stage.color, 'h-2 rounded-full']" :style="{ width: stage.value + '%' }" />
-                </div>
+                <p class="text-sm font-semibold" :class="healthStatus.status === 'healthy' ? 'text-green-900' : 'text-red-900'">
+                  {{ healthStatus.status === 'healthy' ? 'System Healthy' : 'System Error' }}
+                </p>
+                <p class="text-xs mt-1" :class="healthStatus.status === 'healthy' ? 'text-green-700' : 'text-red-700'">
+                  API is {{ healthStatus.status === 'healthy' ? 'operational' : 'experiencing issues' }}
+                </p>
               </div>
             </div>
           </div>
-          <div class="rounded-3xl border border-primary/20 bg-primary/5 p-5 text-sm text-ink/70">
-            <p class="font-semibold text-primary">Auto recommendation</p>
-            <p class="mt-2">
-              Prioritize batch <span class="font-semibold text-ink">Tenera-19</span> for field inspection this week to keep the 15-day SLA.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <section class="grid gap-6 xl:grid-cols-[1.5fr,1fr]">
-      <div class="panel-card p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-lg font-semibold text-ink">This Week's Schedule</h3>
-            <p class="text-sm text-ink/60">Coordinate field, lab, and meeting activities.</p>
+          <!-- Service Details -->
+          <div v-if="healthStatus.services" class="space-y-3">
+            <h4 class="text-sm font-semibold text-ink">Service Status</h4>
+            <div 
+              v-for="(service, name) in healthStatus.services" 
+              :key="name"
+              class="p-3 bg-gray-50 border border-gray-200 rounded-lg"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div 
+                    class="w-2 h-2 rounded-full" 
+                    :class="service.status === 'healthy' || service.status === 'connected' ? 'bg-green-500' : 'bg-red-500'"
+                  ></div>
+                  <span class="text-sm font-medium text-ink capitalize">{{ name }}</span>
+                </div>
+                <span 
+                  class="text-xs px-2 py-1 rounded-full font-medium"
+                  :class="service.status === 'healthy' || service.status === 'connected' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                >
+                  {{ service.status }}
+                </span>
+              </div>
+              <p v-if="service.message" class="text-xs text-gray-600 mt-1">{{ service.message }}</p>
+            </div>
           </div>
-          <button class="secondary-button">Manage Schedule</button>
+
+          <!-- Additional Info -->
+          <div v-if="healthStatus.timestamp || healthStatus.uptime" class="pt-4 border-t border-gray-200">
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div v-if="healthStatus.timestamp">
+                <p class="text-ink/60">Last Check</p>
+                <p class="font-medium text-ink mt-1">{{ new Date(healthStatus.timestamp).toLocaleString() }}</p>
+              </div>
+              <div v-if="healthStatus.uptime">
+                <p class="text-ink/60">Uptime</p>
+                <p class="font-medium text-ink mt-1">{{ Math.floor(healthStatus.uptime / 60) }}m</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="mt-6 space-y-4">
-          <div
-            v-for="item in scheduleItems"
-            :key="item.id"
-            class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-white px-4 py-4"
-          >
+      </section>
+
+      <!-- Identity Enrollment Status Card -->
+      <section class="panel-card p-6">
+        <div class="flex items-start justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="p-3 rounded-lg bg-ocean/10">
+              <UserCircleIcon class="w-6 h-6 text-ocean" />
+            </div>
             <div>
-              <p class="text-sm font-semibold text-ink">{{ item.title }}</p>
-              <p class="text-xs text-ink/50">{{ item.detail }}</p>
+              <h3 class="text-lg font-semibold text-ink">User Enrollment Status</h3>
+              <p class="text-sm text-ink/60">Blockchain identity verification</p>
             </div>
-            <span :class="['status-pill', scheduleToneClass(item.tone)]">
-              {{ item.tone === 'primary' ? 'Field' : item.tone === 'ocean' ? 'Lab' : 'Meeting' }}
-            </span>
           </div>
         </div>
-      </div>
 
-      <div class="panel-card space-y-4 p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-lg font-semibold text-ink">Compliance Notes</h3>
-            <p class="text-sm text-ink/60">Track audit follow-ups and improvement actions.</p>
-          </div>
-          <button class="secondary-button">Add Note</button>
-        </div>
-        <div class="space-y-4">
-          <div
-            v-for="note in complianceNotes"
-            :key="note.id"
-            :class="['rounded-2xl border bg-white px-5 py-4', complianceToneClass(note.tone)]"
-          >
-            <div class="flex items-center justify-between gap-3">
-              <h4 class="text-sm font-semibold text-ink">{{ note.title }}</h4>
-              <span :class="['status-pill', statusToneClass(note.tone)]">{{ note.status }}</span>
+        <div v-if="!currentUser" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div class="flex items-start gap-3">
+            <XCircleIcon class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p class="text-sm font-semibold text-yellow-900">No User Logged In</p>
+              <p class="text-sm text-yellow-700 mt-1">Please log in to check enrollment status</p>
             </div>
-            <template v-if="note.description">
-              <p class="mt-2 text-xs text-ink/60">{{ note.description }}</p>
-            </template>
-            <template v-if="note.checklist">
-              <ul class="mt-3 space-y-2 text-sm text-ink/70">
-                <li v-for="item in note.checklist" :key="item">• {{ item }}</li>
-              </ul>
-            </template>
-            <template v-if="note.progress">
-              <div class="mt-3 h-2 w-full rounded-full bg-ink/10">
-                <div class="h-2 rounded-full bg-primary" :style="{ width: note.progress + '%' }" />
-              </div>
-            </template>
           </div>
         </div>
-      </div>
-    </section>
+
+        <div v-else-if="identityError" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-start gap-3">
+            <XCircleIcon class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p class="text-sm font-semibold text-red-900">Enrollment Check Failed</p>
+              <p class="text-sm text-red-700 mt-1">{{ identityError }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="identityStatus" class="space-y-4">
+          <!-- Enrollment Status -->
+          <div class="p-4 rounded-lg" :class="identityStatus.enrolled ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'">
+            <div class="flex items-center gap-3">
+              <CheckCircleIcon v-if="identityStatus.enrolled" class="w-6 h-6 text-green-600" />
+              <XCircleIcon v-else class="w-6 h-6 text-yellow-600" />
+              <div>
+                <p class="text-sm font-semibold" :class="identityStatus.enrolled ? 'text-green-900' : 'text-yellow-900'">
+                  {{ identityStatus.enrolled ? 'User Enrolled' : 'Not Enrolled' }}
+                </p>
+                <p class="text-xs mt-1" :class="identityStatus.enrolled ? 'text-green-700' : 'text-yellow-700'">
+                  {{ identityStatus.enrolled ? 'Identity verified in blockchain network' : 'User needs enrollment to access blockchain features' }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Details -->
+          <div class="space-y-3">
+            <h4 class="text-sm font-semibold text-ink">User Information</h4>
+            <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
+              <div class="flex justify-between">
+                <span class="text-sm text-ink/60">Username</span>
+                <span class="text-sm font-medium text-ink">{{ currentUser.username }}</span>
+              </div>
+              <div v-if="currentUser.email" class="flex justify-between">
+                <span class="text-sm text-ink/60">Email</span>
+                <span class="text-sm font-medium text-ink">{{ currentUser.email }}</span>
+              </div>
+              <div v-if="currentUser.roles && currentUser.roles.length > 0" class="flex justify-between items-center">
+                <span class="text-sm text-ink/60">Roles</span>
+                <div class="flex flex-wrap gap-1 justify-end">
+                  <span 
+                    v-for="role in currentUser.roles" 
+                    :key="role"
+                    class="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium"
+                  >
+                    {{ role.replace('role_', '') }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enrollment Details -->
+          <div v-if="identityStatus.enrolled && identityStatus.certificate" class="space-y-3">
+            <h4 class="text-sm font-semibold text-ink">Certificate Details</h4>
+            <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2 text-xs">
+              <div v-if="identityStatus.mspId" class="flex justify-between">
+                <span class="text-ink/60">MSP ID</span>
+                <span class="font-mono text-ink">{{ identityStatus.mspId }}</span>
+              </div>
+              <div v-if="identityStatus.affiliation" class="flex justify-between">
+                <span class="text-ink/60">Affiliation</span>
+                <span class="font-mono text-ink">{{ identityStatus.affiliation }}</span>
+              </div>
+              <div v-if="identityStatus.type" class="flex justify-between">
+                <span class="text-ink/60">Type</span>
+                <span class="font-mono text-ink">{{ identityStatus.type }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <div v-if="!identityStatus.enrolled" class="pt-4 border-t border-gray-200">
+            <button class="w-full primary-button" @click="$router.push('/identity/enroll')">
+              Enroll Identity
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
   </DashboardLayout>
 </template>
