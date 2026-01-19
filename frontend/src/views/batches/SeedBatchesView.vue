@@ -123,10 +123,10 @@ onMounted(() => {
     page-subtitle="Manage seed batches, test status, and links to pre/planting-ready certification."
   >
     <template #header-actions>
-      <button v-if="isProducer" class="secondary-button">
+      <!-- <button v-if="isProducer" class="secondary-button">
         <ClipboardDocumentListIcon class="w-5 h-5" />
         Batch drafts
-      </button>
+      </button> -->
       <button v-if="isProducer" class="primary-button" @click="goToNewForm">
         New batch
       </button>
@@ -217,7 +217,7 @@ onMounted(() => {
       </template>
     </section>
 
-    <div class="p-6 text-center border-dashed panel-card border-primary/20 bg-primary/5">
+    <!-- <div v-if="isProducer" class="p-6 text-center border-dashed panel-card border-primary/20 bg-primary/5">
       <CubeIcon class="w-8 h-8 mx-auto text-primary" />
       <p class="mt-3 text-base font-semibold text-ink">Ready to create a batch?</p>
       <p class="mt-1 text-sm text-ink/60">Click the button below to create your first seed batch.</p>
@@ -225,6 +225,6 @@ onMounted(() => {
         <PlusCircleIcon class="w-5 h-5" />
         New batch
       </button>
-    </div>
+    </div> -->
   </DashboardLayout>
 </template>

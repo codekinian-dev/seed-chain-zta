@@ -40,13 +40,13 @@ async function handleSubmit() {
   <AuthLayout
     title="Welcome back"
     subtitle="Sign in to manage seed certification workflows, monitor progress, and collaborate with field teams."
-    highlight-title="SeedCertify Analytics"
+    highlight-title="BenihChain"
     highlight-description="End-to-end insights across certification—from batch registration to final validation."
   >
     <!-- Error Alert -->
-    <div v-if="errorMessage" class="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-800">
+    <div v-if="errorMessage" class="p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50">
       <div class="flex items-start">
-        <svg class="mr-3 h-5 w-5 flex-shrink-0 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+        <svg class="flex-shrink-0 w-5 h-5 mr-3 text-red-400" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
         </svg>
         <span>{{ errorMessage }}</span>
@@ -71,7 +71,7 @@ async function handleSubmit() {
       <div class="space-y-2">
         <div class="flex items-center justify-between text-sm font-medium text-ink">
           <label for="password">Password</label>
-          <RouterLink to="#" class="text-primary hover:text-primary-600">Forgot password?</RouterLink>
+          <!-- <RouterLink to="#" class="text-primary hover:text-primary-600">Forgot password?</RouterLink> -->
         </div>
         <input
           id="password"
@@ -91,9 +91,9 @@ async function handleSubmit() {
           <input
             v-model="form.remember"
             type="checkbox"
-            class="h-4 w-4 rounded border-ink/20 text-primary focus:ring-primary"
+            class="w-4 h-4 rounded border-ink/20 text-primary focus:ring-primary"
           />
-          Remember me for 30 days
+          Remember me
         </label>
         <RouterLink to="/register" class="flex items-center gap-1 font-semibold text-primary">
           Create a new account
@@ -101,25 +101,25 @@ async function handleSubmit() {
         </RouterLink>
       </div>
 
-      <button type="submit" class="primary-button w-full" :disabled="isLoading">
+      <button type="submit" class="w-full primary-button" :disabled="isLoading">
         <span v-if="isLoading" class="flex items-center justify-center">
-          <svg class="mr-2 h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 mr-2 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           Signing in...
         </span>
-        <span v-else>Sign in to SeedCertify</span>
+        <span v-else>Sign in</span>
       </button>
     </form>
 
     <template #footer>
-      <div class="text-center text-sm text-ink/60">
+      <!-- <div class="text-sm text-center text-ink/60">
         By signing in, you agree to
         <RouterLink to="#" class="font-semibold text-primary hover:text-primary-600">Terms & Conditions</RouterLink>
         and
         <RouterLink to="#" class="font-semibold text-primary hover:text-primary-600">Privacy Policy</RouterLink>
-      </div>
+      </div> -->
     </template>
   </AuthLayout>
 </template>

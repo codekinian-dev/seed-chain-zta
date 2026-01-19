@@ -129,7 +129,7 @@ function handleLogout() {
           <div class="flex items-center gap-3">
             <span class="inline-flex items-center justify-center text-2xl h-11 w-11 rounded-2xl bg-primary/10">🌿</span>
             <div>
-              <p class="text-base font-semibold text-ink">SeedCertify</p>
+              <p class="text-base font-semibold text-ink">BenihChain</p>
               <p class="text-xs tracking-widest uppercase text-ink/40">Admin Panel</p>
             </div>
           </div>
@@ -178,7 +178,7 @@ function handleLogout() {
                 <Bars3Icon class="w-5 h-5" />
               </button>
               <div>
-                <p class="text-xs font-semibold tracking-widest uppercase text-ink/40">SeedCertify Admin</p>
+                <p class="text-xs font-semibold tracking-widest uppercase text-ink/40">BenihChain Admin</p>
                 <h1 class="text-xl font-semibold text-ink lg:text-2xl">{{ pageTitle }}</h1>
               </div>
             </div>
@@ -279,11 +279,11 @@ function handleLogout() {
                   <p v-if="pageSubtitle" class="text-sm text-ink/60">{{ pageSubtitle }}</p>
                 </div>
               </div>
-              <div class="flex flex-wrap items-center gap-3">
+              <!-- <div class="flex flex-wrap items-center gap-3">
                 <slot name="subheader-actions">
                   <button class="secondary-button">Share Report</button>
                 </slot>
-              </div>
+              </div> -->
             </div>
 
             <slot />
