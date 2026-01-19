@@ -78,22 +78,9 @@ app.use(morgan(morganFormat, {
     }
 }));
 
-// Body parser - skip for multipart/form-data (handled by multer in routes)
-app.use((req, res, next) => {
-    // Skip JSON parsing for multipart/form-data requests
-    const contentType = req.headers['content-type'] || '';
-    if (contentType.includes('multipart/form-data')) {
-        return next();
-    }
-    express.json({ limit: '50mb' })(req, res, next);
-});
-app.use((req, res, next) => {
-    const contentType = req.headers['content-type'] || '';
-    if (contentType.includes('multipart/form-data')) {
-        return next();
-    }
-    express.urlencoded({ extended: true, limit: '50mb' })(req, res, next);
-});
+// Body parser - increased limit for file uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Middleware will be initialized in initializeServices()
 // (Session, Keycloak, Routes will be setup after auth initialization)
