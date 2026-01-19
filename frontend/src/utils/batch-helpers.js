@@ -196,7 +196,7 @@ export function formatDocumentType(type) {
  * @param {String} gateway - Gateway URL (default: public IPFS gateway)
  * @returns {String}
  */
-export function getIPFSUrl(cid, gateway = 'https://ipfs.io/ipfs/') {
+export function getIPFSUrl(cid, gateway = 'https://ipfs.jabarchain.me/ipfs/') {
     if (!cid) return ''
     return `${gateway}${cid}`
 }
