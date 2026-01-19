@@ -192,11 +192,15 @@ class SeedBatchContractZTA extends Contract {
 
         switch (ownerType) {
             case 'producer':
-                ownerKeycloakId = seedBatch.producer_keycloak_id;
-                ownerField = 'producer_keycloak_id';
+                ownerKeycloakId = seedBatch.actors?.producer?.keycloak_id;
+                ownerField = 'actors.producer.keycloak_id';
                 break;
             default:
                 throw new Error(`Tipe owner tidak dikenal: ${ownerType}`);
+        }
+
+        if (!ownerKeycloakId) {
+            throw new Error(`Owner ${ownerType} tidak ditemukan di resource ini.`);
         }
 
         if (callerKeycloakId !== ownerKeycloakId) {
@@ -260,12 +264,37 @@ class SeedBatchContractZTA extends Contract {
     // =========================================================
     _getLabelColor(seedClass) {
         switch (seedClass) {
-            case 'BS': return 'Kuning';
-            case 'BD': return 'Putih';
-            case 'BP': return 'Ungu';
-            case 'BR': return 'Biru';
-            default: return 'Belum Ditentukan';
+            case 'BS': return 'KUNING';
+            case 'BD': return 'PUTIH';
+            case 'BP': return 'UNGU';
+            case 'BR': return 'BIRU';
+            default: return 'BELUM_DITENTUKAN';
         }
+    }
+
+    // =========================================================
+    // HELPER: Generate Event/Document Counter
+    // =========================================================
+    _generateCounter(prefix, array) {
+        if (!array || array.length === 0) return `${prefix}-001`;
+        const lastItem = array[array.length - 1];
+        const lastId = lastItem.event_id || lastItem.doc_id || `${prefix}-000`;
+        const match = lastId.match(/-0*(\d+)$/);
+        const nextNum = match ? parseInt(match[1]) + 1 : 1;
+        return `${prefix}-${String(nextNum).padStart(3, '0')}`;
+    }
+
+    // =========================================================
+    // HELPER: Create Actor Object
+    // =========================================================
+    _createActorObject(identityContext) {
+        return {
+            keycloak_id: identityContext.keycloakId,
+            username: identityContext.username,
+            fabric_subject: identityContext.userID,
+            msp_id: identityContext.mspId,
+            role: identityContext.role.replace('role_', '').replace('producer', 'PRODUCER').replace('pbt_field', 'INSPECTOR_FIELD').replace('pbt_chief', 'INSPECTOR_CHIEF').replace('lsm_head', 'ISSUER')
+        };
     }
 
     // =========================================================
@@ -319,58 +348,94 @@ class SeedBatchContractZTA extends Contract {
             throw new Error(`Batch benih ${id} sudah ada.`);
         }
 
-        // Create seed source document
-        const seedSourceDoc = {
-            name: this._sanitizeInput(seedSourceDocName),
-            cid: seedSourceIpfsCid,
-            uploaded_by: identity.userID,
-            uploaded_by_keycloak: identity.keycloakId,
-            uploaded_at: identity.timestamp,
-            doc_type: 'seed_source'
+        // Parse origin (format: "City, Province, Country" or just "Region")
+        const originParts = origin.split(',').map(s => s.trim());
+        const originObj = originParts.length >= 3 ? {
+            region: originParts[0],
+            province: originParts[1],
+            country: originParts[2]
+        } : {
+            region: origin,
+            province: '',
+            country: 'ID'
         };
 
-        // Sanitize inputs
+        // Create seed source document with new structure
+        const seedSourceDoc = {
+            doc_id: `DOC-SS-${seedSourceNumber}`,
+            doc_type: 'seed_source',
+            file_name: this._sanitizeInput(seedSourceDocName),
+            cid: seedSourceIpfsCid,
+            uploaded_at: identity.timestamp,
+            uploader_ref: 'producer',
+            meta: {
+                description: 'Dokumen sumber benih'
+            }
+        };
+
+        // Create initial event
+        const initialEvent = {
+            event_id: 'EVT-001',
+            type: 'CREATED',
+            at: identity.timestamp,
+            actor_ref: 'producer',
+            note: 'Seed batch dibuat'
+        };
+
+        // Build new nested structure
         const seedBatch = {
             id: this._sanitizeInput(id),
-            docType: 'SeedBatch',
-            variety_name: this._sanitizeInput(varietyName),
-            commodity: this._sanitizeInput(commodity),
-            harvest_date: harvestDate,
-            seed_source_number: this._sanitizeInput(seedSourceNumber),
-            origin: this._sanitizeInput(origin),
-            iup_number: this._sanitizeInput(iupNumber),
+            doc_type: 'SeedBatch',
+            schema_version: '1.0',
 
-            // Identity tracking (using Keycloak UUID)
-            producer_id: producerUUID,
-            producer_keycloak_id: identity.keycloakId,
-            created_by: identity.userID,
-            created_by_keycloak: identity.keycloakId,
-            created_by_username: identity.username,
-            created_at: identity.timestamp,
-            created_msp: identity.mspId,
+            batch: {
+                batch_code: this._sanitizeInput(id),
+                variety_name: this._sanitizeInput(varietyName),
+                commodity: this._sanitizeInput(commodity),
+                seed_class: seedClass,
+                label_color: this._getLabelColor(seedClass)
+            },
 
-            // Inspector IDs (will be filled by respective roles)
-            inspector_field_id: '',
-            inspector_field_keycloak_id: '',
-            inspector_chief_id: '',
-            inspector_chief_keycloak_id: '',
-            issuer_id: '',
-            issuer_keycloak_id: '',
+            seed_source: {
+                seed_source_number: this._sanitizeInput(seedSourceNumber),
+                iup_number: this._sanitizeInput(iupNumber),
+                origin: originObj,
+                harvest: {
+                    harvest_date: harvestDate,
+                    timezone: 'Asia/Jakarta'
+                }
+            },
 
-            seed_class: seedClass,
-            label_color: this._getLabelColor(seedClass),
-            cert_number: '',
-            cert_issue_date: '',
-            cert_expiry_date: '',
-            cert_revoke_date: '',
-            current_status: 'REGISTERED',
+            certification: {
+                cert_number: null,
+                issued_at: null,
+                expires_at: null,
+                revoked_at: null,
+                revoke_reason: null
+            },
+
+            status: {
+                current: 'REGISTERED',
+                since: identity.timestamp
+            },
+
+            actors: {
+                producer: this._createActorObject(identity),
+                inspector_field: null,
+                inspector_chief: null,
+                issuer: null
+            },
+
             documents: [seedSourceDoc],
+            events: [initialEvent],
 
-            // ZTA: Version control
-            version: 1,
-            last_modified_by: identity.userID,
-            last_modified_by_keycloak: identity.keycloakId,
-            last_modified_at: identity.timestamp
+            audit: {
+                created_at: identity.timestamp,
+                created_by_ref: 'producer',
+                last_modified_at: identity.timestamp,
+                last_modified_by_ref: 'producer',
+                revision: 1
+            }
         };
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
@@ -399,31 +464,44 @@ class SeedBatchContractZTA extends Contract {
 
         const seedBatch = await this.getSeedBatch(ctx, id);
 
-        if (seedBatch.current_status !== 'REGISTERED') {
-            throw new Error(`Status harus REGISTERED. Status saat ini: ${seedBatch.current_status}`);
+        if (seedBatch.status.current !== 'REGISTERED') {
+            throw new Error(`Status harus REGISTERED. Status saat ini: ${seedBatch.status.current}`);
         }
 
         // ZTA: Verify caller is the owner (producer) of this batch
         this._verifyResourceOwnership(identity, seedBatch, 'producer');
 
+        // Generate doc_id and event_id
+        const docId = this._generateCounter('DOC-REQ', seedBatch.documents);
+        const eventId = this._generateCounter('EVT', seedBatch.events);
+
         const newDoc = {
-            name: this._sanitizeInput(documentName),
+            doc_id: docId,
+            doc_type: 'certification_request',
+            file_name: this._sanitizeInput(documentName),
             cid: ipfsCid,
-            uploaded_by: identity.userID,
-            uploaded_by_keycloak: identity.keycloakId,
-            uploaded_by_username: identity.username,
             uploaded_at: identity.timestamp,
-            doc_type: 'certification_request'
+            uploader_ref: 'producer',
+            meta: {
+                submitted_at: identity.timestamp
+            }
+        };
+
+        const newEvent = {
+            event_id: eventId,
+            type: 'SUBMITTED',
+            at: identity.timestamp,
+            actor_ref: 'producer',
+            ref_doc_id: docId
         };
 
         seedBatch.documents.push(newDoc);
-        seedBatch.current_status = 'SUBMITTED';
-        seedBatch.submitted_at = identity.timestamp;
-        seedBatch.submitted_by_keycloak = identity.keycloakId;
-        seedBatch.version += 1;
-        seedBatch.last_modified_by = identity.userID;
-        seedBatch.last_modified_by_keycloak = identity.keycloakId;
-        seedBatch.last_modified_at = identity.timestamp;
+        seedBatch.events.push(newEvent);
+        seedBatch.status.current = 'SUBMITTED';
+        seedBatch.status.since = identity.timestamp;
+        seedBatch.audit.revision += 1;
+        seedBatch.audit.last_modified_by_ref = 'producer';
+        seedBatch.audit.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
@@ -452,39 +530,49 @@ class SeedBatchContractZTA extends Contract {
 
         const seedBatch = await this.getSeedBatch(ctx, id);
 
-        if (seedBatch.current_status !== 'SUBMITTED') {
-            throw new Error(`Benih belum diajukan. Status: ${seedBatch.current_status}`);
+        if (seedBatch.status.current !== 'SUBMITTED') {
+            throw new Error(`Benih belum diajukan. Status: ${seedBatch.status.current}`);
         }
 
         // ZTA: Prevent duplicate inspection by same inspector
-        if (seedBatch.inspector_field_keycloak_id === identity.keycloakId) {
+        if (seedBatch.actors.inspector_field?.keycloak_id === identity.keycloakId) {
             throw new Error('Petugas ini sudah melakukan inspeksi pada batch ini.');
         }
 
-        seedBatch.inspector_field_id = inspectorFieldUUID;
-        seedBatch.inspector_field_keycloak_id = identity.keycloakId;
-        seedBatch.inspected_by = identity.userID;
-        seedBatch.inspected_by_username = identity.username;
-        seedBatch.inspected_at = identity.timestamp;
-        seedBatch.current_status = 'INSPECTED';
+        // Set inspector_field actor
+        seedBatch.actors.inspector_field = this._createActorObject(identity);
+        seedBatch.status.current = 'INSPECTED';
+        seedBatch.status.since = identity.timestamp;
+
+        // Generate IDs
+        const docId = this._generateCounter('DOC-INSP', seedBatch.documents);
+        const eventId = this._generateCounter('EVT', seedBatch.events);
 
         const inspectionDoc = {
-            name: 'Laporan Inspeksi Lapangan',
-            result: this._sanitizeInput(inspectionResult),
-            cid: ipfsInspectionCid,
-            uploaded_by: identity.userID,
-            uploaded_by_keycloak: identity.keycloakId,
-            uploaded_by_username: identity.username,
-            uploaded_at: identity.timestamp,
+            doc_id: docId,
             doc_type: 'field_inspection',
-            inspector_msp: identity.mspId
+            name: 'Laporan Inspeksi Lapangan',
+            cid: ipfsInspectionCid,
+            uploaded_at: identity.timestamp,
+            uploader_ref: 'inspector_field',
+            meta: {
+                result: this._sanitizeInput(inspectionResult)
+            }
         };
-        seedBatch.documents.push(inspectionDoc);
 
-        seedBatch.version += 1;
-        seedBatch.last_modified_by = identity.userID;
-        seedBatch.last_modified_by_keycloak = identity.keycloakId;
-        seedBatch.last_modified_at = identity.timestamp;
+        const inspectionEvent = {
+            event_id: eventId,
+            type: 'FIELD_INSPECTED',
+            at: identity.timestamp,
+            actor_ref: 'inspector_field',
+            ref_doc_id: docId
+        };
+
+        seedBatch.documents.push(inspectionDoc);
+        seedBatch.events.push(inspectionEvent);
+        seedBatch.audit.revision += 1;
+        seedBatch.audit.last_modified_by_ref = 'inspector_field';
+        seedBatch.audit.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
@@ -517,26 +605,28 @@ class SeedBatchContractZTA extends Contract {
 
         const seedBatch = await this.getSeedBatch(ctx, id);
 
-        if (seedBatch.current_status !== 'INSPECTED') {
-            throw new Error(`Belum diinspeksi lapangan. Status: ${seedBatch.current_status}`);
+        if (seedBatch.status.current !== 'INSPECTED') {
+            throw new Error(`Belum diinspeksi lapangan. Status: ${seedBatch.status.current}`);
         }
 
         // ZTA: Prevent self-evaluation (chief cannot evaluate own field inspection)
-        if (seedBatch.inspector_field_keycloak_id === identity.keycloakId) {
+        if (seedBatch.actors.inspector_field?.keycloak_id === identity.keycloakId) {
             this._logSecurityEvent(ctx, 'CONFLICT_OF_INTEREST',
                 `Chief ${identity.keycloakId} attempted to evaluate own field inspection`);
             throw new Error('Ketua tim tidak boleh mengevaluasi inspeksi yang dilakukan sendiri.');
         }
 
-        seedBatch.inspector_chief_id = inspectorChiefUUID;
-        seedBatch.inspector_chief_keycloak_id = identity.keycloakId;
-        seedBatch.evaluated_by = identity.userID;
-        seedBatch.evaluated_by_username = identity.username;
-        seedBatch.evaluated_at = identity.timestamp;
+        // Set inspector_chief actor
+        seedBatch.actors.inspector_chief = this._createActorObject(identity);
 
+        // Handle rejection or approval
         if (approvalStatus === 'REJECT') {
-            seedBatch.current_status = 'REGISTERED';
-            seedBatch.rejection_count = (seedBatch.rejection_count || 0) + 1;
+            seedBatch.status.current = 'REGISTERED';
+            seedBatch.status.since = identity.timestamp;
+
+            // Track rejection count
+            if (!seedBatch.rejection_count) seedBatch.rejection_count = 0;
+            seedBatch.rejection_count += 1;
 
             // ZTA: Track suspicious activity (multiple rejections)
             if (seedBatch.rejection_count >= 3) {
@@ -544,27 +634,40 @@ class SeedBatchContractZTA extends Contract {
                     `Batch ${id} has been rejected ${seedBatch.rejection_count} times`);
             }
         } else {
-            seedBatch.current_status = 'EVALUATED';
+            seedBatch.status.current = 'EVALUATED';
+            seedBatch.status.since = identity.timestamp;
         }
 
-        const evalDoc = {
-            name: 'Evaluasi Ketua Tim',
-            note: this._sanitizeInput(evaluationNote),
-            status: approvalStatus,
-            evaluator_id: inspectorChiefUUID,
-            evaluator_keycloak_id: identity.keycloakId,
-            evaluator_user: identity.userID,
-            evaluator_username: identity.username,
-            evaluated_at: identity.timestamp,
-            doc_type: 'chief_evaluation',
-            evaluator_msp: identity.mspId
-        };
-        seedBatch.documents.push(evalDoc);
+        // Generate IDs
+        const docId = this._generateCounter('DOC-EVAL', seedBatch.documents);
+        const eventId = this._generateCounter('EVT', seedBatch.events);
 
-        seedBatch.version += 1;
-        seedBatch.last_modified_by = identity.userID;
-        seedBatch.last_modified_by_keycloak = identity.keycloakId;
-        seedBatch.last_modified_at = identity.timestamp;
+        const evalDoc = {
+            doc_id: docId,
+            doc_type: 'chief_evaluation',
+            name: 'Evaluasi Ketua Tim',
+            uploaded_at: identity.timestamp,
+            uploader_ref: 'inspector_chief',
+            meta: {
+                decision: approvalStatus,
+                note: this._sanitizeInput(evaluationNote)
+            }
+        };
+
+        const evalEvent = {
+            event_id: eventId,
+            type: 'CHIEF_EVALUATED',
+            at: identity.timestamp,
+            actor_ref: 'inspector_chief',
+            ref_doc_id: docId,
+            decision: approvalStatus
+        };
+
+        seedBatch.documents.push(evalDoc);
+        seedBatch.events.push(evalEvent);
+        seedBatch.audit.revision += 1;
+        seedBatch.audit.last_modified_by_ref = 'inspector_chief';
+        seedBatch.audit.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
@@ -600,8 +703,8 @@ class SeedBatchContractZTA extends Contract {
 
         const seedBatch = await this.getSeedBatch(ctx, id);
 
-        if (seedBatch.current_status !== 'EVALUATED') {
-            throw new Error(`Benih belum dievaluasi. Status: ${seedBatch.current_status}`);
+        if (seedBatch.status.current !== 'EVALUATED') {
+            throw new Error(`Benih belum dievaluasi. Status: ${seedBatch.status.current}`);
         }
 
         // ZTA: Check for duplicate certificate number
@@ -618,34 +721,50 @@ class SeedBatchContractZTA extends Contract {
         const expiryDate = new Date(txTimestamp.seconds.toInt() * 1000);
         expiryDate.setMonth(expiryDate.getMonth() + months);
 
-        seedBatch.issuer_id = issuerUUID;
-        seedBatch.issuer_keycloak_id = identity.keycloakId;
-        seedBatch.issued_by = identity.userID;
-        seedBatch.issued_by_username = identity.username;
-        seedBatch.issued_at = identity.timestamp;
-        seedBatch.cert_number = this._sanitizeInput(certNumber);
-        seedBatch.cert_issue_date = now.toISOString();
-        seedBatch.cert_expiry_date = expiryDate.toISOString();
-        seedBatch.current_status = 'CERTIFIED';
-        seedBatch.issuer_msp = identity.mspId;
+        // Set issuer actor
+        seedBatch.actors.issuer = this._createActorObject(identity);
+
+        // Update certification object
+        seedBatch.certification.cert_number = this._sanitizeInput(certNumber);
+        seedBatch.certification.issued_at = now.toISOString();
+        seedBatch.certification.expires_at = expiryDate.toISOString();
+        seedBatch.certification.revoked_at = null;
+        seedBatch.certification.revoke_reason = null;
+
+        seedBatch.status.current = 'CERTIFIED';
+        seedBatch.status.since = identity.timestamp;
+
+        // Generate IDs
+        const docId = this._generateCounter('DOC-CERT', seedBatch.documents);
+        const eventId = this._generateCounter('EVT', seedBatch.events);
 
         // Add certificate document
         const certDoc = {
-            name: this._sanitizeInput(certDocumentName),
-            cid: certIpfsCid,
-            uploaded_by: identity.userID,
-            uploaded_by_keycloak: identity.keycloakId,
-            uploaded_by_username: identity.username,
-            uploaded_at: identity.timestamp,
+            doc_id: docId,
             doc_type: 'certificate',
+            file_name: this._sanitizeInput(certDocumentName),
+            cid: certIpfsCid,
+            uploaded_at: identity.timestamp,
+            uploader_ref: 'issuer',
+            meta: {
+                cert_number: certNumber
+            }
+        };
+
+        const certEvent = {
+            event_id: eventId,
+            type: 'CERT_ISSUED',
+            at: identity.timestamp,
+            actor_ref: 'issuer',
+            ref_doc_id: docId,
             cert_number: certNumber
         };
-        seedBatch.documents.push(certDoc);
 
-        seedBatch.version += 1;
-        seedBatch.last_modified_by = identity.userID;
-        seedBatch.last_modified_by_keycloak = identity.keycloakId;
-        seedBatch.last_modified_at = identity.timestamp;
+        seedBatch.documents.push(certDoc);
+        seedBatch.events.push(certEvent);
+        seedBatch.audit.revision += 1;
+        seedBatch.audit.last_modified_by_ref = 'issuer';
+        seedBatch.audit.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
@@ -673,47 +792,59 @@ class SeedBatchContractZTA extends Contract {
 
         const seedBatch = await this.getSeedBatch(ctx, id);
 
-        if (seedBatch.current_status !== 'CERTIFIED' && seedBatch.current_status !== 'DISTRIBUTED') {
+        if (seedBatch.status.current !== 'CERTIFIED' && seedBatch.status.current !== 'DISTRIBUTED') {
             throw new Error(`Hanya benih bersertifikat yang bisa dicabut.`);
         }
 
         // ZTA: Log critical security action
         this._logSecurityEvent(ctx, 'CERTIFICATE_REVOCATION',
-            `Certificate ${seedBatch.cert_number} for batch ${id} is being revoked by ${identity.keycloakId}. Reason: ${reason}`);
+            `Certificate ${seedBatch.certification.cert_number} for batch ${id} is being revoked by ${identity.keycloakId}. Reason: ${reason}`);
 
-        seedBatch.current_status = 'REVOKED';
+        // Update certification object
         const txTimestamp = ctx.stub.getTxTimestamp();
-        seedBatch.cert_revoke_date = new Date(txTimestamp.seconds.toInt() * 1000).toISOString();
-        seedBatch.revoked_by = identity.userID;
-        seedBatch.revoked_by_keycloak = identity.keycloakId;
-        seedBatch.revoked_by_username = identity.username;
-        seedBatch.revoked_at = identity.timestamp;
-        seedBatch.revoker_msp = identity.mspId;
+        seedBatch.certification.revoked_at = new Date(txTimestamp.seconds.toInt() * 1000).toISOString();
+        seedBatch.certification.revoke_reason = this._sanitizeInput(reason);
+
+        seedBatch.status.current = 'REVOKED';
+        seedBatch.status.since = identity.timestamp;
+
+        // Generate IDs
+        const docId = this._generateCounter('DOC-REVOKE', seedBatch.documents);
+        const eventId = this._generateCounter('EVT', seedBatch.events);
 
         const revokeDoc = {
-            name: 'Berita Acara Pencabutan',
-            reason: this._sanitizeInput(reason),
-            revoked_by: identity.userID,
-            revoked_by_keycloak: identity.keycloakId,
-            revoked_by_username: identity.username,
-            revoked_at: identity.timestamp,
+            doc_id: docId,
             doc_type: 'revocation',
-            revoker_msp: identity.mspId
+            name: 'Berita Acara Pencabutan',
+            uploaded_at: identity.timestamp,
+            uploader_ref: 'issuer',
+            meta: {
+                reason: this._sanitizeInput(reason)
+            }
         };
-        seedBatch.documents.push(revokeDoc);
 
-        seedBatch.version += 1;
-        seedBatch.last_modified_by = identity.userID;
-        seedBatch.last_modified_by_keycloak = identity.keycloakId;
-        seedBatch.last_modified_at = identity.timestamp;
+        const revokeEvent = {
+            event_id: eventId,
+            type: 'CERT_REVOKED',
+            at: identity.timestamp,
+            actor_ref: 'issuer',
+            ref_doc_id: docId,
+            reason: this._sanitizeInput(reason)
+        };
+
+        seedBatch.documents.push(revokeDoc);
+        seedBatch.events.push(revokeEvent);
+        seedBatch.audit.revision += 1;
+        seedBatch.audit.last_modified_by_ref = 'issuer';
+        seedBatch.audit.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
         // ZTA: Remove from certificate index
-        await this._removeCertificateIndex(ctx, seedBatch.cert_number);
+        await this._removeCertificateIndex(ctx, seedBatch.certification.cert_number);
 
         await this._logAuditTrail(ctx, 'REVOKE_CERTIFICATE', id, {
-            certNumber: seedBatch.cert_number,
+            certNumber: seedBatch.certification.cert_number,
             reason: reason,
             revokerKeycloakId: identity.keycloakId
         }, identity);
@@ -738,7 +869,7 @@ class SeedBatchContractZTA extends Contract {
 
         const seedBatch = await this.getSeedBatch(ctx, id);
 
-        if (seedBatch.current_status !== 'CERTIFIED') {
+        if (seedBatch.status.current !== 'CERTIFIED') {
             throw new Error(`Hanya benih bersertifikat yang boleh diedarkan.`);
         }
 
@@ -748,41 +879,55 @@ class SeedBatchContractZTA extends Contract {
         // ZTA: Verify certificate not expired (using transaction timestamp)
         const txTimestamp = ctx.stub.getTxTimestamp();
         const now = new Date(txTimestamp.seconds.toInt() * 1000);
-        const expiry = new Date(seedBatch.cert_expiry_date);
+        const expiry = new Date(seedBatch.certification.expires_at);
         if (now > expiry) {
             this._logSecurityEvent(ctx, 'EXPIRED_CERTIFICATE_USE',
-                `Attempt to distribute batch ${id} with expired certificate ${seedBatch.cert_number} by ${identity.keycloakId}`);
+                `Attempt to distribute batch ${id} with expired certificate ${seedBatch.certification.cert_number} by ${identity.keycloakId}`);
             throw new Error(`Sertifikat kadaluarsa pada ${expiry.toISOString()}.`);
         }
 
         // ZTA: Check if certificate is revoked
-        if (seedBatch.current_status === 'REVOKED') {
+        if (seedBatch.status.current === 'REVOKED') {
             this._logSecurityEvent(ctx, 'REVOKED_CERTIFICATE_USE',
-                `Attempt to distribute batch ${id} with revoked certificate ${seedBatch.cert_number} by ${identity.keycloakId}`);
+                `Attempt to distribute batch ${id} with revoked certificate ${seedBatch.certification.cert_number} by ${identity.keycloakId}`);
             throw new Error('Sertifikat telah dicabut. Distribusi tidak diizinkan.');
         }
 
-        seedBatch.current_status = 'DISTRIBUTED';
-        seedBatch.distributed_at = identity.timestamp;
-        seedBatch.distributed_by_keycloak = identity.keycloakId;
+        seedBatch.status.current = 'DISTRIBUTED';
+        seedBatch.status.since = identity.timestamp;
+
+        // Generate IDs
+        const docId = this._generateCounter('DOC-DIST', seedBatch.documents);
+        const eventId = this._generateCounter('EVT', seedBatch.events);
 
         const distDoc = {
-            name: 'Bukti Distribusi',
-            location: this._sanitizeInput(distributionLocation),
-            quantity: qty,
-            distributed_by: identity.userID,
-            distributed_by_keycloak: identity.keycloakId,
-            distributed_by_username: identity.username,
-            distributed_at: identity.timestamp,
+            doc_id: docId,
             doc_type: 'distribution',
-            distributor_msp: identity.mspId
+            name: 'Bukti Distribusi',
+            uploaded_at: identity.timestamp,
+            uploader_ref: 'producer',
+            meta: {
+                location: this._sanitizeInput(distributionLocation),
+                quantity: {
+                    amount: qty,
+                    unit: 'UNIT'
+                }
+            }
         };
-        seedBatch.documents.push(distDoc);
 
-        seedBatch.version += 1;
-        seedBatch.last_modified_by = identity.userID;
-        seedBatch.last_modified_by_keycloak = identity.keycloakId;
-        seedBatch.last_modified_at = identity.timestamp;
+        const distEvent = {
+            event_id: eventId,
+            type: 'DISTRIBUTED',
+            at: identity.timestamp,
+            actor_ref: 'producer',
+            ref_doc_id: docId
+        };
+
+        seedBatch.documents.push(distDoc);
+        seedBatch.events.push(distEvent);
+        seedBatch.audit.revision += 1;
+        seedBatch.audit.last_modified_by_ref = 'producer';
+        seedBatch.audit.last_modified_at = identity.timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
@@ -907,7 +1052,8 @@ class SeedBatchContractZTA extends Contract {
 
             try {
                 jsonRes.Record = JSON.parse(res.value.toString('utf8'));
-                if (jsonRes.Record.docType === 'SeedBatch') {
+                // Updated to check doc_type instead of docType
+                if (jsonRes.Record.doc_type === 'SeedBatch') {
                     allResults.push(jsonRes);
                 }
             } catch (err) {
@@ -949,10 +1095,11 @@ class SeedBatchContractZTA extends Contract {
             status: status
         }, identity);
 
+        // Updated to use nested status.current field
         const queryString = {
             selector: {
-                docType: 'SeedBatch',
-                current_status: status
+                doc_type: 'SeedBatch',
+                'status.current': status
             }
         };
 
@@ -992,8 +1139,9 @@ class SeedBatchContractZTA extends Contract {
             const res = result.value;
             try {
                 const record = JSON.parse(res.value.toString('utf8'));
-                // Filter: only SeedBatch with matching producer_keycloak_id
-                if (record.docType === 'SeedBatch' && record.producer_keycloak_id === producerKeycloakId) {
+                // Filter: only SeedBatch with matching actors.producer.keycloak_id
+                if (record.doc_type === 'SeedBatch' &&
+                    record.actors?.producer?.keycloak_id === producerKeycloakId) {
                     allResults.push({
                         Key: res.key,
                         Record: record

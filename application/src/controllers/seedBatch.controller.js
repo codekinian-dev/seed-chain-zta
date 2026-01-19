@@ -10,6 +10,7 @@ const identityService = require('../services/identity.service');
 const { cleanupFile } = require('../middleware/upload');
 const { AppError } = require('../middleware/error');
 const { getUserUUID } = require('../middleware/auth');
+const { transformChaincodeToAPI, transformHistory } = require('../utils/chaincode-transformer');
 
 /**
  * Helper function to get or create user identity for Fabric
@@ -559,9 +560,12 @@ const querySeedBatch = async (req, res) => {
 
         const seedBatch = await fabricService.queryAsUser(userUUID, 'querySeedBatch', [batchId]);
 
+        // Transform nested structure to API-friendly format
+        const transformed = transformChaincodeToAPI(seedBatch);
+
         res.status(200).json({
             success: true,
-            data: seedBatch
+            data: transformed
         });
 
     } catch (error) {
@@ -598,7 +602,9 @@ const queryAllSeedBatches = async (req, res) => {
             });
         }
 
-        const seedBatches = Array.isArray(result) ? result : [];
+        // Transform nested structure to API-friendly format
+        const transformed = transformChaincodeToAPI(result);
+        const seedBatches = Array.isArray(transformed) ? transformed : [];
 
         res.status(200).json({
             success: true,
@@ -645,7 +651,9 @@ const queryMySeedBatches = async (req, res) => {
             });
         }
 
-        const seedBatches = Array.isArray(result) ? result : [];
+        // Transform nested structure to API-friendly format
+        const transformed = transformChaincodeToAPI(result);
+        const seedBatches = Array.isArray(transformed) ? transformed : [];
 
         logger.info(`[Controller] Retrieved seed batches for user`, {
             userId: userUUID,
@@ -686,9 +694,12 @@ const getHistory = async (req, res) => {
         // Get history with block information including previous block hash
         const history = await fabricService.queryAsUser(userUUID, 'getHistory', [batchId]);
 
+        // Transform history data to include nested structure parsing
+        const transformed = transformHistory(history);
+
         res.status(200).json({
             success: true,
-            data: history
+            data: transformed
         });
 
     } catch (error) {

@@ -226,3 +226,5 @@ blockchain/caliper/workspace/
 blockchain/caliper/*.log
 documents/*.pdf
 /documents/*.pdf
+docs/
+docs
