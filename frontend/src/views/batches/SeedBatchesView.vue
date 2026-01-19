@@ -78,27 +78,8 @@ const loadBatches = async () => {
       ? await seedBatchService.getMyBatches()
       : await seedBatchService.getAllBatches()
     
-    // Transform response data: extract Record and map field names
-    const rawData = response.data || []
-    batches.value = rawData.map(item => {
-      // Response format: { Key, Record }
-      const record = item.Record || item
-      return {
-        id: record.id,
-        varietyName: record.variety_name,
-        commodity: record.commodity,
-        harvestDate: record.harvest_date,
-        seedSourceNumber: record.seed_source_number,
-        origin: record.origin,
-        iupNumber: record.iup_number,
-        seedClass: record.seed_class,
-        labelColor: record.label_color,
-        status: record.current_status,
-        timestamp: record.created_at,
-        certNumber: record.cert_number,
-        producerId: record.producer_id,
-      }
-    })
+    // Backend transformer already flattens fields, just use directly
+    batches.value = response.data || []
     
     console.log('Loaded batches:', batches.value)
   } catch (err) {
@@ -196,19 +177,19 @@ onMounted(() => {
               >
                 <td class="px-4 py-3 font-semibold text-ink">{{ item.id }}</td>
                 <td class="px-4 py-3">
-                  <p class="font-semibold text-ink">{{ item.varietyName }}</p>
-                  <p class="text-xs text-ink/50">{{ item.seedSourceNumber }}</p>
+                  <p class="font-semibold text-ink">{{ item.variety_name }}</p>
+                  <p class="text-xs text-ink/50">{{ item.seed_source_number }}</p>
                 </td>
                 <td class="px-4 py-3 text-ink/70">{{ item.commodity }}</td>
                 <td class="px-4 py-3 text-ink/70">{{ item.origin }}</td>
-                <td class="px-4 py-3 text-ink/70">{{ item.seedClass }}</td>
+                <td class="px-4 py-3 text-ink/70">{{ item.seed_class }}</td>
                 <td class="px-4 py-3">
-                  <span :class="['status-pill', statusToneClass(item.status)]">
-                    {{ formatStatus(item.status) }}
+                  <span :class="['status-pill', statusToneClass(item.current_status)]">
+                    {{ formatStatus(item.current_status) }}
                   </span>
                 </td>
                 <td class="px-4 py-3 text-xs text-right text-ink/60">
-                  {{ formatDate(item.timestamp) }}
+                  {{ formatDate(item.created_at) }}
                 </td>
               </tr>
             </tbody>

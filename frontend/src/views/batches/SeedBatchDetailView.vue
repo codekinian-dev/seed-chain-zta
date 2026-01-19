@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   DocumentTextIcon,
@@ -9,9 +9,14 @@ import {
   PaperClipIcon,
   ArrowLeftIcon,
   DocumentCheckIcon,
+  UserGroupIcon,
 } from '@heroicons/vue/24/outline'
 import DashboardLayout from '../../layouts/DashboardLayout.vue'
+import TimelineView from '../../components/batches/TimelineView.vue'
+import ActorsView from '../../components/batches/ActorsView.vue'
+import DocumentsView from '../../components/batches/DocumentsView.vue'
 import { seedBatchService } from '../../services/api'
+import { formatDate } from '../../utils/date-formatter'
 
 const router = useRouter()
 const route = useRoute()
@@ -89,36 +94,33 @@ const formatStatus = (status) => {
   return statusLabels[status] || status
 }
 
-const formatDate = (timestamp) => {
-  if (!timestamp) return 'N/A'
-  const date = new Date(timestamp)
-  return date.toLocaleString('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }) + ' WIB'
-}
+// Computed: check if batch has nested structure
+const hasNestedData = computed(() => {
+  return batch.value && (
+    batch.value.actors || 
+    batch.value.events || 
+    batch.value.certification
+  )
+})
 
 const canSubmitCertification = () => {
-  return batch.value && batch.value.status === 'REGISTERED' && hasRole('role_producer')
+  return batch.value && batch.value.current_status === 'REGISTERED' && hasRole('role_producer')
 }
 
 const canUploadInspection = () => {
-  return batch.value && batch.value.status === 'SUBMITTED' && hasRole('role_pbt_field')
+  return batch.value && batch.value.current_status === 'SUBMITTED' && hasRole('role_pbt_field')
 }
 
 const canEvaluate = () => {
-  return batch.value && batch.value.status === 'INSPECTED' && hasRole('role_pbt_chief')
+  return batch.value && batch.value.current_status === 'INSPECTED' && hasRole('role_pbt_chief')
 }
 
 const canIssueCertificate = () => {
-  return batch.value && batch.value.status === 'EVALUATED' && hasRole('role_lsm_head')
+  return batch.value && batch.value.current_status === 'EVALUATED' && hasRole('role_lsm_head')
 }
 
 const canDistribute = () => {
-  return batch.value && batch.value.status === 'CERTIFIED' && hasRole('role_producer')
+  return batch.value && batch.value.current_status === 'CERTIFIED' && hasRole('role_producer')
 }
 
 const hasRole = (roleName) => {
@@ -371,28 +373,11 @@ const loadBatch = async () => {
   try {
     const response = await seedBatchService.getBatchById(batchId)
     
-    // Transform response data: handle both direct data and { Key, Record } format
-    const rawData = response.data
-    const record = rawData.Record || rawData
+    // Backend sudah return nested structure + flattened fields
+    const data = response.data
     
-    batch.value = {
-      id: record.id,
-      varietyName: record.variety_name,
-      commodity: record.commodity,
-      harvestDate: record.harvest_date,
-      seedSourceNumber: record.seed_source_number,
-      origin: record.origin,
-      iupNumber: record.iup_number,
-      seedClass: record.seed_class,
-      labelColor: record.label_color,
-      status: record.current_status,
-      timestamp: record.created_at,
-      certNumber: record.cert_number,
-      certIssueDate: record.cert_issue_date,
-      certExpiryDate: record.cert_expiry_date,
-      producerId: record.producer_id,
-      documents: record.documents || [],
-    }
+    // Store full batch data (backend transformer already handles this)
+    batch.value = data
     
     console.log('Loaded batch detail:', batch.value)
   } catch (err) {
@@ -448,8 +433,8 @@ onMounted(() => {
                 <p class="text-sm text-ink/60">Seed batch details and status.</p>
               </div>
             </div>
-            <span :class="['status-pill', statusToneClass(batch.status)]">
-              {{ formatStatus(batch.status) }}
+            <span :class="['status-pill', statusToneClass(batch.current_status)]">
+              {{ formatStatus(batch.current_status) }}
             </span>
           </div>
 
@@ -460,7 +445,7 @@ onMounted(() => {
             </div>
             <div>
               <label class="text-xs font-semibold text-ink/60">Variety Name</label>
-              <p class="mt-1 text-sm text-ink">{{ batch.varietyName }}</p>
+              <p class="mt-1 text-sm text-ink">{{ batch.variety_name }}</p>
             </div>
             <div>
               <label class="text-xs font-semibold text-ink/60">Commodity</label>
@@ -468,11 +453,11 @@ onMounted(() => {
             </div>
             <div>
               <label class="text-xs font-semibold text-ink/60">Harvest Date</label>
-              <p class="mt-1 text-sm text-ink">{{ batch.harvestDate }}</p>
+              <p class="mt-1 text-sm text-ink">{{ batch.harvest_date }}</p>
             </div>
             <div>
               <label class="text-xs font-semibold text-ink/60">Seed Source Number</label>
-              <p class="mt-1 text-sm text-ink">{{ batch.seedSourceNumber }}</p>
+              <p class="mt-1 text-sm text-ink">{{ batch.seed_source_number }}</p>
             </div>
             <div>
               <label class="text-xs font-semibold text-ink/60">Origin</label>
@@ -480,17 +465,79 @@ onMounted(() => {
             </div>
             <div>
               <label class="text-xs font-semibold text-ink/60">IUP Number</label>
-              <p class="mt-1 text-sm text-ink">{{ batch.iupNumber }}</p>
+              <p class="mt-1 text-sm text-ink">{{ batch.iup_number }}</p>
             </div>
             <div>
               <label class="text-xs font-semibold text-ink/60">Seed Class</label>
-              <p class="mt-1 text-sm text-ink">{{ batch.seedClass }}</p>
+              <p class="mt-1 text-sm text-ink">{{ batch.seed_class }}</p>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-ink/60">Label Color</label>
+              <p class="mt-1 text-sm text-ink">{{ batch.label_color }}</p>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-ink/60">Created By</label>
+              <p class="mt-1 text-sm text-ink">{{ batch.created_by }}</p>
             </div>
             <div class="md:col-span-2">
               <label class="text-xs font-semibold text-ink/60">Created At</label>
-              <p class="mt-1 text-sm text-ink">{{ formatDate(batch.timestamp) }}</p>
+              <p class="mt-1 text-sm text-ink">{{ formatDate(batch.created_at) }}</p>
+            </div>
+            
+            <!-- Certificate info (if certified) -->
+            <div v-if="batch.cert_number" class="md:col-span-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+              <div class="grid gap-3 md:grid-cols-3">
+                <div>
+                  <label class="text-xs font-semibold text-primary">Certificate Number</label>
+                  <p class="mt-1 text-sm font-semibold text-ink">{{ batch.cert_number }}</p>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-primary">Issue Date</label>
+                  <p class="mt-1 text-sm text-ink">{{ batch.cert_issue_date }}</p>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-primary">Expiry Date</label>
+                  <p class="mt-1 text-sm text-ink">{{ batch.cert_expiry_date }}</p>
+                </div>
+              </div>
             </div>
           </div>
+        </section>
+
+        <!-- Actors Section (if nested data available) -->
+        <section v-if="hasNestedData && batch.actors" class="p-6 panel-card">
+          <div class="flex items-center gap-3 mb-6">
+            <UserGroupIcon class="w-6 h-6 text-primary" />
+            <div>
+              <h3 class="text-lg font-semibold text-ink">Actors</h3>
+              <p class="text-sm text-ink/60">Users involved in this batch lifecycle.</p>
+            </div>
+          </div>
+          <ActorsView :batch="batch" />
+        </section>
+
+        <!-- Timeline Section (if nested data available) -->
+        <section v-if="hasNestedData && batch.events" class="p-6 panel-card">
+          <div class="flex items-center gap-3 mb-6">
+            <ClockIcon class="w-6 h-6 text-primary" />
+            <div>
+              <h3 class="text-lg font-semibold text-ink">Event Timeline</h3>
+              <p class="text-sm text-ink/60">Chronological history of batch events.</p>
+            </div>
+          </div>
+          <TimelineView :batch="batch" />
+        </section>
+
+        <!-- Documents Section -->
+        <section v-if="batch.documents && batch.documents.length > 0" class="p-6 panel-card">
+          <div class="flex items-center gap-3 mb-6">
+            <DocumentTextIcon class="w-6 h-6 text-primary" />
+            <div>
+              <h3 class="text-lg font-semibold text-ink">Documents</h3>
+              <p class="text-sm text-ink/60">Files uploaded during certification process.</p>
+            </div>
+          </div>
+          <DocumentsView :batch="batch" />
         </section>
 
         <!-- Submit Certification (REGISTERED - role_producer) -->
@@ -848,14 +895,14 @@ onMounted(() => {
             <div>
               <h3 class="text-lg font-semibold text-ink">Batch Status</h3>
               <p class="text-sm text-ink/60">
-                <span v-if="batch.status === 'REGISTERED'">Waiting for producer to submit certification request.</span>
-                <span v-else-if="batch.status === 'SUBMITTED'">Waiting for field inspection by PBT Field.</span>
-                <span v-else-if="batch.status === 'INSPECTED'">Waiting for evaluation by PBT Chief.</span>
-                <span v-else-if="batch.status === 'EVALUATED'">Waiting for certificate issuance by LSM Head.</span>
-                <span v-else-if="batch.status === 'CERTIFIED'">Certified. Ready for distribution by producer.</span>
-                <span v-else-if="batch.status === 'DISTRIBUTED'">Batch has been distributed.</span>
-                <span v-else-if="batch.status === 'REVOKED'">Certificate has been revoked.</span>
-                <span v-else>Status: {{ batch.status }}</span>
+                <span v-if="batch.current_status === 'REGISTERED'">Waiting for producer to submit certification request.</span>
+                <span v-else-if="batch.current_status === 'SUBMITTED'">Waiting for field inspection by PBT Field.</span>
+                <span v-else-if="batch.current_status === 'INSPECTED'">Waiting for evaluation by PBT Chief.</span>
+                <span v-else-if="batch.current_status === 'EVALUATED'">Waiting for certificate issuance by LSM Head.</span>
+                <span v-else-if="batch.current_status === 'CERTIFIED'">Certified. Ready for distribution by producer.</span>
+                <span v-else-if="batch.current_status === 'DISTRIBUTED'">Batch has been distributed.</span>
+                <span v-else-if="batch.current_status === 'REVOKED'">Certificate has been revoked.</span>
+                <span v-else>Status: {{ batch.current_status }}</span>
               </p>
             </div>
           </div>
@@ -865,31 +912,14 @@ onMounted(() => {
       <!-- Sidebar -->
       <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto">
         <div class="p-6 panel-card">
-          <h3 class="text-lg font-semibold text-ink">Status Timeline</h3>
-          <div class="mt-4 space-y-3">
-            <div class="flex items-start gap-3">
-              <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
-              <div>
-                <p class="text-sm font-semibold text-ink">Batch Created</p>
-                <p class="text-xs text-ink/50">{{ formatDate(batch.timestamp) }}</p>
-              </div>
-            </div>
-            
-            <div v-if="batch.status !== 'REGISTERED'" class="flex items-start gap-3">
-              <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
-              <div>
-                <p class="text-sm font-semibold text-ink">Certification Submitted</p>
-                <p class="text-xs text-ink/50">Submitted</p>
-              </div>
-            </div>
-            
-            <div v-else class="flex items-start gap-3">
-              <ClockIcon class="w-5 h-5 mt-0.5 text-ink/30 flex-shrink-0" />
-              <div>
-                <p class="text-sm text-ink/50">Certification Submission</p>
-                <p class="text-xs text-ink/40">Pending</p>
-              </div>
-            </div>
+          <h3 class="text-lg font-semibold text-ink">Current Status</h3>
+          <div class="mt-4">
+            <span :class="['status-pill text-base', statusToneClass(batch.current_status)]">
+              {{ formatStatus(batch.current_status) }}
+            </span>
+            <p class="mt-3 text-sm text-ink/60">
+              Last updated: {{ formatDate(batch.updated_at || batch.created_at) }}
+            </p>
           </div>
         </div>
 
@@ -897,77 +927,77 @@ onMounted(() => {
           <h3 class="text-lg font-semibold text-ink">Next Steps</h3>
           <ul class="space-y-3 text-sm text-ink/70">
             <!-- REGISTERED: Need to submit certification -->
-            <li v-if="batch.status === 'REGISTERED'" class="flex items-start gap-3">
+            <li v-if="batch.current_status === 'REGISTERED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-sunshine flex-shrink-0" />
               <span><strong>Producer:</strong> Submit certification request with documents</span>
             </li>
             
             <!-- SUBMITTED: Wait for field inspection -->
-            <li v-else-if="batch.status === 'SUBMITTED'" class="flex items-start gap-3">
+            <li v-else-if="batch.current_status === 'SUBMITTED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
               <span>Certification submitted</span>
             </li>
-            <li v-if="batch.status === 'SUBMITTED'" class="flex items-start gap-3">
+            <li v-if="batch.current_status === 'SUBMITTED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-sunshine flex-shrink-0" />
               <span><strong>PBT Field:</strong> Upload inspection report and findings</span>
             </li>
             
             <!-- INSPECTED: Wait for evaluation -->
-            <li v-else-if="batch.status === 'INSPECTED'" class="flex items-start gap-3">
+            <li v-else-if="batch.current_status === 'INSPECTED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
               <span>Field inspection completed</span>
             </li>
-            <li v-if="batch.status === 'INSPECTED'" class="flex items-start gap-3">
+            <li v-if="batch.current_status === 'INSPECTED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-sunshine flex-shrink-0" />
               <span><strong>PBT Chief:</strong> Evaluate inspection results and approve/reject</span>
             </li>
             
             <!-- EVALUATED: Wait for certificate -->
-            <li v-else-if="batch.status === 'EVALUATED'" class="flex items-start gap-3">
+            <li v-else-if="batch.current_status === 'EVALUATED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
               <span>Evaluation completed and approved</span>
             </li>
-            <li v-if="batch.status === 'EVALUATED'" class="flex items-start gap-3">
+            <li v-if="batch.current_status === 'EVALUATED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-sunshine flex-shrink-0" />
               <span><strong>LSM Head:</strong> Issue official certificate</span>
             </li>
             
             <!-- CERTIFIED: Ready for distribution -->
-            <li v-else-if="batch.status === 'CERTIFIED'" class="flex items-start gap-3">
+            <li v-else-if="batch.current_status === 'CERTIFIED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
               <span>Certificate issued successfully</span>
             </li>
-            <li v-if="batch.status === 'CERTIFIED'" class="flex items-start gap-3">
+            <li v-if="batch.current_status === 'CERTIFIED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-sunshine flex-shrink-0" />
               <span><strong>Producer:</strong> Record seed distribution details</span>
             </li>
             
             <!-- DISTRIBUTED: Process completed -->
-            <li v-else-if="batch.status === 'DISTRIBUTED'" class="flex items-start gap-3">
+            <li v-else-if="batch.current_status === 'DISTRIBUTED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-primary flex-shrink-0" />
               <span>Batch distributed - Process completed</span>
             </li>
             
             <!-- REVOKED: Certificate revoked -->
-            <li v-else-if="batch.status === 'REVOKED'" class="flex items-start gap-3">
+            <li v-else-if="batch.current_status === 'REVOKED'" class="flex items-start gap-3">
               <CheckCircleIcon class="w-5 h-5 mt-0.5 text-red-600 flex-shrink-0" />
               <span>Certificate has been revoked</span>
             </li>
             
             <!-- Pending steps (shown based on current status) -->
-            <li v-if="['REGISTERED', 'SUBMITTED'].includes(batch.status)" class="flex items-start gap-3">
+            <li v-if="['REGISTERED', 'SUBMITTED'].includes(batch.current_status)" class="flex items-start gap-3">
               <ClockIcon class="w-5 h-5 mt-0.5 text-ink/30 flex-shrink-0" />
               <span>Field inspection</span>
             </li>
-            <li v-if="['REGISTERED', 'SUBMITTED', 'INSPECTED'].includes(batch.status)" class="flex items-start gap-3">
+            <li v-if="['REGISTERED', 'SUBMITTED', 'INSPECTED'].includes(batch.current_status)" class="flex items-start gap-3">
               <ClockIcon class="w-5 h-5 mt-0.5 text-ink/30 flex-shrink-0" />
               <span>Evaluation by PBT Chief</span>
             </li>
-            <li v-if="['REGISTERED', 'SUBMITTED', 'INSPECTED', 'EVALUATED'].includes(batch.status)" class="flex items-start gap-3">
+            <li v-if="['REGISTERED', 'SUBMITTED', 'INSPECTED', 'EVALUATED'].includes(batch.current_status)" class="flex items-start gap-3">
               <ClockIcon class="w-5 h-5 mt-0.5 text-ink/30 flex-shrink-0" />
               <span>Certificate issuance</span>
             </li>
-            <li v-if="['REGISTERED', 'SUBMITTED', 'INSPECTED', 'EVALUATED', 'CERTIFIED'].includes(batch.status)" class="flex items-start gap-3">
+            <li v-if="['REGISTERED', 'SUBMITTED', 'INSPECTED', 'EVALUATED', 'CERTIFIED'].includes(batch.current_status)" class="flex items-start gap-3">
               <ClockIcon class="w-5 h-5 mt-0.5 text-ink/30 flex-shrink-0" />
               <span>Distribution</span>
             </li>
