@@ -1,0 +1,72 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Application audit logs
+  - job_name: audit
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: seed-cert-audit
+          app: seed-certification
+          __path__: /var/log/application/audit/*.log
+
+  # Application error logs
+  - job_name: errors
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: seed-cert-errors
+          app: seed-certification
+          __path__: /var/log/application/error-*.log
+
+  # Application combined logs
+  - job_name: combined
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: seed-cert-combined
+          app: seed-certification
+          __path__: /var/log/application/combined-*.log
+
+  # System logs
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          __path__: /var/log/host/*.log
+
+# Pipeline stages for parsing
+pipeline_stages:
+  - json:
+      expressions:
+        timestamp: timestamp
+        level: level
+        category: category
+        event: event
+        severity: severity
+        user_id: user.id
+        user_name: user.username
+        resource_type: resource.type
+        resource_action: resource.action
+  - labels:
+      level:
+      category:
+      severity:
+      user_name:
+      resource_type:
+  - timestamp:
+      source: timestamp
+      format: RFC3339

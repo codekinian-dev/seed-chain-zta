@@ -1,0 +1,59 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: "seed-certification"
+    environment: "production"
+
+# Alert rules
+rule_files:
+  - "rules.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Node Exporter - System metrics
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # cAdvisor - Container metrics
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # Application API metrics
+  - job_name: "seed-cert-api"
+    metrics_path: "/api/metrics"
+    static_configs:
+      - targets: ["gateway.jabarchain.me"]
+    scrape_interval: 10s
+
+  # Keycloak metrics (if enabled)
+  - job_name: "keycloak"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["auth.jabarchain.me"]
+    scrape_interval: 30s
+
+  # IPFS Cluster metrics
+  - job_name: "ipfs-cluster"
+    static_configs:
+      - targets: ["ipfs.jabarchain.me"]
+    scrape_interval: 30s
+
+  # Redis metrics (if redis_exporter is configured)
+  - job_name: "redis"
+    static_configs:
+      - targets: ["host.docker.internal:6379"]
+    scrape_interval: 30s

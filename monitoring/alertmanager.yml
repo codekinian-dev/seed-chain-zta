@@ -1,0 +1,81 @@
+global:
+  resolve_timeout: 5m
+  smtp_from: "alertmanager@seed-cert.local"
+  smtp_smarthost: "localhost:25"
+  smtp_require_tls: false
+
+# Alert routing
+route:
+  group_by: ["alertname", "severity", "category"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: "default"
+
+  routes:
+    # Critical security alerts
+    - match:
+        severity: critical
+        category: security
+      receiver: "security-critical"
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # High severity alerts
+    - match:
+        severity: high
+      receiver: "ops-high"
+      group_wait: 30s
+      repeat_interval: 2h
+
+    # Infrastructure alerts
+    - match:
+        category: infrastructure
+      receiver: "ops-infrastructure"
+      repeat_interval: 4h
+
+    # Blockchain alerts
+    - match:
+        category: blockchain
+      receiver: "blockchain-team"
+      repeat_interval: 4h
+
+# Receivers
+receivers:
+  - name: "default"
+    webhook_configs:
+      - url: "http://gateway.jabarchain.me/api/webhooks/alerts"
+        send_resolved: true
+
+  - name: "security-critical"
+    webhook_configs:
+      - url: "http://gateway.jabarchain.me/api/webhooks/security-alerts"
+        send_resolved: true
+    # Email notification (configure SMTP above)
+    # email_configs:
+    #   - to: 'security@seed-cert.local'
+    #     headers:
+    #       Subject: '[CRITICAL] Security Alert - {{ .GroupLabels.alertname }}'
+
+  - name: "ops-high"
+    webhook_configs:
+      - url: "http://gateway.jabarchain.me/api/webhooks/ops-alerts"
+        send_resolved: true
+
+  - name: "ops-infrastructure"
+    webhook_configs:
+      - url: "http://gateway.jabarchain.me/api/webhooks/infrastructure-alerts"
+        send_resolved: true
+
+  - name: "blockchain-team"
+    webhook_configs:
+      - url: "http://gateway.jabarchain.me/api/webhooks/blockchain-alerts"
+        send_resolved: true
+
+# Inhibit rules
+inhibit_rules:
+  - source_match:
+      severity: "critical"
+    target_match:
+      severity: "warning"
+    equal: ["alertname", "instance"]

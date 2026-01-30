@@ -153,7 +153,7 @@ sudo systemctl stop nginx  # if native nginx running
 openssl x509 -in ssl/fullchain.pem -text -noout
 
 # Check certificate chain
-openssl s_client -connect seed-cert.jabarchain.me:443 -showcerts
+openssl s_client -connect seed-cert.jabarchain.me -showcerts
 ```
 
 ### Browser shows SSL error
@@ -217,7 +217,7 @@ openssl x509 -in ssl/fullchain.pem -noout -enddate | cut -d= -f2 | xargs -I {} d
 curl -vI https://seed-cert.jabarchain.me 2>&1 | grep -i ssl
 
 # Check certificate chain
-openssl s_client -connect seed-cert.jabarchain.me:443 -servername seed-cert.jabarchain.me < /dev/null | openssl x509 -noout -dates
+openssl s_client -connect seed-cert.jabarchain.me -servername seed-cert.jabarchain.me < /dev/null | openssl x509 -noout -dates
 ```
 
 ## Container Logs

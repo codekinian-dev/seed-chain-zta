@@ -116,10 +116,14 @@ const initializeServices = async () => {
         const healthRoutes = require('./routes/health.routes');
         const seedBatchRoutes = require('./routes/seedBatch.routes');
         const identityRoutes = require('./routes/identity.routes');
+        const webhookRoutes = require('./routes/webhooks');
 
         app.use('/api/health', healthRoutes);
         app.use('/api/seed-batches', seedBatchRoutes);
         app.use('/api/v1/identity', identityRoutes);
+
+        // Webhooks endpoint (no auth required - should be secured by network/firewall)
+        app.use('/api/webhooks', webhookRoutes);
 
         // Swagger UI documentation
         const swaggerUi = require('swagger-ui-express');
@@ -138,6 +142,7 @@ const initializeServices = async () => {
                 endpoints: {
                     health: '/api/health',
                     seedBatches: '/api/seed-batches',
+                    webhooks: '/api/webhooks',
                     documentation: '/api-docs'
                 }
             });
