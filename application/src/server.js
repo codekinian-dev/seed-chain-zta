@@ -122,12 +122,14 @@ const initializeServices = async () => {
         const healthRoutes = require('./routes/health.routes');
         const seedBatchRoutes = require('./routes/seedBatch.routes');
         const identityRoutes = require('./routes/identity.routes');
+        const documentRoutes = require('./routes/document.routes');
         const webhookRoutes = require('./routes/webhooks');
         const policyAdminRoutes = require('./routes/policyAdmin.routes');
 
         app.use('/api/health', healthRoutes);
         app.use('/api/seed-batches', seedBatchRoutes);
         app.use('/api/v1/identity', identityRoutes);
+        app.use('/api/v1/documents', documentRoutes);
 
         // Policy Administration (admin only)
         app.use('/api/policies', keycloak.protect(), policyAdminRoutes);

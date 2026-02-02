@@ -48,7 +48,7 @@
     },
     "orderers": {
         "chain-orderer.jabarchain.me": {
-            "url": "grpcs://206.189.82.125:7050",
+            "url": "grpcs://152.42.164.128:7050",
             "grpcOptions": {
                 "ssl-target-name-override": "chain-orderer.jabarchain.me",
                 "grpc.max_send_message_length": 209715200,
@@ -66,7 +66,7 @@
     },
     "peers": {
         "pusat.chain-bpsbp.jabarchain.me": {
-            "url": "grpcs://206.189.82.125:7051",
+            "url": "grpcs://152.42.164.128:7051",
             "grpcOptions": {
                 "ssl-target-name-override": "pusat.chain-bpsbp.jabarchain.me",
                 "grpc.keepalive_time_ms": 360000,
@@ -81,7 +81,7 @@
             }
         },
         "cert.chain-bpsbp.jabarchain.me": {
-            "url": "grpcs://206.189.82.125:8051",
+            "url": "grpcs://152.42.164.128:8051",
             "grpcOptions": {
                 "ssl-target-name-override": "cert.chain-bpsbp.jabarchain.me",
                 "grpc.keepalive_time_ms": 360000,
@@ -98,7 +98,7 @@
     },
     "certificateAuthorities": {
         "ca-bpsbp": {
-            "url": "https://206.189.82.125:7054",
+            "url": "https://152.42.164.128:7054",
             "httpOptions": {
                 "verify": false
             },

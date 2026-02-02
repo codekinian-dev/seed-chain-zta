@@ -3,6 +3,7 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
 const ipfsService = require('../services/ipfs.service');
+const documentService = require('../services/document.service');
 const fabricService = require('../services/fabric.service');
 const transactionService = require('../services/transaction.service');
 const queueService = require('../services/queue.service');
@@ -83,20 +84,25 @@ const createSeedBatch = async (req, res) => {
             file: req.file.originalname
         });
 
-        // Step 1: Upload to IPFS (upload-first strategy)
+        // Step 1: Upload to IPFS with SHA256 hash calculation
         transactionService.logStep(txId, 'IPFS_UPLOAD', 'STARTED', {
             filename: req.file.originalname
         });
 
-        uploadedCid = await ipfsService.uploadFile(req.file.path);
+        // Use documentService for upload with hash
+        const uploadResult = await documentService.uploadWithHash(req.file.path);
+        uploadedCid = uploadResult.cid;
+        const sha256Hash = uploadResult.sha256Hash;
 
         transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', {
-            cid: uploadedCid
+            cid: uploadedCid,
+            sha256Hash: sha256Hash.substring(0, 16) + '...'
         });
 
-        logger.info(`[Controller] File uploaded to IPFS`, {
+        logger.info(`[Controller] File uploaded to IPFS with hash`, {
             txId,
             cid: uploadedCid,
+            sha256Hash: sha256Hash.substring(0, 16) + '...',
             filename: req.file.originalname
         });
 
@@ -108,7 +114,7 @@ const createSeedBatch = async (req, res) => {
         // Generate batch ID
         const batchId = `BATCH-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-        // Prepare chaincode arguments (removed manual id, added declaredQuantity)
+        // Prepare chaincode arguments (including SHA256 hash for document integrity)
         const args = [
             req.body.varietyName,
             req.body.commodity,
@@ -120,7 +126,8 @@ const createSeedBatch = async (req, res) => {
             userUUID, // producerUUID from authenticated user
             req.file.originalname, // seedSourceDocName
             uploadedCid, // seedSourceIpfsCid
-            req.body.declaredQuantity.toString() // declaredQuantity
+            req.body.declaredQuantity.toString(), // declaredQuantity
+            sha256Hash // seedSourceDocHash for integrity verification
         ];
 
         // Use user-specific identity for the transaction
@@ -135,6 +142,7 @@ const createSeedBatch = async (req, res) => {
         transactionService.success(txId, {
             batchId,
             cid: uploadedCid,
+            sha256Hash,
             transactionId: result
         });
 
@@ -208,10 +216,12 @@ const submitCertification = async (req, res) => {
             userId: userUUID
         });
 
-        // Upload to IPFS
+        // Upload to IPFS with SHA256 hash calculation
         transactionService.logStep(txId, 'IPFS_UPLOAD', 'STARTED');
-        uploadedCid = await ipfsService.uploadFile(req.file.path);
-        transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid });
+        const uploadResult = await documentService.uploadWithHash(req.file.path);
+        uploadedCid = uploadResult.cid;
+        const sha256Hash = uploadResult.sha256Hash;
+        transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid, sha256Hash: sha256Hash.substring(0, 16) + '...' });
 
         // Submit to blockchain using user identity
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'STARTED');
@@ -220,13 +230,14 @@ const submitCertification = async (req, res) => {
             batchId,
             req.file.originalname,
             uploadedCid,
-            req.body.testedSampleQty ? req.body.testedSampleQty.toString() : '0' // testedSampleQty
+            req.body.testedSampleQty ? req.body.testedSampleQty.toString() : '0', // testedSampleQty
+            sha256Hash // docHash for integrity verification
         ];
 
         const result = await fabricService.invokeAsUser(userUUID, 'submitCertification', args);
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'COMPLETED', { transactionId: result });
 
-        transactionService.success(txId, { batchId, cid: uploadedCid, transactionId: result });
+        transactionService.success(txId, { batchId, cid: uploadedCid, sha256Hash, transactionId: result });
         logger.transaction(txId, 'SUCCESS', { batchId, cid: uploadedCid });
 
         cleanupFile(req.file.path);
@@ -237,6 +248,7 @@ const submitCertification = async (req, res) => {
             data: {
                 batchId,
                 ipfsCid: uploadedCid,
+                sha256Hash,
                 transactionId: result
             }
         });
@@ -288,10 +300,12 @@ const recordInspection = async (req, res) => {
             userId: userUUID
         });
 
-        // Upload to IPFS
+        // Upload to IPFS with SHA256 hash calculation
         transactionService.logStep(txId, 'IPFS_UPLOAD', 'STARTED');
-        uploadedCid = await ipfsService.uploadFile(req.file.path);
-        transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid });
+        const uploadResult = await documentService.uploadWithHash(req.file.path);
+        uploadedCid = uploadResult.cid;
+        const sha256Hash = uploadResult.sha256Hash;
+        transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid, sha256Hash: sha256Hash.substring(0, 16) + '...' });
 
         // Submit to blockchain using user identity
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'STARTED');
@@ -300,13 +314,14 @@ const recordInspection = async (req, res) => {
             batchId,
             req.body.inspectionResult,
             uploadedCid,
-            userUUID // inspectorFieldUUID
+            userUUID, // inspectorFieldUUID
+            sha256Hash // docHash for integrity verification
         ];
 
         const result = await fabricService.invokeAsUser(userUUID, 'recordInspection', args);
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'COMPLETED', { transactionId: result });
 
-        transactionService.success(txId, { batchId, cid: uploadedCid, transactionId: result });
+        transactionService.success(txId, { batchId, cid: uploadedCid, sha256Hash, transactionId: result });
         logger.transaction(txId, 'SUCCESS', { batchId, cid: uploadedCid });
 
         cleanupFile(req.file.path);
@@ -317,6 +332,7 @@ const recordInspection = async (req, res) => {
             data: {
                 batchId,
                 ipfsCid: uploadedCid,
+                sha256Hash,
                 transactionId: result
             }
         });
@@ -402,7 +418,7 @@ const evaluateInspection = async (req, res) => {
 };
 
 /**
- * Issue certificate (no file upload)
+ * Issue certificate (with file upload)
  */
 const issueCertificate = async (req, res) => {
     const txId = uuidv4();
@@ -429,10 +445,12 @@ const issueCertificate = async (req, res) => {
             userId: userUUID
         });
 
-        // Upload to IPFS
+        // Upload to IPFS with SHA256 hash calculation
         transactionService.logStep(txId, 'IPFS_UPLOAD', 'STARTED');
-        uploadedCid = await ipfsService.uploadFile(req.file.path);
-        transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid });
+        const uploadResult = await documentService.uploadWithHash(req.file.path);
+        uploadedCid = uploadResult.cid;
+        const sha256Hash = uploadResult.sha256Hash;
+        transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid, sha256Hash: sha256Hash.substring(0, 16) + '...' });
 
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'STARTED');
 
@@ -442,13 +460,14 @@ const issueCertificate = async (req, res) => {
             req.file.originalname,
             uploadedCid,
             userUUID, // issuerUUID
-            req.body.certifiedQuantity.toString() // certifiedQuantity
+            req.body.certifiedQuantity.toString(), // certifiedQuantity
+            sha256Hash // docHash for integrity verification
         ];
 
         const result = await fabricService.invokeAsUser(userUUID, 'issueCertificate', args);
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'COMPLETED', { transactionId: result });
 
-        transactionService.success(txId, { batchId, cid: uploadedCid, transactionId: result });
+        transactionService.success(txId, { batchId, cid: uploadedCid, sha256Hash, transactionId: result });
         logger.transaction(txId, 'SUCCESS', { batchId, cid: uploadedCid });
 
         cleanupFile(req.file.path);
@@ -508,16 +527,19 @@ const distributeSeed = async (req, res) => {
             userId: userUUID
         });
 
-        // Upload evidence document to IPFS if provided
+        // Upload evidence document to IPFS if provided (with SHA256 hash)
         let evidenceDocName = '';
         let evidenceIpfsCid = '';
+        let evidenceDocHash = '';
 
         if (req.file) {
             transactionService.logStep(txId, 'IPFS_UPLOAD', 'STARTED');
-            uploadedCid = await ipfsService.uploadFile(req.file.path);
+            const uploadResult = await documentService.uploadWithHash(req.file.path);
+            uploadedCid = uploadResult.cid;
             evidenceDocName = req.file.originalname;
             evidenceIpfsCid = uploadedCid;
-            transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid });
+            evidenceDocHash = uploadResult.sha256Hash;
+            transactionService.logStep(txId, 'IPFS_UPLOAD', 'COMPLETED', { cid: uploadedCid, sha256Hash: evidenceDocHash.substring(0, 16) + '...' });
         }
 
         transactionService.logStep(txId, 'BLOCKCHAIN_SUBMIT', 'STARTED');
@@ -529,7 +551,8 @@ const distributeSeed = async (req, res) => {
             req.body.destinationAddress,
             req.body.quantity.toString(),
             evidenceDocName,
-            evidenceIpfsCid
+            evidenceIpfsCid,
+            evidenceDocHash // evidenceDocHash for integrity verification (optional)
         ];
 
         const result = await fabricService.invokeAsUser(userUUID, 'distributeSeed', args);
@@ -552,6 +575,7 @@ const distributeSeed = async (req, res) => {
                 destinationName: req.body.destinationName,
                 quantity: req.body.quantity,
                 evidenceIpfsCid: evidenceIpfsCid || null,
+                sha256Hash: evidenceDocHash || null,
                 transactionId: result
             }
         });

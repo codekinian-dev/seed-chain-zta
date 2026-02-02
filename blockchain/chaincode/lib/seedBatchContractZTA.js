@@ -253,6 +253,15 @@ class SeedBatchContractZTA extends Contract {
         }
     }
 
+    _validateSHA256Hash(fieldName, hash) {
+        this._validateRequired(fieldName, hash);
+        // SHA256 hash is 64 hex characters
+        const hashRegex = /^[a-fA-F0-9]{64}$/;
+        if (!hashRegex.test(hash)) {
+            throw new Error(`Field '${fieldName}' harus berformat SHA256 hash yang valid (64 karakter hex).`);
+        }
+    }
+
     _sanitizeInput(input) {
         if (typeof input !== 'string') return input;
         // Remove potentially dangerous characters
@@ -536,9 +545,9 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 1. createSeedBatch [role_producer]
-    // Parameters updated: removed manual id, added declaredQuantity
+    // Parameters updated: removed manual id, added declaredQuantity, added sha256Hash for document integrity
     // =========================================================
-    async createSeedBatch(ctx, varietyName, commodity, harvestDate, seedSourceNumber, origin, iupbNumber, seedClass, producerUUID, seedSourceDocName, seedSourceIpfsCid, declaredQuantity) {
+    async createSeedBatch(ctx, varietyName, commodity, harvestDate, seedSourceNumber, origin, iupbNumber, seedClass, producerUUID, seedSourceDocName, seedSourceIpfsCid, declaredQuantity, seedSourceDocHash) {
         // ZTA: Verify identity and context
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
 
@@ -553,6 +562,7 @@ class SeedBatchContractZTA extends Contract {
         this._validateUUID('producerUUID', producerUUID);
         this._validateRequired('seedSourceDocName', seedSourceDocName);
         this._validateIPFSCid('seedSourceIpfsCid', seedSourceIpfsCid);
+        this._validateSHA256Hash('seedSourceDocHash', seedSourceDocHash);
 
         // Validate declared quantity
         const declaredQty = parseFloat(declaredQuantity) || 0;
@@ -586,13 +596,14 @@ class SeedBatchContractZTA extends Contract {
             country: 'ID'
         };
 
-        // Create seed source document with new structure
+        // Create seed source document with new structure (including SHA256 hash for integrity)
         const seedSourceDocId = this._generateDocId([], 'seed_source', txDate);
         const seedSourceDoc = {
             doc_id: seedSourceDocId,
             doc_type: 'seed_source',
             file_name: this._sanitizeInput(seedSourceDocName),
             cid: seedSourceIpfsCid,
+            sha256_hash: seedSourceDocHash.toLowerCase(),
             uploaded_at: identity.timestamp,
             uploader_ref: 'producer',
             meta: {
@@ -691,14 +702,15 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 2. submitCertification [role_producer]
-    // Updated: Added declaredQuantity parameter for quantity update
+    // Updated: Added declaredQuantity parameter for quantity update, added docHash for integrity
     // =========================================================
-    async submitCertification(ctx, id, documentName, ipfsCid, testedSampleQty) {
+    async submitCertification(ctx, id, documentName, ipfsCid, testedSampleQty, docHash) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
 
         this._validateRequired('id', id);
         this._validateRequired('documentName', documentName);
         this._validateIPFSCid('ipfsCid', ipfsCid);
+        this._validateSHA256Hash('docHash', docHash);
 
         const seedBatch = await this.getSeedBatch(ctx, id);
 
@@ -722,6 +734,7 @@ class SeedBatchContractZTA extends Contract {
             doc_type: 'certification_request',
             file_name: this._sanitizeInput(documentName),
             cid: ipfsCid,
+            sha256_hash: docHash.toLowerCase(),
             uploaded_at: identity.timestamp,
             uploader_ref: 'producer',
             meta: {
@@ -767,14 +780,16 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 3. recordInspection [role_pbt_field]
+    // Updated: Added docHash for document integrity
     // =========================================================
-    async recordInspection(ctx, id, inspectionResult, ipfsInspectionCid, inspectorFieldUUID) {
+    async recordInspection(ctx, id, inspectionResult, ipfsInspectionCid, inspectorFieldUUID, docHash) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_pbt_field');
 
         this._validateRequired('id', id);
         this._validateRequired('inspectionResult', inspectionResult);
         this._validateIPFSCid('ipfsInspectionCid', ipfsInspectionCid);
         this._validateUUID('inspectorFieldUUID', inspectorFieldUUID);
+        this._validateSHA256Hash('docHash', docHash);
 
         // ZTA: Verify caller's identity matches the provided UUID
         this._verifyUserUUID(identity, inspectorFieldUUID, 'inspectorFieldUUID');
@@ -808,6 +823,7 @@ class SeedBatchContractZTA extends Contract {
             doc_type: 'field_inspection',
             file_name: 'Laporan Inspeksi Lapangan',
             cid: ipfsInspectionCid,
+            sha256_hash: docHash.toLowerCase(),
             uploaded_at: identity.timestamp,
             uploader_ref: 'inspector_field',
             meta: {
@@ -941,9 +957,9 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 5. issueCertificate [role_lsm_head]
-    // Updated: Added certifiedQuantity parameter, auto-generate certNumber
+    // Updated: Added certifiedQuantity parameter, auto-generate certNumber, added docHash for integrity
     // =========================================================
-    async issueCertificate(ctx, id, expiryDateMonths, certDocumentName, certIpfsCid, issuerUUID, certifiedQuantity) {
+    async issueCertificate(ctx, id, expiryDateMonths, certDocumentName, certIpfsCid, issuerUUID, certifiedQuantity, docHash) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_lsm_head');
 
         this._validateRequired('id', id);
@@ -951,6 +967,7 @@ class SeedBatchContractZTA extends Contract {
         this._validateRequired('certDocumentName', certDocumentName);
         this._validateIPFSCid('certIpfsCid', certIpfsCid);
         this._validateUUID('issuerUUID', issuerUUID);
+        this._validateSHA256Hash('docHash', docHash);
 
         // ZTA: Verify caller's identity matches the provided UUID
         this._verifyUserUUID(identity, issuerUUID, 'issuerUUID');
@@ -1010,12 +1027,13 @@ class SeedBatchContractZTA extends Contract {
         const docId = this._generateDocId(seedBatch.documents, 'certificate', now);
         const eventId = this._generateEventId(seedBatch.events, now);
 
-        // Add certificate document
+        // Add certificate document (including SHA256 hash for integrity)
         const certDoc = {
             doc_id: docId,
             doc_type: 'certificate',
             file_name: this._sanitizeInput(certDocumentName),
             cid: certIpfsCid,
+            sha256_hash: docHash.toLowerCase(),
             uploaded_at: identity.timestamp,
             uploader_ref: 'issuer',
             meta: {
@@ -1132,9 +1150,9 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 7. distributeSeed [role_producer]
-    // Updated: Uses distributions array and quantity tracking
+    // Updated: Uses distributions array and quantity tracking, added evidenceDocHash for integrity
     // =========================================================
-    async distributeSeed(ctx, id, destinationType, destinationName, destinationAddress, quantity, evidenceDocName, evidenceIpfsCid) {
+    async distributeSeed(ctx, id, destinationType, destinationName, destinationAddress, quantity, evidenceDocName, evidenceIpfsCid, evidenceDocHash) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
 
         this._validateRequired('id', id);
@@ -1207,20 +1225,27 @@ class SeedBatchContractZTA extends Contract {
             actor_ref: 'producer'
         };
 
-        // Add evidence document if provided
+        // Add evidence document if provided (with optional SHA256 hash for integrity)
         if (evidenceDocName && evidenceIpfsCid) {
             this._validateIPFSCid('evidenceIpfsCid', evidenceIpfsCid);
+
+            // Validate hash if provided (optional for distribution evidence)
+            if (evidenceDocHash) {
+                this._validateSHA256Hash('evidenceDocHash', evidenceDocHash);
+            }
+
             distribution.evidence = {
                 doc_id: docId,
                 cid: evidenceIpfsCid
             };
 
-            // Add document to documents array
+            // Add document to documents array (including SHA256 hash for integrity if provided)
             const distDoc = {
                 doc_id: docId,
                 doc_type: 'distribution',
                 file_name: this._sanitizeInput(evidenceDocName),
                 cid: evidenceIpfsCid,
+                sha256_hash: evidenceDocHash ? evidenceDocHash.toLowerCase() : null,
                 uploaded_at: identity.timestamp,
                 uploader_ref: 'producer',
                 meta: {

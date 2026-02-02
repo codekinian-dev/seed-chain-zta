@@ -17,6 +17,13 @@ class HttpClient {
     }
 
     /**
+     * Get base URL
+     */
+    getBaseUrl() {
+        return this.baseURL
+    }
+
+    /**
      * Get authorization token from localStorage
      */
     getAuthToken() {

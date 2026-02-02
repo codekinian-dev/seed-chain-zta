@@ -13,7 +13,7 @@ const path = require('path');
 // Load environment variables
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const CA_URL = process.env.FABRIC_CA_URL || 'https://206.189.82.125:7054';
+const CA_URL = process.env.FABRIC_CA_URL || 'https://152.42.164.128:7054';
 const CA_NAME = process.env.FABRIC_CA_NAME || 'ca-bpsbp';
 const MSP_ID = process.env.FABRIC_MSP_ID || 'BPSBPBenihMSP';
 const ADMIN_USER = process.env.FABRIC_CA_ADMIN_USER || 'admin';

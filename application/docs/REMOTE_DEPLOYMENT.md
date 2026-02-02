@@ -74,7 +74,7 @@ sudo ufw allow 8443/tcp
 
 ```bash
 # Set URL blockchain server
-export BLOCKCHAIN_TLS_URL=http://206.189.82.125:8443
+export BLOCKCHAIN_TLS_URL=http://152.42.164.128:8443
 
 # Download TLS certificates
 chmod +x scripts/download-tls-certs.sh
@@ -88,7 +88,7 @@ mkdir -p tls-certs
 cd tls-certs
 
 # Download bundle
-curl -O http://206.189.82.125:8443/bundle.tar.gz
+curl -O http://152.42.164.128:8443/bundle.tar.gz
 tar -xzf bundle.tar.gz
 rm bundle.tar.gz
 ```
@@ -97,7 +97,7 @@ rm bundle.tar.gz
 
 ```bash
 # Hanya jika HTTP tidak tersedia
-export BLOCKCHAIN_SERVER=206.189.82.125
+export BLOCKCHAIN_SERVER=152.42.164.128
 export BLOCKCHAIN_USER=root
 ./scripts/sync-tls-certs.sh
 ```

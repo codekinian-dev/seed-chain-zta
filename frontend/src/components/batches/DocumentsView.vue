@@ -4,10 +4,11 @@ import {
   DocumentTextIcon,
   ArrowDownTrayIcon,
   DocumentIcon,
-  FolderIcon
+  FolderIcon,
+  ShieldCheckIcon
 } from '@heroicons/vue/24/outline'
 import { formatDate } from '../../utils/date-formatter'
-import { formatDocumentType, getActorByRef, getIPFSUrl } from '../../utils/batch-helpers'
+import { formatDocumentType, getActorByRef, getIPFSUrl, getDocumentDownloadUrl } from '../../utils/batch-helpers'
 
 const props = defineProps({
   batch: {
@@ -20,6 +21,8 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['verify-document'])
+
 // Documents dengan actor info
 const documentsWithActors = computed(() => {
   const docs = props.batch?.documents || []
@@ -27,7 +30,9 @@ const documentsWithActors = computed(() => {
     ...doc,
     actor: getActorByRef(props.batch, doc.uploader_ref),
     formattedType: formatDocumentType(doc.doc_type),
-    ipfsUrl: getIPFSUrl(doc.cid)
+    ipfsUrl: getIPFSUrl(doc.cid),
+    downloadUrl: getDocumentDownloadUrl(doc.cid, doc.file_name),
+    hasHash: !!doc.sha256_hash
   }))
 })
 
@@ -71,6 +76,35 @@ const getDocTypeBadge = (docType) => {
     'revocation': 'bg-red-100 text-red-800'
   }
   return colorMap[docType] || 'bg-gray-100 text-gray-800'
+}
+
+// Open document with authentication
+const openDocument = async (doc) => {
+  const token = localStorage.getItem('access_token')
+  if (token && doc.ipfsUrl) {
+    try {
+      const response = await fetch(doc.ipfsUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      if (!response.ok) throw new Error('Failed to fetch document')
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+    } catch (error) {
+      console.error('Failed to open document:', error)
+      // Fallback: try direct link
+      window.open(doc.ipfsUrl, '_blank')
+    }
+  } else if (doc.ipfsUrl) {
+    window.open(doc.ipfsUrl, '_blank')
+  }
+}
+
+// Emit verify document event
+const verifyDocument = (doc) => {
+  emit('verify-document', doc)
 }
 </script>
 
@@ -118,20 +152,33 @@ const getDocTypeBadge = (docType) => {
                   </span>
                 </div>
               </div>
+
+              <!-- Hash Info -->
+              <div v-if="doc.hasHash" class="mt-2 flex items-center text-xs text-green-600">
+                <ShieldCheckIcon class="w-4 h-4 mr-1" />
+                <span>SHA256 hash stored for integrity verification</span>
+              </div>
             </div>
           </div>
           
           <!-- Actions -->
-          <div class="flex-shrink-0 ml-3">
-            <a
+          <div class="flex-shrink-0 ml-3 flex flex-col gap-2">
+            <button
               v-if="doc.cid"
-              :href="doc.ipfsUrl"
-              target="_blank"
+              @click="openDocument(doc)"
               class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary-dark rounded transition"
             >
               <ArrowDownTrayIcon class="w-4 h-4 mr-1" />
               View
-            </a>
+            </button>
+            <button
+              v-if="doc.hasHash"
+              @click="verifyDocument(doc)"
+              class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded transition"
+            >
+              <ShieldCheckIcon class="w-4 h-4 mr-1" />
+              Verify
+            </button>
           </div>
         </div>
       </div>
@@ -164,16 +211,27 @@ const getDocTypeBadge = (docType) => {
               </p>
               <p class="text-xs text-gray-500 mt-0.5">
                 {{ formatDate(doc.uploaded_at) }}
+                <span v-if="doc.hasHash" class="ml-2 text-green-600">
+                  <ShieldCheckIcon class="w-3 h-3 inline" /> Verified
+                </span>
               </p>
             </div>
-            <a
-              v-if="doc.cid"
-              :href="doc.ipfsUrl"
-              target="_blank"
-              class="ml-3 text-sm text-primary hover:text-primary-dark"
-            >
-              View
-            </a>
+            <div class="flex gap-2 ml-3">
+              <button
+                v-if="doc.cid"
+                @click="openDocument(doc)"
+                class="text-sm text-primary hover:text-primary-dark"
+              >
+                View
+              </button>
+              <button
+                v-if="doc.hasHash"
+                @click="verifyDocument(doc)"
+                class="text-sm text-green-600 hover:text-green-800"
+              >
+                Verify
+              </button>
+            </div>
           </div>
         </div>
       </div>

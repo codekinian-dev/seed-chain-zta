@@ -191,14 +191,29 @@ export function formatDocumentType(type) {
 }
 
 /**
- * Get IPFS gateway URL
+ * Get IPFS gateway URL via API
+ * Uses the application API gateway to retrieve documents
  * @param {String} cid - IPFS CID
- * @param {String} gateway - Gateway URL (default: public IPFS gateway)
  * @returns {String}
  */
-export function getIPFSUrl(cid, gateway = 'https://ipfs.jabarchain.me/ipfs/') {
+export function getIPFSUrl(cid) {
     if (!cid) return ''
-    return `${gateway}${cid}`
+    // Use the API endpoint instead of direct IPFS gateway
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://gateway.jabarchain.me'
+    return `${baseUrl}/api/v1/documents/${cid}`
+}
+
+/**
+ * Get document download URL via API
+ * @param {String} cid - IPFS CID
+ * @param {String} filename - Optional filename
+ * @returns {String}
+ */
+export function getDocumentDownloadUrl(cid, filename) {
+    if (!cid) return ''
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://gateway.jabarchain.me'
+    const params = filename ? `?filename=${encodeURIComponent(filename)}` : ''
+    return `${baseUrl}/api/v1/documents/${cid}/download${params}`
 }
 
 /**

@@ -4,6 +4,7 @@
  */
 
 import httpClient from '../http-client'
+import documentService from './document.service'
 
 const seedBatchService = {
     /**
@@ -116,6 +117,7 @@ const seedBatchService = {
      * Upload document to IPFS
      * @param {File} file - File to upload
      * @returns {Promise}
+     * @deprecated Use the standard batch creation/submission endpoints which handle IPFS upload
      */
     async uploadDocument(file) {
         const formData = new FormData()
@@ -126,13 +128,31 @@ const seedBatchService = {
     },
 
     /**
-     * Get document from IPFS
+     * Get document from IPFS via API gateway
      * @param {string} cid - IPFS CID
+     * @returns {string} - Document URL
+     */
+    getDocumentUrl(cid) {
+        return documentService.getDocumentUrl(cid)
+    },
+
+    /**
+     * Get document download URL
+     * @param {string} cid - IPFS CID
+     * @param {string} filename - Optional filename
+     * @returns {string} - Download URL
+     */
+    getDocumentDownloadUrl(cid, filename) {
+        return documentService.getDocumentDownloadUrl(cid, filename)
+    },
+
+    /**
+     * Verify document integrity
+     * @param {Object} params - Verification params
      * @returns {Promise}
      */
-    async getDocument(cid) {
-        const response = await httpClient.get(`/api/ipfs/${cid}`)
-        return response
+    async verifyDocument(params) {
+        return documentService.verifyDocument(params)
     },
 }
 
