@@ -112,15 +112,25 @@ const initializeServices = async () => {
         // Auth logging
         app.use(logAuth);
 
+        // Initialize YAML-based Policy Engine
+        logger.info('[Server] Initializing Policy Engine...');
+        const policyEngine = require('./policies/policyEngineYaml');
+        await policyEngine.initialize();
+        logger.info('[Server] ✓ Policy Engine initialized');
+
         // Import and setup routes (after auth middleware)
         const healthRoutes = require('./routes/health.routes');
         const seedBatchRoutes = require('./routes/seedBatch.routes');
         const identityRoutes = require('./routes/identity.routes');
         const webhookRoutes = require('./routes/webhooks');
+        const policyAdminRoutes = require('./routes/policyAdmin.routes');
 
         app.use('/api/health', healthRoutes);
         app.use('/api/seed-batches', seedBatchRoutes);
         app.use('/api/v1/identity', identityRoutes);
+
+        // Policy Administration (admin only)
+        app.use('/api/policies', keycloak.protect(), policyAdminRoutes);
 
         // Webhooks endpoint (no auth required - should be secured by network/firewall)
         app.use('/api/webhooks', webhookRoutes);

@@ -9,7 +9,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (including dev dependencies for build)
-RUN npm ci
+# Use npm install as fallback if npm ci fails (platform differences)
+RUN npm ci || npm install
 
 # Copy application source
 COPY . .

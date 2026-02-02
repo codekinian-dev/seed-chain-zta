@@ -1,0 +1,11 @@
+{
+    "index": {
+        "fields": [
+            "doc_type",
+            "actors.producer.keycloak_id"
+        ]
+    },
+    "ddoc": "indexProducerDoc",
+    "name": "indexProducer",
+    "type": "json"
+}

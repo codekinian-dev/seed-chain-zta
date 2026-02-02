@@ -273,15 +273,229 @@ class SeedBatchContractZTA extends Contract {
     }
 
     // =========================================================
-    // HELPER: Generate Event/Document Counter
+    // HELPER: Format Date to YYYYMMDD
     // =========================================================
-    _generateCounter(prefix, array) {
-        if (!array || array.length === 0) return `${prefix}-001`;
-        const lastItem = array[array.length - 1];
-        const lastId = lastItem.event_id || lastItem.doc_id || `${prefix}-000`;
-        const match = lastId.match(/-0*(\d+)$/);
-        const nextNum = match ? parseInt(match[1]) + 1 : 1;
-        return `${prefix}-${String(nextNum).padStart(3, '0')}`;
+    _formatDateYYYYMMDD(date) {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}${month}${day}`;
+    }
+
+    // =========================================================
+    // HELPER: Generate Sequential Batch ID (BATCH-YYYYMMDD-NNNN)
+    // Concurrency-safe: scans existing batches to find next available number
+    // =========================================================
+    async _generateBatchId(ctx, timestamp) {
+        const dateStr = this._formatDateYYYYMMDD(timestamp);
+        const prefix = `BATCH-${dateStr}-`;
+
+        // Scan all existing batch IDs for this date to find the max number
+        const iterator = await ctx.stub.getStateByRange(prefix + '0000', prefix + '9999');
+        let maxNum = 0;
+
+        let result = await iterator.next();
+        while (!result.done) {
+            const key = result.value.key;
+            const match = key.match(/-(\d{4})$/);
+            if (match) {
+                const num = parseInt(match[1]);
+                if (num > maxNum) maxNum = num;
+            }
+            result = await iterator.next();
+        }
+        await iterator.close();
+
+        // Next available number
+        const nextNum = maxNum + 1;
+        const batchId = `BATCH-${dateStr}-${String(nextNum).padStart(4, '0')}`;
+
+        // Double-check this ID doesn't exist (race condition safety)
+        const exists = await ctx.stub.getState(batchId);
+        if (exists && exists.length > 0) {
+            // If somehow exists, recursively try next number by adding txId suffix
+            const txId = ctx.stub.getTxID().substring(0, 4);
+            return `BATCH-${dateStr}-${String(nextNum).padStart(4, '0')}-${txId}`;
+        }
+
+        return batchId;
+    }
+
+    // =========================================================
+    // HELPER: Generate Event ID (EVT-YYYYMMDD-NNNN)
+    // =========================================================
+    _generateEventId(events, timestamp) {
+        const dateStr = this._formatDateYYYYMMDD(timestamp);
+        const prefix = `EVT-${dateStr}`;
+
+        if (!events || events.length === 0) return `${prefix}-0001`;
+
+        // Filter events from same date and find max
+        const sameDateEvents = events.filter(e => e.event_id && e.event_id.startsWith(prefix));
+        if (sameDateEvents.length === 0) return `${prefix}-0001`;
+
+        const maxNum = Math.max(...sameDateEvents.map(e => {
+            const match = e.event_id.match(/-(\d{4})$/);
+            return match ? parseInt(match[1]) : 0;
+        }));
+
+        return `${prefix}-${String(maxNum + 1).padStart(4, '0')}`;
+    }
+
+    // =========================================================
+    // HELPER: Generate Document ID (DOC-{TYPE}-YYYYMMDD-NNNN)
+    // =========================================================
+    _generateDocId(documents, docType, timestamp) {
+        const dateStr = this._formatDateYYYYMMDD(timestamp);
+        const typeCode = this._getDocTypeCode(docType);
+        const prefix = `DOC-${typeCode}-${dateStr}`;
+
+        if (!documents || documents.length === 0) return `${prefix}-0001`;
+
+        // Filter docs from same date and type, find max
+        const samePrefixDocs = documents.filter(d => d.doc_id && d.doc_id.startsWith(prefix));
+        if (samePrefixDocs.length === 0) return `${prefix}-0001`;
+
+        const maxNum = Math.max(...samePrefixDocs.map(d => {
+            const match = d.doc_id.match(/-(\d{4})$/);
+            return match ? parseInt(match[1]) : 0;
+        }));
+
+        return `${prefix}-${String(maxNum + 1).padStart(4, '0')}`;
+    }
+
+    // =========================================================
+    // HELPER: Get Document Type Code
+    // =========================================================
+    _getDocTypeCode(docType) {
+        const codes = {
+            'seed_source': 'SS',
+            'certification_request': 'REQ',
+            'field_inspection': 'INSP',
+            'chief_evaluation': 'EVAL',
+            'certificate': 'CERT',
+            'revocation': 'REV',
+            'distribution': 'DIST'
+        };
+        return codes[docType] || 'GEN';
+    }
+
+    // =========================================================
+    // HELPER: Generate Distribution ID (DIST-YYYYMMDD-NNNN)
+    // =========================================================
+    _generateDistId(distributions, timestamp) {
+        const dateStr = this._formatDateYYYYMMDD(timestamp);
+        const prefix = `DIST-${dateStr}`;
+
+        if (!distributions || distributions.length === 0) return `${prefix}-0001`;
+
+        // Filter distributions from same date and find max
+        const sameDateDist = distributions.filter(d => d.dist_id && d.dist_id.startsWith(prefix));
+        if (sameDateDist.length === 0) return `${prefix}-0001`;
+
+        const maxNum = Math.max(...sameDateDist.map(d => {
+            const match = d.dist_id.match(/-(\d{4})$/);
+            return match ? parseInt(match[1]) : 0;
+        }));
+
+        return `${prefix}-${String(maxNum + 1).padStart(4, '0')}`;
+    }
+
+    // =========================================================
+    // HELPER: Generate Certificate Number (CERT-YYYYMMDD-NNNN)
+    // Concurrency-safe: scans existing certificates to find next available
+    // =========================================================
+    async _generateCertNumber(ctx, timestamp) {
+        const dateStr = this._formatDateYYYYMMDD(timestamp);
+        const prefix = `CERT-${dateStr}-`;
+
+        // Use composite key index to find max cert number for this date
+        const iterator = await ctx.stub.getStateByPartialCompositeKey('CERT', []);
+        let maxNum = 0;
+
+        let result = await iterator.next();
+        while (!result.done) {
+            try {
+                const { attributes } = ctx.stub.splitCompositeKey(result.value.key);
+                if (attributes && attributes[0]) {
+                    const certNum = attributes[0];
+                    if (certNum.startsWith(prefix.replace('CERT-', ''))) {
+                        const match = certNum.match(/-(\d{4})$/);
+                        if (match) {
+                            const num = parseInt(match[1]);
+                            if (num > maxNum) maxNum = num;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Skip invalid entries
+            }
+            result = await iterator.next();
+        }
+        await iterator.close();
+
+        // Also scan by checking direct cert numbers in all SeedBatch records
+        const batchIterator = await ctx.stub.getStateByRange('BATCH-', 'BATCH-~');
+        result = await batchIterator.next();
+        while (!result.done) {
+            try {
+                const record = JSON.parse(result.value.value.toString('utf8'));
+                if (record.certification && record.certification.cert_number) {
+                    const certNum = record.certification.cert_number;
+                    if (certNum.startsWith(`CERT-${dateStr}-`)) {
+                        const match = certNum.match(/-(\d{4})$/);
+                        if (match) {
+                            const num = parseInt(match[1]);
+                            if (num > maxNum) maxNum = num;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Skip invalid entries
+            }
+            result = await batchIterator.next();
+        }
+        await batchIterator.close();
+
+        const nextNum = maxNum + 1;
+        return `CERT-${dateStr}-${String(nextNum).padStart(4, '0')}`;
+    }
+
+    // =========================================================
+    // HELPER: Initialize Quantity Object
+    // =========================================================
+    _initializeQuantity(declaredQty = 0) {
+        return {
+            qty_base_unit: 'GRAM',
+            declared: declaredQty,
+            tested_sample: 0,
+            certified: 0,
+            distributed_total: 0,
+            returned_total: 0,
+            loss_total: 0,
+            remaining: declaredQty,
+            last_reconciled_at: null
+        };
+    }
+
+    // =========================================================
+    // HELPER: Validate and Update Quantity for Distribution
+    // =========================================================
+    _validateAndUpdateQuantityForDistribution(seedBatch, distQty, timestamp) {
+        if (!seedBatch.quantity) {
+            throw new Error('Quantity data tidak tersedia. Batch mungkin belum diinisialisasi dengan benar.');
+        }
+
+        if (distQty > seedBatch.quantity.remaining) {
+            throw new Error(`Kuantitas distribusi (${distQty}) melebihi sisa yang tersedia (${seedBatch.quantity.remaining}).`);
+        }
+
+        seedBatch.quantity.distributed_total += distQty;
+        seedBatch.quantity.remaining = seedBatch.quantity.certified - seedBatch.quantity.distributed_total - seedBatch.quantity.loss_total + seedBatch.quantity.returned_total;
+        seedBatch.quantity.last_reconciled_at = timestamp;
+
+        return seedBatch;
     }
 
     // =========================================================
@@ -322,30 +536,42 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 1. createSeedBatch [role_producer]
+    // Parameters updated: removed manual id, added declaredQuantity
     // =========================================================
-    async createSeedBatch(ctx, id, varietyName, commodity, harvestDate, seedSourceNumber, origin, iupNumber, seedClass, producerUUID, seedSourceDocName, seedSourceIpfsCid) {
+    async createSeedBatch(ctx, varietyName, commodity, harvestDate, seedSourceNumber, origin, iupbNumber, seedClass, producerUUID, seedSourceDocName, seedSourceIpfsCid, declaredQuantity) {
         // ZTA: Verify identity and context
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
 
         // Validate inputs
-        this._validateRequired('id', id);
         this._validateRequired('varietyName', varietyName);
         this._validateRequired('commodity', commodity);
         this._validateDate('harvestDate', harvestDate);
         this._validateRequired('seedSourceNumber', seedSourceNumber);
         this._validateRequired('origin', origin);
-        this._validateRequired('iupNumber', iupNumber);
+        this._validateRequired('iupbNumber', iupbNumber);
         this._validateSeedClass(seedClass);
         this._validateUUID('producerUUID', producerUUID);
         this._validateRequired('seedSourceDocName', seedSourceDocName);
         this._validateIPFSCid('seedSourceIpfsCid', seedSourceIpfsCid);
 
+        // Validate declared quantity
+        const declaredQty = parseFloat(declaredQuantity) || 0;
+        if (declaredQty <= 0) {
+            throw new Error('Declared quantity harus berupa angka positif.');
+        }
+
         // ZTA: Verify producerUUID matches the caller's identity
         this._verifyUserUUID(identity, producerUUID, 'producerUUID');
 
-        const exists = await this.seedBatchExists(ctx, id);
+        // Generate sequential Batch ID (BATCH-YYYYMMDD-NNNN)
+        const txTimestamp = ctx.stub.getTxTimestamp();
+        const txDate = new Date(txTimestamp.seconds.toInt() * 1000);
+        const batchId = await this._generateBatchId(ctx, txDate);
+
+        // Check if batch already exists (should not happen with sequential IDs but safety check)
+        const exists = await this.seedBatchExists(ctx, batchId);
         if (exists) {
-            throw new Error(`Batch benih ${id} sudah ada.`);
+            throw new Error(`Batch benih ${batchId} sudah ada. Silakan coba lagi.`);
         }
 
         // Parse origin (format: "City, Province, Country" or just "Region")
@@ -361,35 +587,38 @@ class SeedBatchContractZTA extends Contract {
         };
 
         // Create seed source document with new structure
+        const seedSourceDocId = this._generateDocId([], 'seed_source', txDate);
         const seedSourceDoc = {
-            doc_id: `DOC-SS-${seedSourceNumber}`,
+            doc_id: seedSourceDocId,
             doc_type: 'seed_source',
             file_name: this._sanitizeInput(seedSourceDocName),
             cid: seedSourceIpfsCid,
             uploaded_at: identity.timestamp,
             uploader_ref: 'producer',
             meta: {
+                seed_source_number: this._sanitizeInput(seedSourceNumber),
                 description: 'Dokumen sumber benih'
             }
         };
 
         // Create initial event
+        const initialEventId = this._generateEventId([], txDate);
         const initialEvent = {
-            event_id: 'EVT-001',
+            event_id: initialEventId,
             type: 'CREATED',
             at: identity.timestamp,
             actor_ref: 'producer',
             note: 'Seed batch dibuat'
         };
 
-        // Build new nested structure
+        // Build new nested structure with quantity and distributions
         const seedBatch = {
-            id: this._sanitizeInput(id),
+            id: batchId,
             doc_type: 'SeedBatch',
-            schema_version: '1.0',
+            schema_version: '2.0',
 
             batch: {
-                batch_code: this._sanitizeInput(id),
+                batch_code: batchId,
                 variety_name: this._sanitizeInput(varietyName),
                 commodity: this._sanitizeInput(commodity),
                 seed_class: seedClass,
@@ -398,7 +627,7 @@ class SeedBatchContractZTA extends Contract {
 
             seed_source: {
                 seed_source_number: this._sanitizeInput(seedSourceNumber),
-                iup_number: this._sanitizeInput(iupNumber),
+                iupb_number_ref: this._sanitizeInput(iupbNumber),
                 origin: originObj,
                 harvest: {
                     harvest_date: harvestDate,
@@ -419,6 +648,9 @@ class SeedBatchContractZTA extends Contract {
                 since: identity.timestamp
             },
 
+            // NEW: Quantity tracking
+            quantity: this._initializeQuantity(declaredQty),
+
             actors: {
                 producer: this._createActorObject(identity),
                 inspector_field: null,
@@ -427,6 +659,10 @@ class SeedBatchContractZTA extends Contract {
             },
 
             documents: [seedSourceDoc],
+
+            // NEW: Distributions array
+            distributions: [],
+
             events: [initialEvent],
 
             audit: {
@@ -438,13 +674,14 @@ class SeedBatchContractZTA extends Contract {
             }
         };
 
-        await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
+        await ctx.stub.putState(batchId, Buffer.from(JSON.stringify(seedBatch)));
 
         // ZTA: Audit logging
-        await this._logAuditTrail(ctx, 'CREATE_SEED_BATCH', id, {
+        await this._logAuditTrail(ctx, 'CREATE_SEED_BATCH', batchId, {
             variety: varietyName,
             commodity: commodity,
             seedClass: seedClass,
+            declaredQuantity: declaredQty,
             seedSourceDoc: seedSourceDocName,
             producerKeycloakId: identity.keycloakId
         }, identity);
@@ -454,8 +691,9 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 2. submitCertification [role_producer]
+    // Updated: Added declaredQuantity parameter for quantity update
     // =========================================================
-    async submitCertification(ctx, id, documentName, ipfsCid) {
+    async submitCertification(ctx, id, documentName, ipfsCid, testedSampleQty) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
 
         this._validateRequired('id', id);
@@ -471,9 +709,13 @@ class SeedBatchContractZTA extends Contract {
         // ZTA: Verify caller is the owner (producer) of this batch
         this._verifyResourceOwnership(identity, seedBatch, 'producer');
 
-        // Generate doc_id and event_id
-        const docId = this._generateCounter('DOC-REQ', seedBatch.documents);
-        const eventId = this._generateCounter('EVT', seedBatch.events);
+        // Get transaction timestamp for ID generation
+        const txTimestamp = ctx.stub.getTxTimestamp();
+        const txDate = new Date(txTimestamp.seconds.toInt() * 1000);
+
+        // Generate doc_id and event_id with new format
+        const docId = this._generateDocId(seedBatch.documents, 'certification_request', txDate);
+        const eventId = this._generateEventId(seedBatch.events, txDate);
 
         const newDoc = {
             doc_id: docId,
@@ -495,6 +737,14 @@ class SeedBatchContractZTA extends Contract {
             ref_doc_id: docId
         };
 
+        // Update tested sample quantity if provided
+        if (testedSampleQty) {
+            const testedQty = parseFloat(testedSampleQty);
+            if (!isNaN(testedQty) && testedQty > 0) {
+                seedBatch.quantity.tested_sample = testedQty;
+            }
+        }
+
         seedBatch.documents.push(newDoc);
         seedBatch.events.push(newEvent);
         seedBatch.status.current = 'SUBMITTED';
@@ -508,6 +758,7 @@ class SeedBatchContractZTA extends Contract {
         await this._logAuditTrail(ctx, 'SUBMIT_CERTIFICATION', id, {
             documentName: documentName,
             ipfsCid: ipfsCid,
+            testedSampleQty: seedBatch.quantity.tested_sample,
             submitterKeycloakId: identity.keycloakId
         }, identity);
 
@@ -544,14 +795,18 @@ class SeedBatchContractZTA extends Contract {
         seedBatch.status.current = 'INSPECTED';
         seedBatch.status.since = identity.timestamp;
 
-        // Generate IDs
-        const docId = this._generateCounter('DOC-INSP', seedBatch.documents);
-        const eventId = this._generateCounter('EVT', seedBatch.events);
+        // Get transaction timestamp for ID generation
+        const txTimestamp = ctx.stub.getTxTimestamp();
+        const txDate = new Date(txTimestamp.seconds.toInt() * 1000);
+
+        // Generate IDs with new format
+        const docId = this._generateDocId(seedBatch.documents, 'field_inspection', txDate);
+        const eventId = this._generateEventId(seedBatch.events, txDate);
 
         const inspectionDoc = {
             doc_id: docId,
             doc_type: 'field_inspection',
-            name: 'Laporan Inspeksi Lapangan',
+            file_name: 'Laporan Inspeksi Lapangan',
             cid: ipfsInspectionCid,
             uploaded_at: identity.timestamp,
             uploader_ref: 'inspector_field',
@@ -619,6 +874,10 @@ class SeedBatchContractZTA extends Contract {
         // Set inspector_chief actor
         seedBatch.actors.inspector_chief = this._createActorObject(identity);
 
+        // Get transaction timestamp for ID generation
+        const txTimestamp = ctx.stub.getTxTimestamp();
+        const txDate = new Date(txTimestamp.seconds.toInt() * 1000);
+
         // Handle rejection or approval
         if (approvalStatus === 'REJECT') {
             seedBatch.status.current = 'REGISTERED';
@@ -638,14 +897,14 @@ class SeedBatchContractZTA extends Contract {
             seedBatch.status.since = identity.timestamp;
         }
 
-        // Generate IDs
-        const docId = this._generateCounter('DOC-EVAL', seedBatch.documents);
-        const eventId = this._generateCounter('EVT', seedBatch.events);
+        // Generate IDs with new format
+        const docId = this._generateDocId(seedBatch.documents, 'chief_evaluation', txDate);
+        const eventId = this._generateEventId(seedBatch.events, txDate);
 
         const evalDoc = {
             doc_id: docId,
             doc_type: 'chief_evaluation',
-            name: 'Evaluasi Ketua Tim',
+            file_name: 'Evaluasi Ketua Tim',
             uploaded_at: identity.timestamp,
             uploader_ref: 'inspector_chief',
             meta: {
@@ -682,12 +941,12 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 5. issueCertificate [role_lsm_head]
+    // Updated: Added certifiedQuantity parameter, auto-generate certNumber
     // =========================================================
-    async issueCertificate(ctx, id, certNumber, expiryDateMonths, certDocumentName, certIpfsCid, issuerUUID) {
+    async issueCertificate(ctx, id, expiryDateMonths, certDocumentName, certIpfsCid, issuerUUID, certifiedQuantity) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_lsm_head');
 
         this._validateRequired('id', id);
-        this._validateRequired('certNumber', certNumber);
         this._validateRequired('expiryDateMonths', expiryDateMonths);
         this._validateRequired('certDocumentName', certDocumentName);
         this._validateIPFSCid('certIpfsCid', certIpfsCid);
@@ -707,25 +966,38 @@ class SeedBatchContractZTA extends Contract {
             throw new Error(`Benih belum dievaluasi. Status: ${seedBatch.status.current}`);
         }
 
-        // ZTA: Check for duplicate certificate number
-        const existingCert = await this._checkCertificateExists(ctx, certNumber);
-        if (existingCert) {
-            this._logSecurityEvent(ctx, 'DUPLICATE_CERTIFICATE',
-                `Certificate number ${certNumber} already exists`);
-            throw new Error(`Nomor sertifikat ${certNumber} sudah digunakan.`);
-        }
-
         // Use transaction timestamp for deterministic behavior
         const txTimestamp = ctx.stub.getTxTimestamp();
         const now = new Date(txTimestamp.seconds.toInt() * 1000);
         const expiryDate = new Date(txTimestamp.seconds.toInt() * 1000);
         expiryDate.setMonth(expiryDate.getMonth() + months);
 
+        // Auto-generate certificate number (CERT-YYYYMMDD-NNNN)
+        const certNumber = await this._generateCertNumber(ctx, now);
+
+        // ZTA: Check for duplicate certificate number (safety check)
+        const existingCert = await this._checkCertificateExists(ctx, certNumber);
+        if (existingCert) {
+            this._logSecurityEvent(ctx, 'DUPLICATE_CERTIFICATE',
+                `Certificate number ${certNumber} already exists`);
+            throw new Error(`Nomor sertifikat ${certNumber} sudah digunakan. Silakan coba lagi.`);
+        }
+
         // Set issuer actor
         seedBatch.actors.issuer = this._createActorObject(identity);
 
+        // Update certified quantity
+        const certQty = parseFloat(certifiedQuantity) || seedBatch.quantity.declared;
+        if (certQty > seedBatch.quantity.declared) {
+            throw new Error(`Certified quantity (${certQty}) tidak boleh melebihi declared quantity (${seedBatch.quantity.declared}).`);
+        }
+
+        seedBatch.quantity.certified = certQty;
+        seedBatch.quantity.remaining = certQty;
+        seedBatch.quantity.last_reconciled_at = identity.timestamp;
+
         // Update certification object
-        seedBatch.certification.cert_number = this._sanitizeInput(certNumber);
+        seedBatch.certification.cert_number = certNumber;
         seedBatch.certification.issued_at = now.toISOString();
         seedBatch.certification.expires_at = expiryDate.toISOString();
         seedBatch.certification.revoked_at = null;
@@ -734,9 +1006,9 @@ class SeedBatchContractZTA extends Contract {
         seedBatch.status.current = 'CERTIFIED';
         seedBatch.status.since = identity.timestamp;
 
-        // Generate IDs
-        const docId = this._generateCounter('DOC-CERT', seedBatch.documents);
-        const eventId = this._generateCounter('EVT', seedBatch.events);
+        // Generate IDs with new format
+        const docId = this._generateDocId(seedBatch.documents, 'certificate', now);
+        const eventId = this._generateEventId(seedBatch.events, now);
 
         // Add certificate document
         const certDoc = {
@@ -747,7 +1019,9 @@ class SeedBatchContractZTA extends Contract {
             uploaded_at: identity.timestamp,
             uploader_ref: 'issuer',
             meta: {
-                cert_number: certNumber
+                cert_number: certNumber,
+                certified_qty: certQty,
+                qty_base_unit: seedBatch.quantity.qty_base_unit
             }
         };
 
@@ -773,6 +1047,7 @@ class SeedBatchContractZTA extends Contract {
 
         await this._logAuditTrail(ctx, 'ISSUE_CERTIFICATE', id, {
             certNumber: certNumber,
+            certifiedQuantity: certQty,
             expiryMonths: months,
             expiryDate: expiryDate.toISOString(),
             issuerKeycloakId: identity.keycloakId
@@ -800,22 +1075,25 @@ class SeedBatchContractZTA extends Contract {
         this._logSecurityEvent(ctx, 'CERTIFICATE_REVOCATION',
             `Certificate ${seedBatch.certification.cert_number} for batch ${id} is being revoked by ${identity.keycloakId}. Reason: ${reason}`);
 
-        // Update certification object
+        // Get transaction timestamp for ID generation
         const txTimestamp = ctx.stub.getTxTimestamp();
-        seedBatch.certification.revoked_at = new Date(txTimestamp.seconds.toInt() * 1000).toISOString();
+        const txDate = new Date(txTimestamp.seconds.toInt() * 1000);
+
+        // Update certification object
+        seedBatch.certification.revoked_at = txDate.toISOString();
         seedBatch.certification.revoke_reason = this._sanitizeInput(reason);
 
         seedBatch.status.current = 'REVOKED';
         seedBatch.status.since = identity.timestamp;
 
-        // Generate IDs
-        const docId = this._generateCounter('DOC-REVOKE', seedBatch.documents);
-        const eventId = this._generateCounter('EVT', seedBatch.events);
+        // Generate IDs with new format
+        const docId = this._generateDocId(seedBatch.documents, 'revocation', txDate);
+        const eventId = this._generateEventId(seedBatch.events, txDate);
 
         const revokeDoc = {
             doc_id: docId,
             doc_type: 'revocation',
-            name: 'Berita Acara Pencabutan',
+            file_name: 'Berita Acara Pencabutan',
             uploaded_at: identity.timestamp,
             uploader_ref: 'issuer',
             meta: {
@@ -854,13 +1132,22 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 7. distributeSeed [role_producer]
+    // Updated: Uses distributions array and quantity tracking
     // =========================================================
-    async distributeSeed(ctx, id, distributionLocation, quantity) {
+    async distributeSeed(ctx, id, destinationType, destinationName, destinationAddress, quantity, evidenceDocName, evidenceIpfsCid) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
 
         this._validateRequired('id', id);
-        this._validateRequired('distributionLocation', distributionLocation);
+        this._validateRequired('destinationType', destinationType);
+        this._validateRequired('destinationName', destinationName);
+        this._validateRequired('destinationAddress', destinationAddress);
         this._validateRequired('quantity', quantity);
+
+        // Validate destination type
+        const validDestTypes = ['WAREHOUSE', 'RETAILER', 'FARMER_GROUP', 'DISTRIBUTOR', 'OTHER'];
+        if (!validDestTypes.includes(destinationType)) {
+            throw new Error(`Destination type tidak valid. Harus salah satu dari: ${validDestTypes.join(', ')}`);
+        }
 
         const qty = parseFloat(quantity);
         if (isNaN(qty) || qty <= 0) {
@@ -869,8 +1156,9 @@ class SeedBatchContractZTA extends Contract {
 
         const seedBatch = await this.getSeedBatch(ctx, id);
 
-        if (seedBatch.status.current !== 'CERTIFIED') {
-            throw new Error(`Hanya benih bersertifikat yang boleh diedarkan.`);
+        // Allow distribution if CERTIFIED or already DISTRIBUTED (for multiple distributions)
+        if (seedBatch.status.current !== 'CERTIFIED' && seedBatch.status.current !== 'DISTRIBUTED') {
+            throw new Error(`Hanya benih bersertifikat yang boleh diedarkan. Status saat ini: ${seedBatch.status.current}`);
         }
 
         // ZTA: Verify caller is the owner (producer) of this batch
@@ -878,53 +1166,92 @@ class SeedBatchContractZTA extends Contract {
 
         // ZTA: Verify certificate not expired (using transaction timestamp)
         const txTimestamp = ctx.stub.getTxTimestamp();
-        const now = new Date(txTimestamp.seconds.toInt() * 1000);
+        const txDate = new Date(txTimestamp.seconds.toInt() * 1000);
         const expiry = new Date(seedBatch.certification.expires_at);
-        if (now > expiry) {
+        if (txDate > expiry) {
             this._logSecurityEvent(ctx, 'EXPIRED_CERTIFICATE_USE',
                 `Attempt to distribute batch ${id} with expired certificate ${seedBatch.certification.cert_number} by ${identity.keycloakId}`);
             throw new Error(`Sertifikat kadaluarsa pada ${expiry.toISOString()}.`);
         }
 
         // ZTA: Check if certificate is revoked
-        if (seedBatch.status.current === 'REVOKED') {
+        if (seedBatch.certification.revoked_at) {
             this._logSecurityEvent(ctx, 'REVOKED_CERTIFICATE_USE',
                 `Attempt to distribute batch ${id} with revoked certificate ${seedBatch.certification.cert_number} by ${identity.keycloakId}`);
             throw new Error('Sertifikat telah dicabut. Distribusi tidak diizinkan.');
         }
 
-        seedBatch.status.current = 'DISTRIBUTED';
-        seedBatch.status.since = identity.timestamp;
+        // Validate and update quantity
+        this._validateAndUpdateQuantityForDistribution(seedBatch, qty, identity.timestamp);
 
-        // Generate IDs
-        const docId = this._generateCounter('DOC-DIST', seedBatch.documents);
-        const eventId = this._generateCounter('EVT', seedBatch.events);
+        // Initialize distributions array if not exists
+        if (!seedBatch.distributions) {
+            seedBatch.distributions = [];
+        }
 
-        const distDoc = {
-            doc_id: docId,
-            doc_type: 'distribution',
-            name: 'Bukti Distribusi',
-            uploaded_at: identity.timestamp,
-            uploader_ref: 'producer',
-            meta: {
-                location: this._sanitizeInput(distributionLocation),
-                quantity: {
-                    amount: qty,
-                    unit: 'UNIT'
-                }
-            }
+        // Generate IDs with new format
+        const distId = this._generateDistId(seedBatch.distributions, txDate);
+        const docId = this._generateDocId(seedBatch.documents, 'distribution', txDate);
+        const eventId = this._generateEventId(seedBatch.events, txDate);
+
+        // Create distribution record
+        const distribution = {
+            dist_id: distId,
+            distributed_at: identity.timestamp,
+            qty: qty,
+            to: {
+                destination_type: destinationType,
+                name: this._sanitizeInput(destinationName),
+                address: this._sanitizeInput(destinationAddress)
+            },
+            actor_ref: 'producer'
         };
 
+        // Add evidence document if provided
+        if (evidenceDocName && evidenceIpfsCid) {
+            this._validateIPFSCid('evidenceIpfsCid', evidenceIpfsCid);
+            distribution.evidence = {
+                doc_id: docId,
+                cid: evidenceIpfsCid
+            };
+
+            // Add document to documents array
+            const distDoc = {
+                doc_id: docId,
+                doc_type: 'distribution',
+                file_name: this._sanitizeInput(evidenceDocName),
+                cid: evidenceIpfsCid,
+                uploaded_at: identity.timestamp,
+                uploader_ref: 'producer',
+                meta: {
+                    dist_id: distId,
+                    destination: destinationName,
+                    quantity: qty
+                }
+            };
+            seedBatch.documents.push(distDoc);
+        }
+
+        // Add distribution to array
+        seedBatch.distributions.push(distribution);
+
+        // Create event
         const distEvent = {
             event_id: eventId,
             type: 'DISTRIBUTED',
             at: identity.timestamp,
             actor_ref: 'producer',
-            ref_doc_id: docId
+            ref_dist_id: distId,
+            qty: qty,
+            destination: destinationName
         };
 
-        seedBatch.documents.push(distDoc);
         seedBatch.events.push(distEvent);
+
+        // Update status to DISTRIBUTED
+        seedBatch.status.current = 'DISTRIBUTED';
+        seedBatch.status.since = identity.timestamp;
+
         seedBatch.audit.revision += 1;
         seedBatch.audit.last_modified_by_ref = 'producer';
         seedBatch.audit.last_modified_at = identity.timestamp;
@@ -932,8 +1259,11 @@ class SeedBatchContractZTA extends Contract {
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
         await this._logAuditTrail(ctx, 'DISTRIBUTE_SEED', id, {
-            location: distributionLocation,
+            distId: distId,
+            destinationType: destinationType,
+            destination: destinationName,
             quantity: qty,
+            remainingQuantity: seedBatch.quantity.remaining,
             distributorKeycloakId: identity.keycloakId
         }, identity);
 
@@ -1108,7 +1438,7 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // Query by Producer (with strict ownership check using keycloak_id)
-    // LevelDB-compatible: uses getStateByRange + filter instead of rich query
+    // CouchDB optimized: uses rich query with index
     // =========================================================
     async querySeedBatchesByProducer(ctx, producerKeycloakId) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
@@ -1130,31 +1460,16 @@ class SeedBatchContractZTA extends Contract {
             producerKeycloakId: producerKeycloakId
         }, identity);
 
-        // LevelDB-compatible: iterate all states and filter by producer
-        const iterator = await ctx.stub.getStateByRange('', '');
-        const allResults = [];
+        // CouchDB rich query with index support
+        const queryString = {
+            selector: {
+                doc_type: 'SeedBatch',
+                'actors.producer.keycloak_id': producerKeycloakId
+            },
+            use_index: ['_design/indexProducerDoc', 'indexProducer']
+        };
 
-        let result = await iterator.next();
-        while (!result.done) {
-            const res = result.value;
-            try {
-                const record = JSON.parse(res.value.toString('utf8'));
-                // Filter: only SeedBatch with matching actors.producer.keycloak_id
-                if (record.doc_type === 'SeedBatch' &&
-                    record.actors?.producer?.keycloak_id === producerKeycloakId) {
-                    allResults.push({
-                        Key: res.key,
-                        Record: record
-                    });
-                }
-            } catch (err) {
-                console.log(`Error parsing record: ${err}`);
-            }
-            result = await iterator.next();
-        }
-
-        await iterator.close();
-        return JSON.stringify(allResults);
+        return await this._getQueryResultForQueryString(ctx, JSON.stringify(queryString));
     }
 
     // =========================================================

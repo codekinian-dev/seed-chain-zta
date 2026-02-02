@@ -1,0 +1,11 @@
+{
+    "index": {
+        "fields": [
+            "doc_type",
+            "certification.cert_number"
+        ]
+    },
+    "ddoc": "indexCertDoc",
+    "name": "indexCertNumber",
+    "type": "json"
+}

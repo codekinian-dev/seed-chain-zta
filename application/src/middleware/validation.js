@@ -35,9 +35,9 @@ const createSeedBatchSchema = Joi.object({
             'string.empty': 'Origin is required'
         }),
 
-    iupNumber: Joi.string().required().min(5).max(50)
+    iupbNumber: Joi.string().required().min(5).max(50)
         .messages({
-            'string.empty': 'IUP number is required'
+            'string.empty': 'IUPB number is required'
         }),
 
     seedClass: Joi.string().valid('BS', 'BD', 'BP', 'BR')
@@ -45,6 +45,13 @@ const createSeedBatchSchema = Joi.object({
         .messages({
             'any.only': 'Seed class must be one of: BS (Breeder Seed), BD (Foundation Seed), BP (Stock Seed), BR (Extension Seed)',
             'any.required': 'Seed class is required'
+        }),
+
+    declaredQuantity: Joi.number().positive().required()
+        .messages({
+            'number.base': 'Declared quantity must be a number',
+            'number.positive': 'Declared quantity must be positive',
+            'any.required': 'Declared quantity is required'
         })
 });
 
@@ -55,15 +62,20 @@ const createSeedBatchLoadTestSchema = Joi.object({
     harvestDate: Joi.date().iso().optional(),
     seedSourceNumber: Joi.string().min(5).max(50).optional(),
     origin: Joi.string().min(2).max(100).optional(),
-    iupNumber: Joi.string().min(5).max(50).optional(),
+    iupbNumber: Joi.string().min(5).max(50).optional(),
     seedClass: Joi.string().valid('BS', 'BD', 'BP', 'BR').optional(),
+    declaredQuantity: Joi.number().positive().optional(),
     documentName: Joi.string().optional()
 }).unknown(true); // Allow extra fields for flexibility
 
 // Submit Certification Schema
 const submitCertificationSchema = Joi.object({
-    // No body validation needed - only file upload required
-    // The document is handled by validateFileUpload middleware
+    // Optional tested sample quantity
+    testedSampleQty: Joi.number().positive().optional()
+        .messages({
+            'number.base': 'Tested sample quantity must be a number',
+            'number.positive': 'Tested sample quantity must be positive'
+        })
 }).unknown(true); // Allow any fields for future extensibility
 
 // Record Inspection Schema
@@ -92,26 +104,40 @@ const evaluateInspectionSchema = Joi.object({
 
 // Issue Certificate Schema
 const issueCertificateSchema = Joi.object({
-    certificateNumber: Joi.string().required().min(5).max(50)
-        .messages({
-            'string.empty': 'Certificate number is required'
-        }),
-
     expiryMonths: Joi.number().integer().min(1).max(120).required()
         .messages({
             'number.base': 'Expiry months must be a number',
             'number.min': 'Expiry months must be at least 1',
             'number.max': 'Expiry months cannot exceed 120',
             'any.required': 'Expiry months is required'
+        }),
+
+    certifiedQuantity: Joi.number().positive().required()
+        .messages({
+            'number.base': 'Certified quantity must be a number',
+            'number.positive': 'Certified quantity must be positive',
+            'any.required': 'Certified quantity is required'
         })
 });
 
 // Distribution Schema
 const distributeSchema = Joi.object({
-    distributionLocation: Joi.string().required().min(5).max(200)
+    destinationType: Joi.string().valid('WAREHOUSE', 'RETAILER', 'FARMER_GROUP', 'DISTRIBUTOR', 'OTHER').required()
         .messages({
-            'string.empty': 'Distribution location is required',
-            'string.min': 'Distribution location must be at least 5 characters'
+            'any.only': 'Destination type must be one of: WAREHOUSE, RETAILER, FARMER_GROUP, DISTRIBUTOR, OTHER',
+            'any.required': 'Destination type is required'
+        }),
+
+    destinationName: Joi.string().required().min(2).max(200)
+        .messages({
+            'string.empty': 'Destination name is required',
+            'string.min': 'Destination name must be at least 2 characters'
+        }),
+
+    destinationAddress: Joi.string().required().min(5).max(500)
+        .messages({
+            'string.empty': 'Destination address is required',
+            'string.min': 'Destination address must be at least 5 characters'
         }),
 
     quantity: Joi.number().positive().required()

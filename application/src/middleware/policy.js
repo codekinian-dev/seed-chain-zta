@@ -1,4 +1,4 @@
-const policyEngine = require('../policies/policyEngine');
+const { policyEngine } = require('../policies');
 const logger = require('../utils/logger');
 
 /**

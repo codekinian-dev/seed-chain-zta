@@ -145,6 +145,14 @@ router.post(
     keycloak.protect(),
     enforcePolicy('distribution', 'create'),
     validateParams(idSchema),
+    upload.single('evidence'),
+    handleUploadError,
+    logUpload,
+    validateFileUpload({
+        required: false, // Evidence document is optional
+        maxSize: 10 * 1024 * 1024,
+        allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    }),
     validateBody(distributeSchema),
     asyncHandler(seedBatchController.distributeSeed)
 );

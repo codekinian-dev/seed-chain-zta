@@ -1,0 +1,11 @@
+{
+    "index": {
+        "fields": [
+            "doc_type",
+            "status.current"
+        ]
+    },
+    "ddoc": "indexSeedBatchDoc",
+    "name": "indexSeedBatch",
+    "type": "json"
+}

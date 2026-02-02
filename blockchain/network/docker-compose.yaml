@@ -6,6 +6,10 @@ volumes:
   cert.chain-bpsbp.jabarchain.me:
   sekretariat.chain-disbun.jabarchain.me:
   digital.chain-disbun.jabarchain.me:
+  couchdb0:
+  couchdb1:
+  couchdb2:
+  couchdb3:
 
 
 networks:
@@ -13,6 +17,62 @@ networks:
     name: fabric_benih
 
 services:
+  # CouchDB for BPSBP Peer0 (Pusat)
+  couchdb0:
+    container_name: couchdb0
+    image: couchdb:3.3.2
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "5984:5984"
+    volumes:
+      - couchdb0:/opt/couchdb/data
+    networks:
+      - fabric_benih
+
+  # CouchDB for BPSBP Peer1 (Cert)
+  couchdb1:
+    container_name: couchdb1
+    image: couchdb:3.3.2
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "6984:5984"
+    volumes:
+      - couchdb1:/opt/couchdb/data
+    networks:
+      - fabric_benih
+
+  # CouchDB for Disbun Peer0 (Sekretariat)
+  couchdb2:
+    container_name: couchdb2
+    image: couchdb:3.3.2
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "7984:5984"
+    volumes:
+      - couchdb2:/opt/couchdb/data
+    networks:
+      - fabric_benih
+
+  # CouchDB for Disbun Peer1 (Digital)
+  couchdb3:
+    container_name: couchdb3
+    image: couchdb:3.3.2
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    ports:
+      - "8984:5984"
+    volumes:
+      - couchdb3:/opt/couchdb/data
+    networks:
+      - fabric_benih
+
   # Certificate Authority Services
   ca_bpsbp:
     image: hyperledger/fabric-ca:1.5.5
@@ -213,6 +273,11 @@ services:
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0bpsbp"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
+      # CouchDB Configuration
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
     volumes:
       - /var/run/:/host/var/run/
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
@@ -224,6 +289,8 @@ services:
     ports:
       - 7051:7051
       - 9444:9444
+    depends_on:
+      - couchdb0
     networks:
       - fabric_benih
 
@@ -252,6 +319,11 @@ services:
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1bpsbp"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
+      # CouchDB Configuration
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb1:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
     volumes:
       - /var/run/:/host/var/run/
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
@@ -263,6 +335,8 @@ services:
     ports:
       - 8051:8051
       - 9445:9445
+    depends_on:
+      - couchdb1
     networks:
       - fabric_benih
 
@@ -291,6 +365,11 @@ services:
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer0disbun"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
+      # CouchDB Configuration
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb2:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
     volumes:
       - /var/run/:/host/var/run/
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
@@ -302,6 +381,8 @@ services:
     ports:
       - 9051:9051
       - 9446:9446
+    depends_on:
+      - couchdb2
     networks:
       - fabric_benih
 
@@ -330,6 +411,11 @@ services:
       - CORE_METRICS_PROVIDER=prometheus
       - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG={"peername":"peer1disbun"}
       - CORE_CHAINCODE_EXECUTETIMEOUT=600s
+      # CouchDB Configuration
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb3:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
     volumes:
       - /var/run/:/host/var/run/
       - ../config/core.yaml:/etc/hyperledger/fabric/core.yaml
@@ -341,6 +427,8 @@ services:
     ports:
       - 10051:10051
       - 9447:9447
+    depends_on:
+      - couchdb3
     networks:
       - fabric_benih
 

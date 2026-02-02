@@ -1,0 +1,12 @@
+{
+    "index": {
+        "fields": [
+            "docType",
+            "action",
+            "timestamp"
+        ]
+    },
+    "ddoc": "indexAuditLogDoc",
+    "name": "indexAuditLog",
+    "type": "json"
+}

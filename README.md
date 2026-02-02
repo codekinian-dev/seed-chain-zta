@@ -1,6 +1,13 @@
-# Zero Trust Architecture for Blockchain-Based Seed Certification System
+# 🌱 Zero Trust Architecture for Blockchain-Based Seed Certification System
 
-A comprehensive seed certification system implementing Zero Trust Architecture (ZTA) principles with Hyperledger Fabric blockchain, Keycloak identity provider, and IPFS distributed storage.
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Hyperledger Fabric](https://img.shields.io/badge/Hyperledger%20Fabric-2.2.20-blue.svg)](https://hyperledger-fabric.readthedocs.io/)
+[![Keycloak](https://img.shields.io/badge/Keycloak-26.2.4-orange.svg)](https://www.keycloak.org/)
+[![License](https://img.shields.io/badge/License-Research-lightgrey.svg)](#license)
+
+> A comprehensive seed certification system implementing **Zero Trust Architecture (ZTA)** principles with Hyperledger Fabric blockchain, Keycloak identity provider, and IPFS distributed storage.
+
+---
 
 ## 📋 Table of Contents
 
@@ -37,6 +44,8 @@ This project implements a **Zero Trust Architecture** for a blockchain-based see
 ✅ **Assume Breach** - Defense in depth with multiple security layers  
 ✅ **Continuous Verification** - Policy evaluation on every API call  
 ✅ **Blockchain Traceability** - Immutable audit trail with block metadata
+
+---
 
 ## 🏗️ Architecture
 
@@ -84,6 +93,8 @@ Request → Authentication → Policy Evaluation → Resource Access
                               ↓
                     Allow (200/201) or Deny (403)
 ```
+
+---
 
 ## ✨ Features
 
@@ -143,33 +154,42 @@ Request → Authentication → Policy Evaluation → Resource Access
   - Performance metrics
   - Health check endpoints
 
+---
+
 ## 🛠️ Technology Stack
 
 ### Backend
+
 - **Node.js** 18+ - Runtime environment
 - **Express.js** 4.18+ - Web framework
 - **Hyperledger Fabric** 2.2.20 - Blockchain platform
 - **Fabric SDK** - Blockchain integration
 
 ### Security
+
 - **Keycloak** 26.2.4 - Identity & Access Management
 - **Keycloak Connect** - Node.js adapter
 - **Custom Policy Engine** - Zero Trust enforcement
 
 ### Storage
+
 - **IPFS** - Distributed file storage
 - **PostgreSQL** 16 - Keycloak database
 - **Redis** - Session store (optional)
 
 ### Testing & Monitoring
+
 - **Jest** - Unit & integration testing
 - **K6** - Load testing
 - **Winston** - Logging
 - **Morgan** - HTTP request logging
 
 ### DevOps
+
 - **Docker** & **Docker Compose** - Containerization
 - **Git** - Version control
+
+---
 
 ## 📋 Prerequisites
 
@@ -187,6 +207,30 @@ Request → Authentication → Policy Evaluation → Resource Access
 - **Disk**: 20GB free space
 - **CPU**: 4 cores recommended
 - **OS**: Linux, macOS, or Windows with WSL2
+
+## ⚡ Quick Start
+
+```bash
+# 1. Clone and install
+git clone <repository-url>
+cd seed-chain-zta/application && npm install
+
+# 2. Start infrastructure
+cd ../idp_keycloak && docker-compose up -d
+cd ../blockchain && ./fabric.sh up
+
+# 3. Setup and run
+cd ../application
+npm run setup:wallet
+npm start
+
+# 4. Access the API
+curl http://localhost:3001/api/health
+```
+
+> 📖 For detailed installation instructions, see the [Installation](#-installation) section below.
+
+---
 
 ## 🚀 Installation
 
@@ -222,6 +266,7 @@ cp .env.example .env
 ```
 
 **Key variables:**
+
 ```env
 # Server
 PORT=3001
@@ -256,6 +301,7 @@ cp .env.example .env
 ```
 
 **Key variables:**
+
 ```env
 POSTGRES_PASSWORD=your-secure-password
 KEYCLOAK_ADMIN=admin
@@ -281,6 +327,7 @@ cd ../blockchain
 ```
 
 This will:
+
 - Generate crypto materials
 - Start CA, peers, orderers
 - Create channel
@@ -310,6 +357,7 @@ cd ../k6_test
 ```
 
 This creates:
+
 - `producer_test` to `producer_test5` (password: `Test123!`)
 - All with `role_producer` assigned
 
@@ -320,6 +368,8 @@ cd ../application
 npm run setup:wallet
 ```
 
+---
+
 ## ⚙️ Configuration
 
 ### Policy Engine Configuration
@@ -329,17 +379,17 @@ Edit `application/src/policies/policyEngine.js`:
 ```javascript
 // Time restrictions (24-hour format)
 const RESTRICTED_START_HOUR = 22; // 10 PM
-const RESTRICTED_END_HOUR = 6;    // 6 AM
+const RESTRICTED_END_HOUR = 6; // 6 AM
 
 // Role-based permissions
 const POLICY_RULES = {
-    seed_batch: {
-        create: ['role_producer'],
-        read: ['role_producer', 'role_inspector', 'role_evaluator'],
-        update: ['role_producer'],
-        delete: ['role_admin']
-    },
-    // ... more resources
+  seed_batch: {
+    create: ["role_producer"],
+    read: ["role_producer", "role_inspector", "role_evaluator"],
+    update: ["role_producer"],
+    delete: ["role_admin"],
+  },
+  // ... more resources
 };
 ```
 
@@ -349,11 +399,13 @@ Edit `application/src/server.js`:
 
 ```javascript
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000,                 // 1000 requests per window
-    message: 'Too many requests from this IP'
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // 1000 requests per window
+  message: "Too many requests from this IP",
 });
 ```
+
+---
 
 ## 🏃 Running the System
 
@@ -375,10 +427,11 @@ curl http://localhost:3001/api/health
 ```
 
 Expected response:
+
 ```json
 {
   "status": "healthy",
-  "timestamp": "2025-11-21T...",
+  "timestamp": "2026-02-01T...",
   "uptime": 123.45,
   "services": {
     "fabric": "connected",
@@ -391,6 +444,8 @@ Expected response:
 
 Swagger UI: http://localhost:3001/api-docs
 
+---
+
 ## 🧪 Testing
 
 ### Unit Tests
@@ -401,6 +456,7 @@ npm test
 ```
 
 Runs:
+
 - Policy engine tests (17 test cases)
 - Controller tests
 - Service tests
@@ -414,6 +470,7 @@ npm test
 ```
 
 Tests:
+
 - Keycloak authentication
 - Token validation
 - JWKS endpoint
@@ -443,6 +500,7 @@ k6 run loadtest.js
 ```
 
 **Test Configuration:**
+
 - Ramp-up: 30s → 5 VUs → 60s → 10 VUs
 - Duration: 60s at peak
 - Thresholds:
@@ -450,10 +508,13 @@ k6 run loadtest.js
   - Error rate < 10%
 
 **Expected Results:**
+
 - ✅ Authentication success > 90%
 - ✅ Seed batch creation success > 90%
 - ✅ p95 response time: 1.5-2.5s
 - ✅ Throughput: 4-8 req/s
+
+---
 
 ## 📚 API Documentation
 
@@ -483,7 +544,7 @@ Content-Type: multipart/form-data
 {
   "varietyName": "Varietas Unggul",
   "commodity": "Karet",
-  "harvestDate": "2025-11-20",
+  "harvestDate": "2026-01-20",
   "seedSourceNumber": "SRC-001",
   "origin": "Jawa Barat",
   "iupNumber": "IUP-12345",
@@ -493,15 +554,16 @@ Content-Type: multipart/form-data
 ```
 
 Response:
+
 ```json
 {
   "success": true,
   "message": "Seed batch created successfully",
   "data": {
-    "batchId": "BATCH-1732185600-abc123",
+    "batchId": "BATCH-1738454400-abc123",
     "ipfsCid": "QmYwAPJzv5CZsnA636s8bwWU...",
     "transactionId": "e8f7d6c5b4a39281...",
-    "timestamp": "2025-11-21T10:00:00.000Z"
+    "timestamp": "2026-02-01T10:00:00.000Z"
   }
 }
 ```
@@ -521,13 +583,14 @@ Authorization: Bearer <token>
 ```
 
 Response includes blockchain metadata:
+
 ```json
 {
   "success": true,
   "data": [
     {
       "txId": "e8f7d6c5...",
-      "timestamp": "2025-11-21T10:00:00.000Z",
+      "timestamp": "2026-02-01T10:00:00.000Z",
       "isDelete": false,
       "value": {...},
       "blockInfo": {
@@ -552,6 +615,7 @@ All endpoints are protected by Zero Trust policy:
 ### Error Responses
 
 **401 Unauthorized**
+
 ```json
 {
   "error": "Unauthorized",
@@ -560,6 +624,7 @@ All endpoints are protected by Zero Trust policy:
 ```
 
 **403 Forbidden**
+
 ```json
 {
   "error": "Forbidden",
@@ -570,11 +635,14 @@ All endpoints are protected by Zero Trust policy:
 ```
 
 **429 Too Many Requests**
+
 ```json
 {
   "error": "Too many requests from this IP, please try again later"
 }
 ```
+
+---
 
 ## 📁 Project Structure
 
@@ -628,6 +696,8 @@ seed-chain-zta/
 └── README.md                 # This file
 ```
 
+---
+
 ## 🔒 Security
 
 ### Zero Trust Implementation
@@ -662,26 +732,30 @@ seed-chain-zta/
 ✅ **Use HTTPS in production** - TLS/SSL certificates  
 ✅ **Enable audit logging** - Track all access attempts  
 ✅ **Update dependencies** - Run `npm audit` regularly  
-✅ **Backup blockchain data** - Ledger snapshots  
+✅ **Backup blockchain data** - Ledger snapshots
 
 ### Known Limitations
 
 ⚠️ **Development Mode**: Current setup uses `start-dev` for Keycloak  
 ⚠️ **HTTP Only**: Production should use HTTPS/TLS  
 ⚠️ **Memory Store**: Use Redis for production sessions  
-⚠️ **Single Peer**: Production needs multi-peer deployment  
+⚠️ **Single Peer**: Production needs multi-peer deployment
+
+---
 
 ## ⚡ Performance
 
 ### Benchmarks
 
 **Policy Engine** (17 test cases):
+
 - Average evaluation: < 1ms
 - RBAC check: 0.3ms
 - ABAC check: 0.8ms
 - Time restriction: 0.2ms
 
 **API Gateway** (K6 Load Test - 10 VUs):
+
 - p50 response time: ~120ms
 - p95 response time: ~2s
 - p99 response time: ~2.5s
@@ -689,6 +763,7 @@ seed-chain-zta/
 - Error rate: < 10%
 
 **Blockchain Transactions**:
+
 - Invoke (create/update): 1-3s
 - Query (read): 50-200ms
 - History query: 200-500ms
@@ -696,11 +771,13 @@ seed-chain-zta/
 ### Optimization Tips
 
 1. **Enable Redis** for session storage:
+
    ```bash
    docker run -d -p 6379:6379 redis:alpine
    ```
 
 2. **Increase rate limits** for load testing:
+
    ```env
    RATE_LIMIT_MAX=5000
    ```
@@ -708,6 +785,8 @@ seed-chain-zta/
 3. **Use connection pooling** (already implemented in Fabric SDK)
 
 4. **Cache policy decisions** (optional for high-throughput scenarios)
+
+---
 
 ## 🤝 Contributing
 
@@ -739,8 +818,12 @@ seed-chain-zta/
 
 This project is part of a thesis research on Zero Trust Architecture for Blockchain-Based Systems.
 
-**Author**: Rangga Djatikusuma Lukman 
-**Year**: 2025
+|                 |                            |
+| --------------- | -------------------------- |
+| **Author**      | Rangga Djatikusuma Lukman  |
+| **Email**       | djatikusuma.data@gmail.com |
+| **Year**        | 2026                       |
+| **Institution** | -                          |
 
 ---
 
@@ -748,20 +831,26 @@ This project is part of a thesis research on Zero Trust Architecture for Blockch
 
 For issues, questions, or contributions:
 
-- **GitHub Issues**: [Repository Issues]
-- **Email**: djatikusuma.data@gmail.com
-- **Documentation**: See `/docs` folder (if available)
+| Channel          | Link                          |
+| ---------------- | ----------------------------- |
+| 📝 GitHub Issues | [Open an Issue](../../issues) |
+| 📧 Email         | djatikusuma.data@gmail.com    |
+| 📚 Documentation | See [`/docs`](./docs) folder  |
+
+---
 
 ## 🎓 Research Context
 
 This implementation is part of research investigating the application of Zero Trust Architecture principles in blockchain-based systems, specifically for agricultural seed certification in Indonesia.
 
 **Key Research Questions:**
+
 1. How can ZTA principles enhance security in blockchain applications?
 2. What is the performance impact of in-process policy enforcement?
 3. How does fine-grained access control affect system usability?
 
 **Findings:**
+
 - ✅ ZTA adds < 1ms latency per request
 - ✅ Default-deny policy prevents unauthorized access
 - ✅ RBAC + ABAC provides flexible yet secure access control
@@ -769,4 +858,10 @@ This implementation is part of research investigating the application of Zero Tr
 
 ---
 
+<div align="center">
+
 **Built with ❤️ for Secure & Transparent Seed Certification**
+
+[⬆ Back to Top](#-zero-trust-architecture-for-blockchain-based-seed-certification-system)
+
+</div>

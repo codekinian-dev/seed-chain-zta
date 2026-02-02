@@ -1,0 +1,518 @@
+# =============================================================================
+# Zero Trust Policy Administration - YAML Configuration
+# =============================================================================
+# This file defines all access control policies for the Seed Certification System.
+# Policies follow ABAC (Attribute-Based Access Control) principles.
+#
+# IMPORTANT: Changes to this file will be automatically reloaded (hot reload).
+# No application restart required.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# METADATA
+# -----------------------------------------------------------------------------
+metadata:
+  version: "1.0.0"
+  description: "Seed Certification System - Zero Trust Policies"
+  author: "System Administrator"
+  last_updated: "2024-01-01"
+
+# -----------------------------------------------------------------------------
+# GLOBAL SETTINGS
+# -----------------------------------------------------------------------------
+settings:
+  # Default policy: 'deny' follows Zero Trust principle
+  default_policy: deny
+
+  # Enable/disable time-based restrictions
+  time_restriction_enabled: true
+
+  # Restricted hours (24-hour format)
+  # Access denied during these hours
+  restricted_hours:
+    start: 22 # 10:00 PM
+    end: 6 # 06:00 AM
+
+  # Enable audit logging for all policy decisions
+  audit_logging: true
+
+  # Maximum failed attempts before temporary lockout
+  max_failed_attempts: 5
+  lockout_duration_minutes: 15
+
+# -----------------------------------------------------------------------------
+# ROLE DEFINITIONS
+# -----------------------------------------------------------------------------
+# Define all roles and their descriptions for reference
+roles:
+  role_producer:
+    name: "Produsen Benih"
+    description: "Seed producer who creates and manages seed batches"
+    level: 1
+
+  role_pbt_field:
+    name: "Pengawas Benih Tanaman - Lapangan"
+    description: "Field inspector who conducts on-site inspections"
+    level: 2
+
+  role_pbt_chief:
+    name: "Pengawas Benih Tanaman - Kepala"
+    description: "Chief inspector who evaluates and approves certifications"
+    level: 3
+
+  role_lsm_head:
+    name: "Kepala LSM"
+    description: "Head of Seed Certification Agency who issues certificates"
+    level: 4
+
+  role_admin:
+    name: "System Administrator"
+    description: "Full system access for administration"
+    level: 99
+
+# -----------------------------------------------------------------------------
+# RESOURCE POLICIES
+# -----------------------------------------------------------------------------
+# Each resource has actions with allowed roles
+# Format:
+#   resource_name:
+#     actions:
+#       action_name:
+#         roles: [list of allowed roles]
+#         description: "What this action does"
+#         conditions: (optional) additional conditions
+#
+resources:
+  # ---------------------------------------------------------------------------
+  # SEED BATCH - Lot benih
+  # ---------------------------------------------------------------------------
+  seed_batch:
+    description: "Seed batch/lot management"
+    actions:
+      create:
+        roles:
+          - role_producer
+        description: "Create new seed batch record"
+
+      read:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "View seed batch details"
+
+      update:
+        roles:
+          - role_producer
+        description: "Update seed batch information"
+        conditions:
+          owner_only: true
+
+      delete:
+        roles:
+          - role_producer
+          - role_admin
+        description: "Delete/archive seed batch"
+        conditions:
+          owner_only: true
+
+      list:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "List all seed batches"
+
+      export:
+        roles:
+          - role_producer
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "Export seed batch data"
+
+  # ---------------------------------------------------------------------------
+  # CERTIFICATION REQUEST - Pengajuan sertifikasi
+  # ---------------------------------------------------------------------------
+  certification_request:
+    description: "Certification request management"
+    actions:
+      submit:
+        roles:
+          - role_producer
+        description: "Submit certification request"
+
+      read:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "View certification request"
+
+      update:
+        roles:
+          - role_producer
+        description: "Update certification request"
+        conditions:
+          owner_only: true
+          status_must_be:
+            - pending
+            - revision_required
+
+      cancel:
+        roles:
+          - role_producer
+        description: "Cancel certification request"
+        conditions:
+          owner_only: true
+          status_must_be:
+            - pending
+
+      list:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "List certification requests"
+
+  # ---------------------------------------------------------------------------
+  # INSPECTION - Pemeriksaan lapangan
+  # ---------------------------------------------------------------------------
+  inspection:
+    description: "Field inspection management"
+    actions:
+      create:
+        roles:
+          - role_pbt_field
+        description: "Create inspection record"
+
+      read:
+        roles:
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_producer
+          - role_admin
+        description: "View inspection details"
+
+      update:
+        roles:
+          - role_pbt_field
+        description: "Update inspection record"
+        conditions:
+          owner_only: true
+          status_must_be:
+            - draft
+            - in_progress
+
+      submit:
+        roles:
+          - role_pbt_field
+        description: "Submit inspection for review"
+
+      list:
+        roles:
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "List inspections"
+
+  # ---------------------------------------------------------------------------
+  # EVALUATION - Evaluasi kepala PBT
+  # ---------------------------------------------------------------------------
+  evaluation:
+    description: "Evaluation and approval process"
+    actions:
+      create:
+        roles:
+          - role_pbt_chief
+        description: "Create evaluation record"
+
+      read:
+        roles:
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "View evaluation details"
+
+      update:
+        roles:
+          - role_pbt_chief
+        description: "Update evaluation"
+
+      approve:
+        roles:
+          - role_pbt_chief
+        description: "Approve certification request"
+
+      reject:
+        roles:
+          - role_pbt_chief
+        description: "Reject certification request"
+
+      request_revision:
+        roles:
+          - role_pbt_chief
+        description: "Request revision from producer"
+
+      list:
+        roles:
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "List evaluations"
+
+  # ---------------------------------------------------------------------------
+  # CERTIFICATE - Sertifikat benih
+  # ---------------------------------------------------------------------------
+  certificate:
+    description: "Seed certificate management"
+    actions:
+      issue:
+        roles:
+          - role_lsm_head
+        description: "Issue seed certificate"
+
+      read:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "View certificate details"
+
+      verify:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "Verify certificate authenticity"
+
+      revoke:
+        roles:
+          - role_lsm_head
+          - role_admin
+        description: "Revoke issued certificate"
+
+      download:
+        roles:
+          - role_producer
+          - role_lsm_head
+          - role_admin
+        description: "Download certificate PDF"
+
+      list:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "List certificates"
+
+  # ---------------------------------------------------------------------------
+  # DISTRIBUTION - Distribusi benih
+  # ---------------------------------------------------------------------------
+  distribution:
+    description: "Seed distribution tracking"
+    actions:
+      create:
+        roles:
+          - role_producer
+        description: "Record distribution"
+
+      read:
+        roles:
+          - role_producer
+          - role_lsm_head
+          - role_admin
+        description: "View distribution details"
+
+      update:
+        roles:
+          - role_producer
+        description: "Update distribution record"
+        conditions:
+          owner_only: true
+
+      list:
+        roles:
+          - role_producer
+          - role_lsm_head
+          - role_admin
+        description: "List distributions"
+
+  # ---------------------------------------------------------------------------
+  # TRACEABILITY - Penelusuran riwayat
+  # ---------------------------------------------------------------------------
+  traceability:
+    description: "Traceability and audit trail"
+    actions:
+      query:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "Query traceability history"
+
+      export:
+        roles:
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "Export traceability report"
+
+  # ---------------------------------------------------------------------------
+  # DOCUMENTS - Dokumen pendukung
+  # ---------------------------------------------------------------------------
+  documents:
+    description: "Supporting documents management"
+    actions:
+      upload:
+        roles:
+          - role_producer
+          - role_pbt_field
+        description: "Upload documents"
+
+      read:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "View/download documents"
+
+      delete:
+        roles:
+          - role_producer
+          - role_admin
+        description: "Delete documents"
+        conditions:
+          owner_only: true
+
+  # ---------------------------------------------------------------------------
+  # REPORTS - Laporan
+  # ---------------------------------------------------------------------------
+  reports:
+    description: "Reports and analytics"
+    actions:
+      generate:
+        roles:
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "Generate reports"
+
+      read:
+        roles:
+          - role_producer
+          - role_pbt_field
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "View reports"
+
+      export:
+        roles:
+          - role_pbt_chief
+          - role_lsm_head
+          - role_admin
+        description: "Export reports"
+
+  # ---------------------------------------------------------------------------
+  # ADMINISTRATION - Administrasi sistem
+  # ---------------------------------------------------------------------------
+  administration:
+    description: "System administration"
+    actions:
+      manage_users:
+        roles:
+          - role_admin
+        description: "Manage user accounts"
+
+      view_audit_logs:
+        roles:
+          - role_lsm_head
+          - role_admin
+        description: "View audit logs"
+
+      manage_policies:
+        roles:
+          - role_admin
+        description: "Manage access policies"
+
+      system_config:
+        roles:
+          - role_admin
+        description: "System configuration"
+
+# -----------------------------------------------------------------------------
+# CUSTOM RULES
+# -----------------------------------------------------------------------------
+# Additional rules for complex scenarios
+custom_rules:
+  # Rule: Producers can only access their own data
+  - name: "producer_data_isolation"
+    description: "Producers can only access data they own"
+    applies_to:
+      roles:
+        - role_producer
+      resources:
+        - seed_batch
+        - certification_request
+        - distribution
+    condition: "owner_only"
+
+  # Rule: Inspectors can only modify inspections they created
+  - name: "inspector_assignment"
+    description: "Inspectors can only modify their assigned inspections"
+    applies_to:
+      roles:
+        - role_pbt_field
+      resources:
+        - inspection
+    condition: "assigned_only"
+
+# -----------------------------------------------------------------------------
+# IP WHITELIST (Optional)
+# -----------------------------------------------------------------------------
+# Restrict access to specific IP ranges
+ip_whitelist:
+  enabled: false
+  allowed_ranges:
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+  exceptions:
+    - role_admin # Admin can access from anywhere
+
+# -----------------------------------------------------------------------------
+# RATE LIMITING
+# -----------------------------------------------------------------------------
+rate_limits:
+  enabled: true
+  default:
+    requests_per_minute: 60
+    requests_per_hour: 1000
+  by_role:
+    role_admin:
+      requests_per_minute: 300
+      requests_per_hour: 5000
+    role_producer:
+      requests_per_minute: 100
+      requests_per_hour: 2000
