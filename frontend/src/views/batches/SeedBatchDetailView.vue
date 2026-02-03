@@ -10,6 +10,7 @@ import {
   ArrowLeftIcon,
   DocumentCheckIcon,
   UserGroupIcon,
+  TruckIcon,
 } from '@heroicons/vue/24/outline'
 import DashboardLayout from '../../layouts/DashboardLayout.vue'
 import TimelineView from '../../components/batches/TimelineView.vue'
@@ -556,11 +557,11 @@ onMounted(() => {
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-primary">Issue Date</label>
-                  <p class="mt-1 text-sm text-ink">{{ batch.cert_issue_date }}</p>
+                  <p class="mt-1 text-sm text-ink">{{ formatDate(batch.cert_issue_date) }}</p>
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-primary">Expiry Date</label>
-                  <p class="mt-1 text-sm text-ink">{{ batch.cert_expiry_date }}</p>
+                  <p class="mt-1 text-sm text-ink">{{ formatDate(batch.cert_expiry_date) }}</p>
                 </div>
               </div>
             </div>
@@ -601,6 +602,71 @@ onMounted(() => {
             </div>
           </div>
           <DocumentsView :batch="batch" />
+        </section>
+
+        <!-- Distributions Section -->
+        <section v-if="batch.distributions && batch.distributions.length > 0" class="p-6 panel-card">
+          <div class="flex items-center gap-3 mb-6">
+            <TruckIcon class="w-6 h-6 text-primary" />
+            <div>
+              <h3 class="text-lg font-semibold text-ink">Seed Distributions</h3>
+              <p class="text-sm text-ink/60">Records of seed distribution to various destinations.</p>
+            </div>
+          </div>
+          
+          <div class="space-y-4">
+            <div v-for="(dist, index) in batch.distributions" :key="dist.dist_id || index" class="p-4 bg-ink/5 rounded-lg border border-ink/10">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">{{ dist.dist_id }}</span>
+                    <span class="text-xs text-ink/60">{{ formatDate(dist.distributed_at) }}</span>
+                  </div>
+                  <div class="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <label class="text-xs font-semibold text-ink/60">Destination</label>
+                      <p class="text-sm text-ink">{{ dist.to?.name || '-' }}</p>
+                    </div>
+                    <div>
+                      <label class="text-xs font-semibold text-ink/60">Type</label>
+                      <p class="text-sm text-ink">{{ dist.to?.destination_type || '-' }}</p>
+                    </div>
+                    <div>
+                      <label class="text-xs font-semibold text-ink/60">Address</label>
+                      <p class="text-sm text-ink">{{ dist.to?.address || '-' }}</p>
+                    </div>
+                    <div>
+                      <label class="text-xs font-semibold text-ink/60">Quantity</label>
+                      <p class="text-sm font-semibold text-ink">{{ dist.qty }} {{ batch.quantity?.qty_base_unit || 'kg' }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Distribution Summary -->
+            <div v-if="batch.quantity" class="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <h4 class="text-sm font-semibold text-primary mb-3">Distribution Summary</h4>
+              <div class="grid gap-3 md:grid-cols-4">
+                <div>
+                  <label class="text-xs font-semibold text-ink/60">Certified</label>
+                  <p class="text-sm font-semibold text-ink">{{ batch.quantity.certified || 0 }} {{ batch.quantity.qty_base_unit || 'kg' }}</p>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-ink/60">Distributed</label>
+                  <p class="text-sm font-semibold text-ink">{{ batch.quantity.distributed_total || 0 }} {{ batch.quantity.qty_base_unit || 'kg' }}</p>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-ink/60">Remaining</label>
+                  <p class="text-sm font-semibold text-primary">{{ batch.quantity.remaining || 0 }} {{ batch.quantity.qty_base_unit || 'kg' }}</p>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-ink/60">Total Distributions</label>
+                  <p class="text-sm font-semibold text-ink">{{ batch.distributions.length }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- Submit Certification (REGISTERED - role_producer) -->

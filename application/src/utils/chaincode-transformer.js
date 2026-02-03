@@ -59,10 +59,16 @@ const transformSingleBatch = (batch) => {
 
         // Certification (flattened)
         cert_number: batch.certification?.cert_number,
+        cert_id: batch.certification?.cert_id,
         cert_issued_at: batch.certification?.issued_at,
         cert_expires_at: batch.certification?.expires_at,
+        cert_issue_date: batch.certification?.issued_at, // Alias for frontend compatibility
+        cert_expiry_date: batch.certification?.expires_at, // Alias for frontend compatibility
         cert_revoked_at: batch.certification?.revoked_at,
         cert_revoke_reason: batch.certification?.revoke_reason,
+
+        // Quantity tracking
+        quantity: batch.quantity,
 
         // Status
         current_status: batch.status?.current,
@@ -74,6 +80,9 @@ const transformSingleBatch = (batch) => {
         // Documents and events (keep as arrays)
         documents: batch.documents || [],
         events: batch.events || [],
+
+        // Distributions array
+        distributions: batch.distributions || [],
 
         // Audit trail
         created_at: batch.audit?.created_at,
