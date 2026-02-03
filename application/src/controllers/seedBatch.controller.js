@@ -315,6 +315,8 @@ const recordInspection = async (req, res) => {
             req.body.inspectionResult,
             uploadedCid,
             userUUID, // inspectorFieldUUID
+            req.body.testedSampleQty.toString(), // testedSampleQty
+            req.body.certifiedQty.toString(), // certifiedQty
             sha256Hash // docHash for integrity verification
         ];
 

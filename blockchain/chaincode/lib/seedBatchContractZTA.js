@@ -780,9 +780,9 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 3. recordInspection [role_pbt_field]
-    // Updated: Added docHash for document integrity
+    // Updated: Added testedSampleQty and certifiedQty for quantity processing, docHash for document integrity
     // =========================================================
-    async recordInspection(ctx, id, inspectionResult, ipfsInspectionCid, inspectorFieldUUID, docHash) {
+    async recordInspection(ctx, id, inspectionResult, ipfsInspectionCid, inspectorFieldUUID, testedSampleQty, certifiedQty, docHash) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_pbt_field');
 
         this._validateRequired('id', id);
@@ -790,6 +790,17 @@ class SeedBatchContractZTA extends Contract {
         this._validateIPFSCid('ipfsInspectionCid', ipfsInspectionCid);
         this._validateUUID('inspectorFieldUUID', inspectorFieldUUID);
         this._validateSHA256Hash('docHash', docHash);
+
+        // Validate quantity inputs
+        const testedSample = parseFloat(testedSampleQty) || 0;
+        const certified = parseFloat(certifiedQty) || 0;
+
+        if (testedSample < 0) {
+            throw new Error('testedSampleQty must be a non-negative number');
+        }
+        if (certified <= 0) {
+            throw new Error('certifiedQty must be a positive number');
+        }
 
         // ZTA: Verify caller's identity matches the provided UUID
         this._verifyUserUUID(identity, inspectorFieldUUID, 'inspectorFieldUUID');
@@ -800,19 +811,40 @@ class SeedBatchContractZTA extends Contract {
             throw new Error(`Benih belum diajukan. Status: ${seedBatch.status.current}`);
         }
 
+        // Validate certified quantity against declared quantity
+        if (!seedBatch.quantity) {
+            throw new Error('Seed batch quantity data not found');
+        }
+
+        if (certified > seedBatch.quantity.declared) {
+            throw new Error(`Certified quantity (${certified}) cannot exceed declared quantity (${seedBatch.quantity.declared})`);
+        }
+
+        if (testedSample > seedBatch.quantity.declared) {
+            throw new Error(`Tested sample quantity (${testedSample}) cannot exceed declared quantity (${seedBatch.quantity.declared})`);
+        }
+
         // ZTA: Prevent duplicate inspection by same inspector
         if (seedBatch.actors.inspector_field?.keycloak_id === identity.keycloakId) {
             throw new Error('Petugas ini sudah melakukan inspeksi pada batch ini.');
         }
 
-        // Set inspector_field actor
-        seedBatch.actors.inspector_field = this._createActorObject(identity);
-        seedBatch.status.current = 'INSPECTED';
-        seedBatch.status.since = identity.timestamp;
-
         // Get transaction timestamp for ID generation
         const txTimestamp = ctx.stub.getTxTimestamp();
         const txDate = new Date(txTimestamp.seconds.toInt() * 1000);
+        const timestamp = identity.timestamp;
+
+        // Update quantity data
+        seedBatch.quantity.tested_sample = testedSample;
+        seedBatch.quantity.certified = certified;
+        // Remaining is now based on certified quantity minus distributions, losses, plus returns
+        seedBatch.quantity.remaining = certified - seedBatch.quantity.distributed_total - seedBatch.quantity.loss_total + seedBatch.quantity.returned_total;
+        seedBatch.quantity.last_reconciled_at = timestamp;
+
+        // Set inspector_field actor
+        seedBatch.actors.inspector_field = this._createActorObject(identity);
+        seedBatch.status.current = 'INSPECTED';
+        seedBatch.status.since = timestamp;
 
         // Generate IDs with new format
         const docId = this._generateDocId(seedBatch.documents, 'field_inspection', txDate);
@@ -824,33 +856,43 @@ class SeedBatchContractZTA extends Contract {
             file_name: 'Laporan Inspeksi Lapangan',
             cid: ipfsInspectionCid,
             sha256_hash: docHash.toLowerCase(),
-            uploaded_at: identity.timestamp,
+            uploaded_at: timestamp,
             uploader_ref: 'inspector_field',
             meta: {
-                result: this._sanitizeInput(inspectionResult)
+                result: this._sanitizeInput(inspectionResult),
+                tested_sample_qty: testedSample,
+                certified_qty: certified
             }
         };
 
         const inspectionEvent = {
             event_id: eventId,
             type: 'FIELD_INSPECTED',
-            at: identity.timestamp,
+            at: timestamp,
             actor_ref: 'inspector_field',
-            ref_doc_id: docId
+            ref_doc_id: docId,
+            quantity_update: {
+                tested_sample: testedSample,
+                certified: certified,
+                remaining: seedBatch.quantity.remaining
+            }
         };
 
         seedBatch.documents.push(inspectionDoc);
         seedBatch.events.push(inspectionEvent);
         seedBatch.audit.revision += 1;
         seedBatch.audit.last_modified_by_ref = 'inspector_field';
-        seedBatch.audit.last_modified_at = identity.timestamp;
+        seedBatch.audit.last_modified_at = timestamp;
 
         await ctx.stub.putState(id, Buffer.from(JSON.stringify(seedBatch)));
 
         await this._logAuditTrail(ctx, 'RECORD_INSPECTION', id, {
             inspectorUUID: inspectorFieldUUID,
             inspectorKeycloakId: identity.keycloakId,
-            result: inspectionResult
+            result: inspectionResult,
+            testedSampleQty: testedSample,
+            certifiedQty: certified,
+            remainingQty: seedBatch.quantity.remaining
         }, identity);
 
         return JSON.stringify(seedBatch);

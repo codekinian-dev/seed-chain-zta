@@ -842,12 +842,24 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["inspectionResult", "photo"],
+                "required": ["inspectionResult", "testedSampleQty", "certifiedQty", "photo"],
                 "properties": {
                   "inspectionResult": {
                     "type": "string",
                     "description": "Inspection result (minimum 10 characters)",
                     "example": "Hasil inspeksi lapangan menunjukkan kondisi tanaman benih dalam keadaan baik dan sesuai standar"
+                  },
+                  "testedSampleQty": {
+                    "type": "number",
+                    "description": "Quantity taken for quality testing (non-negative, physically removed from distributable stock)",
+                    "minimum": 0,
+                    "example": 50
+                  },
+                  "certifiedQty": {
+                    "type": "number",
+                    "description": "Quantity certified by field inspector (must be positive, cannot exceed declared quantity)",
+                    "minimum": 1,
+                    "example": 950
                   },
                   "photo": {
                     "type": "string",

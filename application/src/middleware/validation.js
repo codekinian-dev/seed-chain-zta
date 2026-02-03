@@ -84,6 +84,20 @@ const recordInspectionSchema = Joi.object({
         .messages({
             'string.empty': 'Inspection result is required',
             'string.min': 'Inspection result must be at least 10 characters'
+        }),
+
+    testedSampleQty: Joi.number().min(0).required()
+        .messages({
+            'number.base': 'Tested sample quantity must be a number',
+            'number.min': 'Tested sample quantity cannot be negative',
+            'any.required': 'Tested sample quantity is required'
+        }),
+
+    certifiedQty: Joi.number().positive().required()
+        .messages({
+            'number.base': 'Certified quantity must be a number',
+            'number.positive': 'Certified quantity must be positive',
+            'any.required': 'Certified quantity is required'
         })
 });
 
