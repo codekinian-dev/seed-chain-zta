@@ -28,8 +28,9 @@ const formData = reactive({
   harvestDate: '',
   seedSourceNumber: '',
   origin: '',
-  iupNumber: '',
+  iupbNumber: '',
   seedClass: 'BD', // Default to BD (Breeder Seed)
+  declaredQuantity: null,
 })
 
 const seedClassOptions = [
@@ -67,8 +68,9 @@ const isFormValid = computed(() => {
     formData.harvestDate &&
     formData.seedSourceNumber &&
     formData.origin &&
-    formData.iupNumber &&
+    formData.iupbNumber &&
     formData.seedClass &&
+    formData.declaredQuantity > 0 &&
     selectedFile.value
   )
 })
@@ -91,8 +93,9 @@ const handleSubmit = async () => {
     data.append('harvestDate', formData.harvestDate) // Send as YYYY-MM-DD
     data.append('seedSourceNumber', formData.seedSourceNumber)
     data.append('origin', formData.origin)
-    data.append('iupNumber', formData.iupNumber)
+    data.append('iupbNumber', formData.iupbNumber)
     data.append('seedClass', formData.seedClass)
+    data.append('declaredQuantity', formData.declaredQuantity.toString())
     data.append('document', selectedFile.value)
 
     console.log('Submitting seed batch:', {
@@ -101,8 +104,9 @@ const handleSubmit = async () => {
       harvestDate: formData.harvestDate,
       seedSourceNumber: formData.seedSourceNumber,
       origin: formData.origin,
-      iupNumber: formData.iupNumber,
+      iupbNumber: formData.iupbNumber,
       seedClass: formData.seedClass,
+      declaredQuantity: formData.declaredQuantity,
       fileName: selectedFile.value.name
     })
 
@@ -223,14 +227,27 @@ const goBackToList = () => router.push('/seed-batches')
               />
             </div>
             <div class="input-group">
-              <label class="input-label">IUP Number *</label>
+              <label class="input-label">IUPB Number *</label>
               <input 
                 type="text" 
                 class="text-input" 
-                placeholder="e.g., IUP-2025-001"
-                v-model="formData.iupNumber"
+                placeholder="e.g., IUPB-2025-001"
+                v-model="formData.iupbNumber"
                 :disabled="loading"
               />
+            </div>
+            <div class="input-group">
+              <label class="input-label">Declared Quantity (kg) *</label>
+              <input 
+                type="number" 
+                class="text-input" 
+                placeholder="e.g., 1000"
+                min="0.01"
+                step="0.01"
+                v-model.number="formData.declaredQuantity"
+                :disabled="loading"
+              />
+              <p class="mt-1 text-xs text-ink/60">Total quantity in kilograms</p>
             </div>
             <div class="input-group">
               <label class="input-label">Seed Class *</label>
@@ -337,10 +354,17 @@ const goBackToList = () => router.push('/seed-batches')
             </div>
             <div class="flex items-center gap-2">
               <CheckCircleIcon 
-                :class="formData.iupNumber ? 'text-primary' : 'text-ink/30'" 
+                :class="formData.iupbNumber ? 'text-primary' : 'text-ink/30'" 
                 class="w-5 h-5"
               />
-              <span class="text-sm text-ink/70">IUP Number</span>
+              <span class="text-sm text-ink/70">IUPB Number</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <CheckCircleIcon 
+                :class="formData.declaredQuantity > 0 ? 'text-primary' : 'text-ink/30'" 
+                class="w-5 h-5"
+              />
+              <span class="text-sm text-ink/70">Declared Quantity</span>
             </div>
             <div class="flex items-center gap-2">
               <CheckCircleIcon 

@@ -36,7 +36,9 @@ const certificateFile = ref(null)
 
 // Form data for inspection
 const inspectionForm = ref({
-  inspectionResult: ''
+  inspectionResult: '',
+  testedSampleQty: null,
+  certifiedQty: null
 })
 
 // Form data for evaluation
@@ -47,16 +49,21 @@ const evaluationForm = ref({
 
 // Form data for certificate
 const certificateForm = ref({
-  certificateNumber: '',
-  expiryMonths: 12
+  certNumber: '',
+  expiryMonths: 12,
+  certifiedQuantity: null
 })
 
 // Form data for distribution
 const distributionForm = ref({
-  distributionLocation: '',
-  quantity: 0,
-  recipient: ''
+  destinationType: 'distributor',
+  destinationName: '',
+  destinationAddress: '',
+  quantity: null
 })
+
+// Distribution evidence file (optional)
+const distributionEvidence = ref(null)
 
 const statusToneClass = (status) => {
   const statusMap = {
@@ -197,6 +204,16 @@ const handleUploadInspection = async () => {
     return
   }
 
+  if (inspectionForm.value.testedSampleQty === null || inspectionForm.value.testedSampleQty < 0) {
+    submitError.value = 'Tested sample quantity is required and must be >= 0'
+    return
+  }
+
+  if (!inspectionForm.value.certifiedQty || inspectionForm.value.certifiedQty <= 0) {
+    submitError.value = 'Certified quantity is required and must be > 0'
+    return
+  }
+
   submitting.value = true
   submitError.value = null
   submitSuccess.value = null
@@ -205,6 +222,8 @@ const handleUploadInspection = async () => {
     const data = new FormData()
     data.append('photo', inspectionFile.value)
     data.append('inspectionResult', inspectionForm.value.inspectionResult)
+    data.append('testedSampleQty', inspectionForm.value.testedSampleQty.toString())
+    data.append('certifiedQty', inspectionForm.value.certifiedQty.toString())
 
     await seedBatchService.recordInspection(batchId, data)
     
@@ -216,6 +235,8 @@ const handleUploadInspection = async () => {
     // Clear form
     inspectionFile.value = null
     inspectionForm.value.inspectionResult = ''
+    inspectionForm.value.testedSampleQty = null
+    inspectionForm.value.certifiedQty = null
   } catch (err) {
     submitError.value = err.message || 'Failed to upload inspection report'
     console.error('Error uploading inspection:', err)
@@ -253,13 +274,18 @@ const handleEvaluate = async () => {
 }
 
 const handleIssueCertificate = async () => {
-  if (!certificateForm.value.certificateNumber || certificateForm.value.certificateNumber.length < 5) {
+  if (!certificateForm.value.certNumber || certificateForm.value.certNumber.length < 5) {
     submitError.value = 'Certificate number is required (min 5 characters)'
     return
   }
 
   if (certificateForm.value.expiryMonths < 1 || certificateForm.value.expiryMonths > 120) {
     submitError.value = 'Expiry months must be between 1 and 120'
+    return
+  }
+
+  if (!certificateForm.value.certifiedQuantity || certificateForm.value.certifiedQuantity <= 0) {
+    submitError.value = 'Certified quantity is required and must be > 0'
     return
   }
 
@@ -274,8 +300,9 @@ const handleIssueCertificate = async () => {
 
   try {
     const data = new FormData()
-    data.append('certificateNumber', certificateForm.value.certificateNumber)
+    data.append('certNumber', certificateForm.value.certNumber)
     data.append('expiryMonths', certificateForm.value.expiryMonths.toString())
+    data.append('certifiedQuantity', certificateForm.value.certifiedQuantity.toString())
     data.append('certificate', certificateFile.value)
 
     await seedBatchService.issueCertificate(batchId, data)
@@ -286,7 +313,7 @@ const handleIssueCertificate = async () => {
     await loadBatch()
     
     // Clear form
-    certificateForm.value = { certificateNumber: '', expiryMonths: 12 }
+    certificateForm.value = { certNumber: '', expiryMonths: 12, certifiedQuantity: null }
     certificateFile.value = null
   } catch (err) {
     submitError.value = err.message || 'Failed to issue certificate'
@@ -297,8 +324,13 @@ const handleIssueCertificate = async () => {
 }
 
 const handleDistribute = async () => {
-  if (!distributionForm.value.distributionLocation || distributionForm.value.distributionLocation.length < 5) {
-    submitError.value = 'Distribution location is required (min 5 characters)'
+  if (!distributionForm.value.destinationName || distributionForm.value.destinationName.length < 3) {
+    submitError.value = 'Destination name is required (min 3 characters)'
+    return
+  }
+
+  if (!distributionForm.value.destinationAddress || distributionForm.value.destinationAddress.length < 5) {
+    submitError.value = 'Destination address is required (min 5 characters)'
     return
   }
 
@@ -312,7 +344,18 @@ const handleDistribute = async () => {
   submitSuccess.value = null
 
   try {
-    await seedBatchService.recordDistribution(batchId, distributionForm.value)
+    const data = new FormData()
+    data.append('destinationType', distributionForm.value.destinationType)
+    data.append('destinationName', distributionForm.value.destinationName)
+    data.append('destinationAddress', distributionForm.value.destinationAddress)
+    data.append('quantity', distributionForm.value.quantity.toString())
+    
+    // Add evidence file if provided (optional)
+    if (distributionEvidence.value) {
+      data.append('evidence', distributionEvidence.value)
+    }
+
+    await seedBatchService.recordDistribution(batchId, data)
     
     submitSuccess.value = 'Distribution recorded successfully!'
     
@@ -320,7 +363,8 @@ const handleDistribute = async () => {
     await loadBatch()
     
     // Clear form
-    distributionForm.value = { distributionLocation: '', quantity: 0, recipient: '' }
+    distributionForm.value = { destinationType: 'distributor', destinationName: '', destinationAddress: '', quantity: null }
+    distributionEvidence.value = null
   } catch (err) {
     submitError.value = err.message || 'Failed to record distribution'
     console.error('Error recording distribution:', err)
@@ -363,6 +407,25 @@ const handleCertificateFileChange = (event) => {
     }
     
     certificateFile.value = file
+    submitError.value = null
+  }
+}
+
+const handleDistributionEvidenceChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    if (file.size > 10 * 1024 * 1024) {
+      submitError.value = 'File size must be less than 10MB'
+      return
+    }
+    
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png']
+    if (!allowedTypes.includes(file.type)) {
+      submitError.value = 'File must be PDF, Word document, or image (JPEG, PNG)'
+      return
+    }
+    
+    distributionEvidence.value = file
     submitError.value = null
   }
 }
@@ -634,6 +697,36 @@ onMounted(() => {
               <p class="mt-1 text-xs text-ink/60">Minimum 10 characters, maximum 2000 characters</p>
             </div>
 
+            <!-- Quantity Fields -->
+            <div class="grid gap-4 md:grid-cols-2">
+              <div>
+                <label class="block mb-2 text-sm font-semibold text-ink">Tested Sample Quantity (kg) *</label>
+                <input 
+                  v-model.number="inspectionForm.testedSampleQty"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  placeholder="e.g., 100"
+                  :disabled="submitting"
+                />
+                <p class="mt-1 text-xs text-ink/60">Quantity of seeds sampled for testing (can be 0)</p>
+              </div>
+              <div>
+                <label class="block mb-2 text-sm font-semibold text-ink">Certified Quantity (kg) *</label>
+                <input 
+                  v-model.number="inspectionForm.certifiedQty"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  placeholder="e.g., 900"
+                  :disabled="submitting"
+                />
+                <p class="mt-1 text-xs text-ink/60">Quantity eligible for certification (must be &lt;= declared)</p>
+              </div>
+            </div>
+
             <!-- File Upload -->
             <div class="flex flex-col items-center gap-4 p-6 transition border-2 border-dashed rounded-lg border-ink/10 hover:border-primary/30 bg-ink/5">
               <CloudArrowUpIcon class="w-12 h-12 text-ink/30" />
@@ -669,7 +762,7 @@ onMounted(() => {
             <button 
               @click="handleUploadInspection"
               class="w-full primary-button"
-              :disabled="submitting || !inspectionFile || !inspectionForm.inspectionResult"
+              :disabled="submitting || !inspectionFile || !inspectionForm.inspectionResult || inspectionForm.testedSampleQty === null || !inspectionForm.certifiedQty"
             >
               <span v-if="submitting">Uploading...</span>
               <span v-else>Upload Inspection Report</span>
@@ -753,26 +846,41 @@ onMounted(() => {
             <div>
               <label class="block mb-2 text-sm font-semibold text-ink">Certificate Number *</label>
               <input 
-                v-model="certificateForm.certificateNumber"
+                v-model="certificateForm.certNumber"
                 type="text"
                 class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="e.g., CERT-2026-001"
                 :disabled="submitting"
               />
-              <p class="mt-1 text-xs text-ink/60">Minimum 5 characters</p>
+              <p class="mt-1 text-xs text-ink/60">Minimum 5 characters, maximum 50 characters</p>
             </div>
 
-            <div>
-              <label class="block mb-2 text-sm font-semibold text-ink">Expiry Period (Months) *</label>
-              <input 
-                v-model.number="certificateForm.expiryMonths"
-                type="number"
-                min="1"
-                max="120"
-                class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                :disabled="submitting"
-              />
-              <p class="mt-1 text-xs text-ink/60">Between 1 and 120 months</p>
+            <div class="grid gap-4 md:grid-cols-2">
+              <div>
+                <label class="block mb-2 text-sm font-semibold text-ink">Expiry Period (Months) *</label>
+                <input 
+                  v-model.number="certificateForm.expiryMonths"
+                  type="number"
+                  min="1"
+                  max="120"
+                  class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  :disabled="submitting"
+                />
+                <p class="mt-1 text-xs text-ink/60">Between 1 and 120 months</p>
+              </div>
+              <div>
+                <label class="block mb-2 text-sm font-semibold text-ink">Certified Quantity (kg) *</label>
+                <input 
+                  v-model.number="certificateForm.certifiedQuantity"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  placeholder="e.g., 900"
+                  :disabled="submitting"
+                />
+                <p class="mt-1 text-xs text-ink/60">Total quantity to be certified</p>
+              </div>
             </div>
 
             <!-- Certificate Document Upload -->
@@ -813,7 +921,7 @@ onMounted(() => {
             <button 
               @click="handleIssueCertificate"
               class="w-full primary-button"
-              :disabled="submitting || !certificateFile"
+              :disabled="submitting || !certificateFile || !certificateForm.certNumber || !certificateForm.certifiedQuantity"
             >
               <span v-if="submitting">Issuing...</span>
               <span v-else>Issue Certificate</span>
@@ -841,14 +949,42 @@ onMounted(() => {
 
           <div class="space-y-4">
             <div>
-              <label class="block mb-2 text-sm font-semibold text-ink">Distribution Location *</label>
+              <label class="block mb-2 text-sm font-semibold text-ink">Destination Type *</label>
+              <select 
+                v-model="distributionForm.destinationType"
+                class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                :disabled="submitting"
+              >
+                <option value="distributor">Distributor</option>
+                <option value="retailer">Retailer</option>
+                <option value="farmer">Farmer</option>
+                <option value="cooperative">Cooperative</option>
+                <option value="government">Government Agency</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block mb-2 text-sm font-semibold text-ink">Destination Name *</label>
               <input 
-                v-model="distributionForm.distributionLocation"
+                v-model="distributionForm.destinationName"
                 type="text"
                 class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                placeholder="e.g., Jakarta, Indonesia"
+                placeholder="e.g., PT Pertani, Koperasi Tani Jaya"
                 :disabled="submitting"
               />
+              <p class="mt-1 text-xs text-ink/60">Minimum 3 characters</p>
+            </div>
+
+            <div>
+              <label class="block mb-2 text-sm font-semibold text-ink">Destination Address *</label>
+              <textarea 
+                v-model="distributionForm.destinationAddress"
+                rows="3"
+                class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                placeholder="e.g., Jl. Raya Bogor No. 123, Jakarta"
+                :disabled="submitting"
+              ></textarea>
               <p class="mt-1 text-xs text-ink/60">Minimum 5 characters</p>
             </div>
 
@@ -857,7 +993,7 @@ onMounted(() => {
               <input 
                 v-model.number="distributionForm.quantity"
                 type="number"
-                min="1"
+                min="0.01"
                 step="0.01"
                 class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
                 placeholder="e.g., 1000"
@@ -866,21 +1002,45 @@ onMounted(() => {
               <p class="mt-1 text-xs text-ink/60">Must be greater than 0</p>
             </div>
 
+            <!-- Evidence Upload (Optional) -->
             <div>
-              <label class="block mb-2 text-sm font-semibold text-ink">Recipient (Optional)</label>
-              <input 
-                v-model="distributionForm.recipient"
-                type="text"
-                class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                placeholder="e.g., PT Pertani"
-                :disabled="submitting"
-              />
+              <label class="block mb-2 text-sm font-semibold text-ink">Evidence Document (Optional)</label>
+              <div class="flex flex-col items-center gap-4 p-6 transition border-2 border-dashed rounded-lg border-ink/10 hover:border-primary/30 bg-ink/5">
+                <CloudArrowUpIcon class="w-12 h-12 text-ink/30" />
+                <p class="text-sm text-ink/70">
+                  <label for="evidence-file" class="font-semibold cursor-pointer text-primary hover:text-primary-dark">
+                    Choose evidence document
+                    <input 
+                      id="evidence-file" 
+                      type="file" 
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      class="hidden" 
+                      @change="handleDistributionEvidenceChange"
+                      :disabled="submitting"
+                    />
+                  </label>
+                  or drag and drop
+                </p>
+                <p class="mt-1 text-xs text-ink/60">PDF, DOC, DOCX, JPEG, PNG • max 10MB</p>
+                
+                <div v-if="distributionEvidence" class="flex items-center justify-center gap-2 px-4 py-2 mt-4 bg-white border rounded-lg border-ink/10">
+                  <PaperClipIcon class="w-5 h-5 text-primary" />
+                  <span class="text-sm text-ink">{{ distributionEvidence.name }}</span>
+                  <button 
+                    @click="distributionEvidence = null" 
+                    class="ml-2 text-xs text-red-600 hover:text-red-800"
+                    :disabled="submitting"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
             </div>
 
             <button 
               @click="handleDistribute"
               class="w-full primary-button"
-              :disabled="submitting"
+              :disabled="submitting || !distributionForm.destinationName || !distributionForm.destinationAddress || !distributionForm.quantity"
             >
               <span v-if="submitting">Recording...</span>
               <span v-else>Record Distribution</span>

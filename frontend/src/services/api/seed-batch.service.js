@@ -105,11 +105,11 @@ const seedBatchService = {
     /**
      * Record seed distribution
      * @param {string} id - Batch ID
-     * @param {Object} distributionData - Distribution data
+     * @param {FormData} distributionData - Distribution data (FormData with optional file)
      * @returns {Promise}
      */
     async recordDistribution(id, distributionData) {
-        const response = await httpClient.post(`/api/seed-batches/${id}/distribute`, distributionData)
+        const response = await httpClient.upload(`/api/seed-batches/${id}/distribute`, distributionData)
         return response
     },
 
