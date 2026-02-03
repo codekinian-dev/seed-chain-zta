@@ -538,7 +538,7 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["varietyName", "commodity", "harvestDate", "seedSourceNumber", "origin", "iupNumber", "seedClass", "document"],
+                "required": ["varietyName", "commodity", "harvestDate", "seedSourceNumber", "origin", "iupbNumber", "seedClass", "declaredQuantity", "document"],
                 "properties": {
                   "varietyName": {
                     "type": "string",
@@ -574,18 +574,23 @@
                     "maxLength": 100,
                     "example": "Bandung, West Java"
                   },
-                  "iupNumber": {
+                  "iupbNumber": {
                     "type": "string",
-                    "description": "IUP (Izin Usaha Perkebunan) number",
+                    "description": "IUPB (Izin Usaha Perkebunan Benih) number",
                     "minLength": 5,
                     "maxLength": 50,
-                    "example": "IUP-2024-TEST-001"
+                    "example": "IUPB-2024-TEST-001"
                   },
                   "seedClass": {
                     "type": "string",
                     "enum": ["BS", "BD", "BP", "BR"],
                     "description": "Seed class classification (BS=Breeder Seed, BD=Foundation Seed, BP=Stock Seed, BR=Extension Seed)",
                     "example": "BD"
+                  },
+                  "declaredQuantity": {
+                    "type": "number",
+                    "description": "Declared seed quantity (must be positive)",
+                    "example": 1000
                   },
                   "document": {
                     "type": "string",
@@ -975,17 +980,19 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["certificateNumber", "expiryMonths", "certificate"],
+                "required": ["expiryMonths", "certifiedQuantity", "certificate"],
                 "properties": {
-                  "certificateNumber": {
-                    "type": "string",
-                    "description": "Certificate number (5-50 characters)",
-                    "example": "CERT-2024-001"
-                  },
                   "expiryMonths": {
                     "type": "integer",
                     "description": "Certificate validity in months (1-120)",
+                    "minimum": 1,
+                    "maximum": 120,
                     "example": 12
+                  },
+                  "certifiedQuantity": {
+                    "type": "number",
+                    "description": "Certified quantity (must be positive)",
+                    "example": 950
                   },
                   "certificate": {
                     "type": "string",
@@ -1049,20 +1056,40 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["distributionLocation", "quantity"],
+                "required": ["destinationType", "destinationName", "destinationAddress", "quantity"],
                 "properties": {
-                  "distributionLocation": {
+                  "destinationType": {
                     "type": "string",
-                    "description": "Distribution location (5-200 characters)",
-                    "example": "Warehouse A, Bandung"
+                    "enum": ["WAREHOUSE", "RETAILER", "FARMER_GROUP", "DISTRIBUTOR", "OTHER"],
+                    "description": "Type of distribution destination",
+                    "example": "WAREHOUSE"
+                  },
+                  "destinationName": {
+                    "type": "string",
+                    "description": "Name of distribution destination (2-200 characters)",
+                    "minLength": 2,
+                    "maxLength": 200,
+                    "example": "Gudang Utama Bandung"
+                  },
+                  "destinationAddress": {
+                    "type": "string",
+                    "description": "Address of distribution destination (5-500 characters)",
+                    "minLength": 5,
+                    "maxLength": 500,
+                    "example": "Jl. Pertanian No. 123, Bandung, Jawa Barat 40115"
                   },
                   "quantity": {
                     "type": "number",
                     "description": "Distributed quantity (must be positive)",
                     "example": 500
+                  },
+                  "evidence": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Evidence document (PDF, JPEG, PNG, Word) - optional"
                   }
                 }
               }
