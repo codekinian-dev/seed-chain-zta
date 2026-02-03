@@ -992,8 +992,15 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["expiryMonths", "certifiedQuantity", "certificate"],
+                "required": ["certNumber", "expiryMonths", "certifiedQuantity", "certificate"],
                 "properties": {
+                  "certNumber": {
+                    "type": "string",
+                    "description": "Official certificate number issued by authority (5-50 characters)",
+                    "minLength": 5,
+                    "maxLength": 50,
+                    "example": "BPSB-JB-2026-001234"
+                  },
                   "expiryMonths": {
                     "type": "integer",
                     "description": "Certificate validity in months (1-120)",
@@ -1003,7 +1010,7 @@
                   },
                   "certifiedQuantity": {
                     "type": "number",
-                    "description": "Certified quantity (must be positive)",
+                    "description": "Certified quantity (must be positive, cannot exceed declared quantity)",
                     "example": 950
                   },
                   "certificate": {

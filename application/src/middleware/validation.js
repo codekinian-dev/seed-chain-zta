@@ -118,6 +118,14 @@ const evaluateInspectionSchema = Joi.object({
 
 // Issue Certificate Schema
 const issueCertificateSchema = Joi.object({
+    certNumber: Joi.string().required().min(5).max(50)
+        .messages({
+            'string.empty': 'Certificate number is required',
+            'string.min': 'Certificate number must be at least 5 characters',
+            'string.max': 'Certificate number must not exceed 50 characters',
+            'any.required': 'Certificate number is required'
+        }),
+
     expiryMonths: Joi.number().integer().min(1).max(120).required()
         .messages({
             'number.base': 'Expiry months must be a number',

@@ -647,6 +647,7 @@ class SeedBatchContractZTA extends Contract {
             },
 
             certification: {
+                cert_id: null,
                 cert_number: null,
                 issued_at: null,
                 expires_at: null,
@@ -999,17 +1000,23 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 5. issueCertificate [role_lsm_head]
-    // Updated: Added certifiedQuantity parameter, auto-generate certNumber, added docHash for integrity
+    // Updated: certNumber is user input, certId is auto-generated internal ID
     // =========================================================
-    async issueCertificate(ctx, id, expiryDateMonths, certDocumentName, certIpfsCid, issuerUUID, certifiedQuantity, docHash) {
+    async issueCertificate(ctx, id, certNumber, expiryDateMonths, certDocumentName, certIpfsCid, issuerUUID, certifiedQuantity, docHash) {
         const identity = this._verifyIdentityAndContext(ctx, 'role_lsm_head');
 
         this._validateRequired('id', id);
+        this._validateRequired('certNumber', certNumber);
         this._validateRequired('expiryDateMonths', expiryDateMonths);
         this._validateRequired('certDocumentName', certDocumentName);
         this._validateIPFSCid('certIpfsCid', certIpfsCid);
         this._validateUUID('issuerUUID', issuerUUID);
         this._validateSHA256Hash('docHash', docHash);
+
+        // Validate certNumber format (min 5, max 50 chars)
+        if (certNumber.length < 5 || certNumber.length > 50) {
+            throw new Error('certNumber harus antara 5-50 karakter.');
+        }
 
         // ZTA: Verify caller's identity matches the provided UUID
         this._verifyUserUUID(identity, issuerUUID, 'issuerUUID');
@@ -1031,15 +1038,15 @@ class SeedBatchContractZTA extends Contract {
         const expiryDate = new Date(txTimestamp.seconds.toInt() * 1000);
         expiryDate.setMonth(expiryDate.getMonth() + months);
 
-        // Auto-generate certificate number (CERT-YYYYMMDD-NNNN)
-        const certNumber = await this._generateCertNumber(ctx, now);
+        // Auto-generate certificate ID (CERT-YYYYMMDD-NNNN) for internal tracking
+        const certId = await this._generateCertNumber(ctx, now);
 
-        // ZTA: Check for duplicate certificate number (safety check)
+        // ZTA: Check for duplicate certificate number (user-provided)
         const existingCert = await this._checkCertificateExists(ctx, certNumber);
         if (existingCert) {
             this._logSecurityEvent(ctx, 'DUPLICATE_CERTIFICATE',
                 `Certificate number ${certNumber} already exists`);
-            throw new Error(`Nomor sertifikat ${certNumber} sudah digunakan. Silakan coba lagi.`);
+            throw new Error(`Nomor sertifikat ${certNumber} sudah digunakan.`);
         }
 
         // Set issuer actor
@@ -1056,6 +1063,7 @@ class SeedBatchContractZTA extends Contract {
         seedBatch.quantity.last_reconciled_at = identity.timestamp;
 
         // Update certification object
+        seedBatch.certification.cert_id = certId;
         seedBatch.certification.cert_number = certNumber;
         seedBatch.certification.issued_at = now.toISOString();
         seedBatch.certification.expires_at = expiryDate.toISOString();
@@ -1079,6 +1087,7 @@ class SeedBatchContractZTA extends Contract {
             uploaded_at: identity.timestamp,
             uploader_ref: 'issuer',
             meta: {
+                cert_id: certId,
                 cert_number: certNumber,
                 certified_qty: certQty,
                 qty_base_unit: seedBatch.quantity.qty_base_unit
@@ -1091,6 +1100,7 @@ class SeedBatchContractZTA extends Contract {
             at: identity.timestamp,
             actor_ref: 'issuer',
             ref_doc_id: docId,
+            cert_id: certId,
             cert_number: certNumber
         };
 
@@ -1106,6 +1116,7 @@ class SeedBatchContractZTA extends Contract {
         await this._indexCertificate(ctx, certNumber, id);
 
         await this._logAuditTrail(ctx, 'ISSUE_CERTIFICATE', id, {
+            certId: certId,
             certNumber: certNumber,
             certifiedQuantity: certQty,
             expiryMonths: months,
