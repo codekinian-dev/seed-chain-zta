@@ -12,12 +12,12 @@ organizations:
   - mspid: BPSBPBenihMSP
     identities:
       certificates:
+        # Using appUser credentials from wallet (extracted via extract-wallet-creds.js)
         - name: appUser
           clientSignedCert:
-            path: /Users/rangga/playground/tesis_bismillah/blockchain/caliper/../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/signcerts/cert.pem
+            path: ./credentials/appUser/cert.pem
           clientPrivateKey:
-            path: /Users/rangga/playground/tesis_bismillah/blockchain/caliper/../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/appUser@chain-bpsbp.jabarchain.me/msp/keystore/8480dba3989547ab5e0e1de21e81d74d12fc5f7fdc63e755977ef1cc666d7b16_sk
+            path: ./credentials/appUser/key.pem
     connectionProfile:
       path: ./networks/connection-remote.yaml
       discover: true
-
