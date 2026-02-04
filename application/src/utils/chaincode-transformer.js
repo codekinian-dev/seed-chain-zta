@@ -5,6 +5,28 @@
  */
 
 /**
+ * Extract actual batch data from various response formats
+ * @param {Object} data - Raw data that might be wrapped in different ways
+ * @returns {Object} The actual batch data
+ */
+const extractBatchData = (data) => {
+    if (!data) return null;
+
+    // If data has transactionId, the batch is inside it
+    if (data.transactionId && data.transactionId.id) {
+        return data.transactionId;
+    }
+
+    // If data has id directly, it's the batch itself
+    if (data.id && data.doc_type === 'SeedBatch') {
+        return data;
+    }
+
+    // Return as-is
+    return data;
+};
+
+/**
  * Transform nested chaincode structure to flat API response
  * @param {Object} chaincodeData - Raw data from chaincode with nested structure
  * @returns {Object} Transformed data for API response
@@ -18,20 +40,20 @@ const transformChaincodeToAPI = (chaincodeData) => {
             if (item.Record) {
                 return {
                     key: item.Key,
-                    ...transformSingleBatch(item.Record)
+                    ...transformSingleBatch(extractBatchData(item.Record))
                 };
             }
-            return transformSingleBatch(item);
+            return transformSingleBatch(extractBatchData(item));
         });
     }
 
-    // Handle single batch
-    return transformSingleBatch(chaincodeData);
+    // Handle single batch - extract actual batch data first
+    return transformSingleBatch(extractBatchData(chaincodeData));
 };
 
 /**
  * Transform single seed batch from nested to API format
- * @param {Object} batch - Single batch with nested structure
+ * @param {Object} batch - Single batch with nested structure (already extracted)
  * @returns {Object} Transformed batch
  */
 const transformSingleBatch = (batch) => {
@@ -52,12 +74,12 @@ const transformSingleBatch = (batch) => {
 
         // Seed source (flattened)
         seed_source_number: batch.seed_source?.seed_source_number,
-        iup_number: batch.seed_source?.iup_number,
+        iup_number: batch.seed_source?.iupb_number_ref,
         harvest_date: batch.seed_source?.harvest?.harvest_date,
         origin: batch.seed_source?.origin?.region || '',
         origin_detail: batch.seed_source?.origin, // Keep full origin object
 
-        // Certification (flattened)
+        // Certification (flattened) - map from nested certification object
         cert_number: batch.certification?.cert_number,
         cert_id: batch.certification?.cert_id,
         cert_issued_at: batch.certification?.issued_at,
@@ -66,6 +88,9 @@ const transformSingleBatch = (batch) => {
         cert_expiry_date: batch.certification?.expires_at, // Alias for frontend compatibility
         cert_revoked_at: batch.certification?.revoked_at,
         cert_revoke_reason: batch.certification?.revoke_reason,
+
+        // Keep full certification object for reference
+        certification: batch.certification,
 
         // Quantity tracking
         quantity: batch.quantity,
@@ -89,6 +114,7 @@ const transformSingleBatch = (batch) => {
         created_by: batch.audit?.created_by_ref,
         last_modified_at: batch.audit?.last_modified_at,
         last_modified_by: batch.audit?.last_modified_by_ref,
+        updated_at: batch.audit?.last_modified_at, // Alias
         revision: batch.audit?.revision
     };
 
@@ -245,7 +271,7 @@ const transformHistory = (history) => {
         timestamp: item.timestamp,
         txId: item.txId,
         isDelete: item.isDelete,
-        data: item.isDelete ? 'ASSET DELETED' : transformSingleBatch(item.data)
+        data: item.isDelete ? 'ASSET DELETED' : transformSingleBatch(extractBatchData(item.data))
     }));
 };
 
@@ -253,6 +279,7 @@ module.exports = {
     transformChaincodeToAPI,
     transformSingleBatch,
     transformHistory,
+    extractBatchData,
 
     // Actor getters
     getActor,

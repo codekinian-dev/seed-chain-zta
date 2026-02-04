@@ -444,6 +444,16 @@ const loadBatch = async () => {
     batch.value = data
     
     console.log('Loaded batch detail:', batch.value)
+    console.log('Certificate info:', {
+      cert_number: batch.value?.cert_number,
+      cert_issue_date: batch.value?.cert_issue_date,
+      cert_expiry_date: batch.value?.cert_expiry_date,
+      cert_issued_at: batch.value?.cert_issued_at,
+      cert_expires_at: batch.value?.cert_expires_at,
+      certification: batch.value?.certification
+    })
+    console.log('Distributions:', batch.value?.distributions)
+    console.log('Quantity:', batch.value?.quantity)
   } catch (err) {
     error.value = err.message || 'Failed to load seed batch'
     console.error('Error loading batch:', err)
@@ -557,11 +567,11 @@ onMounted(() => {
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-primary">Issue Date</label>
-                  <p class="mt-1 text-sm text-ink">{{ formatDate(batch.cert_issue_date) }}</p>
+                  <p class="mt-1 text-sm text-ink">{{ formatDate(batch.cert_issue_date || batch.cert_issued_at || batch.certification?.issued_at) }}</p>
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-primary">Expiry Date</label>
-                  <p class="mt-1 text-sm text-ink">{{ formatDate(batch.cert_expiry_date) }}</p>
+                  <p class="mt-1 text-sm text-ink">{{ formatDate(batch.cert_expiry_date || batch.cert_expires_at || batch.certification?.expires_at) }}</p>
                 </div>
               </div>
             </div>
@@ -604,8 +614,8 @@ onMounted(() => {
           <DocumentsView :batch="batch" />
         </section>
 
-        <!-- Distributions Section -->
-        <section v-if="batch.distributions && batch.distributions.length > 0" class="p-6 panel-card">
+        <!-- Distributions Section - Show if batch has distributions OR if status is CERTIFIED/DISTRIBUTED -->
+        <section v-if="(batch.distributions && batch.distributions.length > 0) || ['CERTIFIED', 'DISTRIBUTED'].includes(batch.current_status)" class="p-6 panel-card">
           <div class="flex items-center gap-3 mb-6">
             <TruckIcon class="w-6 h-6 text-primary" />
             <div>
@@ -615,6 +625,12 @@ onMounted(() => {
           </div>
           
           <div class="space-y-4">
+            <!-- No distributions yet message -->
+            <div v-if="!batch.distributions || batch.distributions.length === 0" class="p-4 text-center text-ink/60 bg-ink/5 rounded-lg">
+              <p class="text-sm">No distributions recorded yet.</p>
+            </div>
+            
+            <!-- Distribution list -->
             <div v-for="(dist, index) in batch.distributions" :key="dist.dist_id || index" class="p-4 bg-ink/5 rounded-lg border border-ink/10">
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1">
@@ -662,7 +678,7 @@ onMounted(() => {
                 </div>
                 <div>
                   <label class="text-xs font-semibold text-ink/60">Total Distributions</label>
-                  <p class="text-sm font-semibold text-ink">{{ batch.distributions.length }}</p>
+                  <p class="text-sm font-semibold text-ink">{{ batch.distributions?.length || 0 }}</p>
                 </div>
               </div>
             </div>

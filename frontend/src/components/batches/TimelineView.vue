@@ -99,7 +99,7 @@ const getEventColorClass = (type) => {
             </div>
             
             <!-- Document reference -->
-            <div v-if="event.document" class="mt-2 text-sm">
+            <!-- <div v-if="event.document && event.document.cid" class="mt-2 text-sm">
               <a
                 :href="`/ipfs/${event.document.cid}`"
                 target="_blank"
@@ -108,7 +108,7 @@ const getEventColorClass = (type) => {
                 <DocumentTextIcon class="w-4 h-4 mr-1" />
                 {{ event.document.file_name || event.document.name }}
               </a>
-            </div>
+            </div> -->
             
             <!-- Decision badge (for evaluation events) -->
             <div v-if="event.decision" class="mt-2">

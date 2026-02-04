@@ -7,6 +7,11 @@
  * Format date to Indonesian locale
  */
 export function formatDate(date, options = {}) {
+    if (!date) return '-'
+
+    const parsedDate = new Date(date)
+    if (isNaN(parsedDate.getTime())) return '-'
+
     const defaultOptions = {
         year: 'numeric',
         month: 'long',
@@ -14,13 +19,18 @@ export function formatDate(date, options = {}) {
         ...options,
     }
 
-    return new Date(date).toLocaleDateString('id-ID', defaultOptions)
+    return parsedDate.toLocaleDateString('id-ID', defaultOptions)
 }
 
 /**
  * Format datetime to Indonesian locale
  */
 export function formatDateTime(date, options = {}) {
+    if (!date) return '-'
+
+    const parsedDate = new Date(date)
+    if (isNaN(parsedDate.getTime())) return '-'
+
     const defaultOptions = {
         year: 'numeric',
         month: 'long',
@@ -30,15 +40,20 @@ export function formatDateTime(date, options = {}) {
         ...options,
     }
 
-    return new Date(date).toLocaleString('id-ID', defaultOptions)
+    return parsedDate.toLocaleString('id-ID', defaultOptions)
 }
 
 /**
  * Format date to relative time (e.g., "2 hari yang lalu")
  */
 export function formatRelativeTime(date) {
+    if (!date) return '-'
+
     const now = new Date()
     const past = new Date(date)
+
+    if (isNaN(past.getTime())) return '-'
+
     const diffInSeconds = Math.floor((now - past) / 1000)
 
     if (diffInSeconds < 60) {
