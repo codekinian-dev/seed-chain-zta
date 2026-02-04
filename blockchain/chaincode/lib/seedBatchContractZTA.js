@@ -293,40 +293,18 @@ class SeedBatchContractZTA extends Contract {
     }
 
     // =========================================================
-    // HELPER: Generate Sequential Batch ID (BATCH-YYYYMMDD-NNNN)
-    // Concurrency-safe: scans existing batches to find next available number
+    // HELPER: Generate Deterministic Batch ID (BATCH-YYYYMMDD-{txId})
+    // Uses txId which is identical across all endorsing peers
+    // Format: BATCH-YYYYMMDD-{first 8 chars of txId}
     // =========================================================
     async _generateBatchId(ctx, timestamp) {
         const dateStr = this._formatDateYYYYMMDD(timestamp);
-        const prefix = `BATCH-${dateStr}-`;
+        const txId = ctx.stub.getTxID();
 
-        // Scan all existing batch IDs for this date to find the max number
-        const iterator = await ctx.stub.getStateByRange(prefix + '0000', prefix + '9999');
-        let maxNum = 0;
-
-        let result = await iterator.next();
-        while (!result.done) {
-            const key = result.value.key;
-            const match = key.match(/-(\d{4})$/);
-            if (match) {
-                const num = parseInt(match[1]);
-                if (num > maxNum) maxNum = num;
-            }
-            result = await iterator.next();
-        }
-        await iterator.close();
-
-        // Next available number
-        const nextNum = maxNum + 1;
-        const batchId = `BATCH-${dateStr}-${String(nextNum).padStart(4, '0')}`;
-
-        // Double-check this ID doesn't exist (race condition safety)
-        const exists = await ctx.stub.getState(batchId);
-        if (exists && exists.length > 0) {
-            // If somehow exists, recursively try next number by adding txId suffix
-            const txId = ctx.stub.getTxID().substring(0, 4);
-            return `BATCH-${dateStr}-${String(nextNum).padStart(4, '0')}-${txId}`;
-        }
+        // Use first 8 characters of txId for uniqueness
+        // txId is a 64-char hex string, 8 chars gives 4 billion combinations per day
+        const txIdPrefix = txId.substring(0, 8).toUpperCase();
+        const batchId = `BATCH-${dateStr}-${txIdPrefix}`;
 
         return batchId;
     }
