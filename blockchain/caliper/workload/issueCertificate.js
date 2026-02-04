@@ -17,6 +17,8 @@ class IssueCertificateWorkload extends WorkloadModuleBase {
     async initializeWorkloadModule(workerIndex, totalWorkers, roundIndex, roundArguments, sutAdapter, sutContext) {
         await super.initializeWorkloadModule(workerIndex, totalWorkers, roundIndex, roundArguments, sutAdapter, sutContext);
 
+        this.workerIndex = workerIndex;
+
         const queryRequest = {
             contractId: this.roundArguments.contractId,
             contractFunction: 'querySeedBatchesByStatus',
@@ -49,13 +51,19 @@ class IssueCertificateWorkload extends WorkloadModuleBase {
         // Generate unique certificate number
         let certNumber;
         do {
-            certNumber = `CERT-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+            certNumber = `CERT-${Date.now()}-${this.workerIndex}-${Math.floor(Math.random() * 100000)}`;
         } while (this.usedCertNumbers.has(certNumber));
 
         this.usedCertNumbers.add(certNumber);
 
         // Random expiry between 12-36 months
         const expiryMonths = 12 + Math.floor(Math.random() * 25);
+
+        // New parameters for updated chaincode
+        const certDocumentName = `Sertifikat Benih ${certNumber}`;
+        const certIpfsCid = `Qm${this.generateRandomHash(44)}`;
+        const certifiedQuantity = (1000 + Math.floor(Math.random() * 99000)).toString(); // 1000-100000 units
+        const docHash = this.generateSHA256Hash(); // SHA256 hash (64 hex chars)
 
         const request = {
             contractId: this.roundArguments.contractId,
@@ -64,13 +72,35 @@ class IssueCertificateWorkload extends WorkloadModuleBase {
                 batchId,
                 certNumber,
                 expiryMonths.toString(),
-                this.issuerUUID  // UUID parameter now required
+                certDocumentName,
+                certIpfsCid,
+                this.issuerUUID,
+                certifiedQuantity,
+                docHash
             ],
             readOnly: false,
             invokerIdentity: 'appUser'  // Single appUser
         };
 
         await this.sutAdapter.sendRequests(request);
+    }
+
+    generateRandomHash(length) {
+        const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    generateSHA256Hash() {
+        const hexChars = '0123456789abcdef';
+        let result = '';
+        for (let i = 0; i < 64; i++) {
+            result += hexChars.charAt(Math.floor(Math.random() * hexChars.length));
+        }
+        return result;
     }
 }
 

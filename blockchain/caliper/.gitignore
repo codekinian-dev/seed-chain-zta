@@ -34,3 +34,6 @@ Thumbs.db
 # Caliper specific
 .caliper/
 caliper-*.log
+reports_data
+query_result.csv
+seed-batch-dataset.json

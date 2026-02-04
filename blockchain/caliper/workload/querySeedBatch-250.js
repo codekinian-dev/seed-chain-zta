@@ -1,17 +1,18 @@
 'use strict';
 
 const { WorkloadModuleBase } = require('@hyperledger/caliper-core');
-const dataset = require('./seed-batch-dataset.json');
 
 /**
  * Workload module for querySeedBatch transaction - 250 TPS Round
- * Queries batches from BATCH-50000 to BATCH-64999
+ * Updated for seedBatchContractZTA chaincode:
+ * - Batch IDs are auto-generated (BATCH-YYYYMMDD-NNNN format)
+ * - Fetches existing batch IDs from ledger, then queries randomly
  */
 class QuerySeedBatchWorkload extends WorkloadModuleBase {
     constructor() {
         super();
         this.txIndex = 0;
-        this.datasetOffset = 50000; // Offset for 250 TPS round
+        this.batchIds = [];
     }
 
     /**
@@ -21,6 +22,43 @@ class QuerySeedBatchWorkload extends WorkloadModuleBase {
         await super.initializeWorkloadModule(workerIndex, totalWorkers, roundIndex, roundArguments, sutAdapter, sutContext);
         this.workerIndex = workerIndex;
         this.totalWorkers = totalWorkers;
+
+        // Fetch existing batch IDs from ledger
+        const statuses = ['REGISTERED', 'SUBMITTED', 'CERTIFIED'];
+
+        for (const status of statuses) {
+            try {
+                const queryRequest = {
+                    contractId: this.roundArguments.contractId,
+                    contractFunction: 'querySeedBatchesByStatus',
+                    contractArguments: [status],
+                    readOnly: true,
+                    invokerIdentity: 'appUser'
+                };
+
+                const result = await this.sutAdapter.sendRequests(queryRequest);
+                if (result && result.status === 'success' && result.result) {
+                    const batches = JSON.parse(result.result.toString());
+                    const ids = batches.map(b => b.Key || b.batch_id);
+                    this.batchIds.push(...ids);
+                }
+            } catch (error) {
+                console.warn(`Could not fetch ${status} batches: ${error.message}`);
+            }
+        }
+
+        this.batchIds = [...new Set(this.batchIds)];
+
+        if (this.batchIds.length === 0) {
+            console.warn('[QuerySeedBatch-250] No existing batches found. Using fallback.');
+            const today = new Date();
+            const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+            for (let i = 1; i <= 100; i++) {
+                this.batchIds.push(`BATCH-${dateStr}-${String(i).padStart(4, '0')}`);
+            }
+        }
+
+        console.log(`[Worker ${workerIndex}] Found ${this.batchIds.length} batch IDs for 250 TPS query round`);
     }
 
     /**
@@ -29,12 +67,8 @@ class QuerySeedBatchWorkload extends WorkloadModuleBase {
     async submitTransaction() {
         this.txIndex++;
 
-        // Query from the same range as createSeedBatch-250.js (BATCH-50000 to BATCH-64999)
-        // Use random selection within this specific range
-        const rangeSize = 15000; // 250 TPS creates 15000 batches (250 TPS * 60s)
-        const randomOffset = Math.floor(Math.random() * rangeSize);
-        const dataIndex = (this.datasetOffset + randomOffset) % dataset.length;
-        const batchId = dataset[dataIndex].batchId;
+        const randomIndex = Math.floor(Math.random() * this.batchIds.length);
+        const batchId = this.batchIds[randomIndex];
 
         const request = {
             contractId: this.roundArguments.contractId,
@@ -44,7 +78,14 @@ class QuerySeedBatchWorkload extends WorkloadModuleBase {
             invokerIdentity: 'appUser'
         };
 
-        await this.sutAdapter.sendRequests(request);
+        try {
+            await this.sutAdapter.sendRequests(request);
+        } catch (error) {
+            if (error.message && error.message.includes('tidak ditemukan')) {
+                return;
+            }
+            throw error;
+        }
     }
 }
 

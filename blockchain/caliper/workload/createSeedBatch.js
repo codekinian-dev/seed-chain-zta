@@ -53,20 +53,21 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
             contractId: this.roundArguments.contractId,
             contractFunction: 'createSeedBatch',
             contractArguments: [
-                data.batchId,           // id
-                data.variety,           // varietyName
-                data.commodity,         // commodity
-                data.harvestDate,       // harvestDate
-                data.seedSourceNumber,  // seedSourceNumber
-                data.origin,            // origin
-                data.iupNumber,         // iupNumber
-                data.seedClass,         // seedClass
-                data.producerUUID,      // producerUUID
-                data.seedSourceDocName, // seedSourceDocName
-                data.seedSourceIpfsCid  // seedSourceIpfsCid
+                data.variety,              // varietyName
+                data.commodity,            // commodity
+                data.harvestDate,          // harvestDate
+                data.seedSourceNumber,     // seedSourceNumber
+                data.origin,               // origin
+                data.iupbNumber,           // iupbNumber
+                data.seedClass,            // seedClass
+                data.producerUUID,         // producerUUID
+                data.seedSourceDocName,    // seedSourceDocName
+                data.seedSourceIpfsCid,    // seedSourceIpfsCid
+                data.declaredQuantity.toString(),  // declaredQuantity
+                data.seedSourceDocHash     // seedSourceDocHash (SHA256 64 hex chars)
             ],
             readOnly: false,
-            invokerIdentity: 'appUser'  // Single appUser with role_producer attribute
+            invokerIdentity: 'appUser'  // Using appUser for testing
         };
 
         try {

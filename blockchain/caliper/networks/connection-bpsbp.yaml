@@ -8,9 +8,9 @@ client:
     cryptoStore:
       path: /tmp/bpsbp-cvs
   clientPrivateKey:
-    path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/Admin@chain-bpsbp.jabarchain.me/msp/keystore/priv_sk
+    path: ../credentials/appUser/key.pem
   clientSignedCert:
-    path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/Admin@chain-bpsbp.jabarchain.me/msp/signcerts/Admin@chain-bpsbp.jabarchain.me-cert.pem
+    path: ../credentials/appUser/cert.pem
 
 channels:
   benihchannel:
@@ -49,18 +49,18 @@ organizations:
 
 orderers:
   orderer.jabarchain.me:
-    url: grpcs://localhost:7050
+    url: grpcs://152.42.164.128:7050
     grpcOptions:
       ssl-target-name-override: chain-orderer.jabarchain.me
       grpc-max-send-message-length: 15
       request-timeout: 180000
       grpc.max_receive_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/ordererOrganizations/jabarchain.me/orderers/chain-orderer.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/orderer/orderer-tls-ca.crt
 
 peers:
   pusat.chain-bpsbp.jabarchain.me:
-    url: grpcs://localhost:7051
+    url: grpcs://152.42.164.128:7051
     grpcOptions:
       ssl-target-name-override: pusat.chain-bpsbp.jabarchain.me
       grpc.keepalive_time_ms: 600000
@@ -68,10 +68,10 @@ peers:
       grpc.max_receive_message_length: -1
       grpc.max_send_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/peers/pusat-tls-ca.crt
 
   cert.chain-bpsbp.jabarchain.me:
-    url: grpcs://localhost:8051
+    url: grpcs://152.42.164.128:8051
     grpcOptions:
       ssl-target-name-override: cert.chain-bpsbp.jabarchain.me
       grpc.keepalive_time_ms: 600000
@@ -79,10 +79,10 @@ peers:
       grpc.max_receive_message_length: -1
       grpc.max_send_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/peers/cert-tls-ca.crt
 
   sekretariat.chain-disbun.jabarchain.me:
-    url: grpcs://localhost:9051
+    url: grpcs://152.42.164.128:9051
     grpcOptions:
       ssl-target-name-override: sekretariat.chain-disbun.jabarchain.me
       grpc.keepalive_time_ms: 600000
@@ -90,10 +90,10 @@ peers:
       grpc.max_receive_message_length: -1
       grpc.max_send_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/ca/ca-bpsbp-tls.pem
 
   digital.chain-disbun.jabarchain.me:
-    url: grpcs://localhost:10051
+    url: grpcs://152.42.164.128:10051
     grpcOptions:
       ssl-target-name-override: digital.chain-disbun.jabarchain.me
       grpc.keepalive_time_ms: 600000
@@ -101,15 +101,15 @@ peers:
       grpc.max_receive_message_length: -1
       grpc.max_send_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/ca/ca-bpsbp-tls.pem
 
 certificateAuthorities:
   ca-bpsbp:
-    url: https://localhost:7054
+    url: https://152.42.164.128:7054
     httpOptions:
       verify: false
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/ca/ca-cert.pem
+      path: ../../application/tls-certs/ca/ca-bpsbp-tls.pem
     registrar:
       - enrollId: admin
         enrollSecret: adminpw

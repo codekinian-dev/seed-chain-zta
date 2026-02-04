@@ -60,6 +60,9 @@ class RecordInspectionWorkload extends WorkloadModuleBase {
         const batchId = this.batchIds[Math.floor(Math.random() * this.batchIds.length)];
         const inspectionResult = this.inspectionResults[Math.floor(Math.random() * this.inspectionResults.length)];
         const ipfsPhotoCid = `Qm${this.generateRandomHash(44)}`;
+        const testedSampleQty = (50 + Math.floor(Math.random() * 450)).toString(); // 50-500 samples
+        const certifiedQty = (1000 + Math.floor(Math.random() * 99000)).toString(); // 1000-100000 units
+        const docHash = this.generateSHA256Hash(); // SHA256 hash (64 hex chars)
 
         const request = {
             contractId: this.roundArguments.contractId,
@@ -68,7 +71,10 @@ class RecordInspectionWorkload extends WorkloadModuleBase {
                 batchId,
                 inspectionResult,
                 ipfsPhotoCid,
-                this.inspectorUUID  // UUID parameter now required
+                this.inspectorUUID,  // inspectorFieldUUID
+                testedSampleQty,
+                certifiedQty,
+                docHash
             ],
             readOnly: false,
             invokerIdentity: 'appUser'  // Single appUser
@@ -82,6 +88,18 @@ class RecordInspectionWorkload extends WorkloadModuleBase {
         let result = '';
         for (let i = 0; i < length; i++) {
             result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    /**
+     * Generate SHA256 hash (64 hex characters)
+     */
+    generateSHA256Hash() {
+        const hexChars = '0123456789abcdef';
+        let result = '';
+        for (let i = 0; i < 64; i++) {
+            result += hexChars.charAt(Math.floor(Math.random() * hexChars.length));
         }
         return result;
     }

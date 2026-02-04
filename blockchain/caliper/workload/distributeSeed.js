@@ -10,17 +10,17 @@ class DistributeSeedWorkload extends WorkloadModuleBase {
         super();
         this.batchIds = [];
         this.txIndex = 0;
-        this.locations = [
-            'Toko Tani Bandung',
-            'Koperasi Pertanian Bogor',
-            'Distributor Benih Cianjur',
-            'UD Maju Tani Sukabumi',
-            'Toko Pertanian Garut Jaya',
-            'Kios Benih Tasikmalaya',
-            'CV Tani Makmur Kuningan',
-            'Distributor Agro Majalengka',
-            'Toko Tani Sumedang Sejahtera',
-            'Koperasi Benih Purwakarta'
+        this.destinations = [
+            { type: 'DISTRIBUTOR', name: 'Toko Tani Bandung', address: 'Jl. Raya Bandung No. 123, Bandung' },
+            { type: 'RETAILER', name: 'Koperasi Pertanian Bogor', address: 'Jl. Pajajaran No. 45, Bogor' },
+            { type: 'DISTRIBUTOR', name: 'Distributor Benih Cianjur', address: 'Jl. Siliwangi No. 78, Cianjur' },
+            { type: 'RETAILER', name: 'UD Maju Tani Sukabumi', address: 'Jl. Ahmad Yani No. 56, Sukabumi' },
+            { type: 'DISTRIBUTOR', name: 'Toko Pertanian Garut Jaya', address: 'Jl. Otto Iskandar No. 12, Garut' },
+            { type: 'RETAILER', name: 'Kios Benih Tasikmalaya', address: 'Jl. HZ Mustofa No. 34, Tasikmalaya' },
+            { type: 'DISTRIBUTOR', name: 'CV Tani Makmur Kuningan', address: 'Jl. Siliwangi No. 89, Kuningan' },
+            { type: 'RETAILER', name: 'Distributor Agro Majalengka', address: 'Jl. KH Abdul Halim No. 67, Majalengka' },
+            { type: 'DISTRIBUTOR', name: 'Toko Tani Sumedang Sejahtera', address: 'Jl. Mayor Abdurachman No. 23, Sumedang' },
+            { type: 'RETAILER', name: 'Koperasi Benih Purwakarta', address: 'Jl. RE Martadinata No. 45, Purwakarta' }
         ];
     }
 
@@ -32,7 +32,7 @@ class DistributeSeedWorkload extends WorkloadModuleBase {
             contractFunction: 'querySeedBatchesByStatus',
             contractArguments: ['CERTIFIED'],
             readOnly: true,
-            invokerIdentity: 'appUser'
+            invokerIdentity: 'appUser'  // Using appUser for testing
         };
 
         try {
@@ -55,24 +55,52 @@ class DistributeSeedWorkload extends WorkloadModuleBase {
         this.txIndex++;
 
         const batchId = this.batchIds[Math.floor(Math.random() * this.batchIds.length)];
-        const location = this.locations[Math.floor(Math.random() * this.locations.length)];
+        const destination = this.destinations[Math.floor(Math.random() * this.destinations.length)];
 
         // Random quantity between 100-5000 kg
         const quantity = (100 + Math.floor(Math.random() * 4900)).toString();
+
+        // New parameters for updated chaincode
+        const evidenceDocName = `Bukti Distribusi ke ${destination.name}`;
+        const evidenceIpfsCid = `Qm${this.generateRandomHash(44)}`;
+        const evidenceDocHash = this.generateSHA256Hash(); // SHA256 hash (64 hex chars)
 
         const request = {
             contractId: this.roundArguments.contractId,
             contractFunction: 'distributeSeed',
             contractArguments: [
                 batchId,
-                location,
-                quantity
+                destination.type,       // destinationType: DISTRIBUTOR or RETAILER
+                destination.name,       // destinationName
+                destination.address,    // destinationAddress
+                quantity,
+                evidenceDocName,
+                evidenceIpfsCid,
+                evidenceDocHash
             ],
             readOnly: false,
-            invokerIdentity: 'appUser'
+            invokerIdentity: 'appUser'  // Using appUser for testing
         };
 
         await this.sutAdapter.sendRequests(request);
+    }
+
+    generateRandomHash(length) {
+        const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    generateSHA256Hash() {
+        const hexChars = '0123456789abcdef';
+        let result = '';
+        for (let i = 0; i < 64; i++) {
+            result += hexChars.charAt(Math.floor(Math.random() * hexChars.length));
+        }
+        return result;
     }
 }
 

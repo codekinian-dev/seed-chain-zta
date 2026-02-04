@@ -52,9 +52,11 @@ class SubmitCertificationWorkload extends WorkloadModuleBase {
         // Select a batch ID
         const batchId = this.batchIds[Math.floor(Math.random() * this.batchIds.length)];
 
-        // Generate mock IPFS CID
+        // Generate mock IPFS CID and document hash
         const ipfsCid = `Qm${this.generateRandomHash(44)}`;
         const documentName = `Dokumen Permohonan Sertifikasi ${this.txIndex}`;
+        const testedSampleQty = (100 + Math.floor(Math.random() * 900)).toString(); // 100-1000 samples
+        const docHash = this.generateSHA256Hash(); // SHA256 hash (64 hex chars)
 
         const request = {
             contractId: this.roundArguments.contractId,
@@ -62,7 +64,9 @@ class SubmitCertificationWorkload extends WorkloadModuleBase {
             contractArguments: [
                 batchId,
                 documentName,
-                ipfsCid
+                ipfsCid,
+                testedSampleQty,
+                docHash
             ],
             readOnly: false,
             invokerIdentity: 'appUser'
@@ -79,6 +83,18 @@ class SubmitCertificationWorkload extends WorkloadModuleBase {
         let result = '';
         for (let i = 0; i < length; i++) {
             result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    /**
+     * Generate SHA256 hash (64 hex characters)
+     */
+    generateSHA256Hash() {
+        const hexChars = '0123456789abcdef';
+        let result = '';
+        for (let i = 0; i < 64; i++) {
+            result += hexChars.charAt(Math.floor(Math.random() * hexChars.length));
         }
         return result;
     }
