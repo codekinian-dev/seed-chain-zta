@@ -188,29 +188,30 @@ async function handleCertVerify() {
   
   try {
     const response = await documentService.verifyCertificate(certNumber.value.trim(), batchId.value.trim())
+    // httpClient returns JSON directly (not axios-style response.data)
     // Backend returns { success, status, message, data: {...} }
-    // Flatten the response for easier template access
-    const apiData = response.data
+    console.log('Certificate verification response:', response)
+    
     certResult.value = {
-      status: apiData.status,
-      message: apiData.message,
-      certNumber: apiData.data?.certNumber,
-      certId: apiData.data?.certId,
-      issuedAt: apiData.data?.issuedAt,
-      expiresAt: apiData.data?.expiresAt,
-      revokedAt: apiData.data?.revokedAt,
-      revokeReason: apiData.data?.revokeReason,
-      issuer: apiData.data?.issuer,
-      batch: apiData.data?.batch,
-      documentFingerprint: apiData.data?.document ? {
-        cid: apiData.data.document.cid,
-        sha256: apiData.data.document.sha256Hash
+      status: response.status,
+      message: response.message,
+      certNumber: response.data?.certNumber,
+      certId: response.data?.certId,
+      issuedAt: response.data?.issuedAt,
+      expiresAt: response.data?.expiresAt,
+      revokedAt: response.data?.revokedAt,
+      revokeReason: response.data?.revokeReason,
+      issuer: response.data?.issuer,
+      batch: response.data?.batch,
+      document: response.data?.document ? {
+        cid: response.data.document.cid,
+        sha256: response.data.document.sha256Hash
       } : null,
-      verifiedAt: apiData.data?.verifiedAt
+      verifiedAt: response.data?.verifiedAt
     }
   } catch (err) {
     console.error('Certificate verification error:', err)
-    certError.value = err.response?.data?.message || err.response?.data?.error || err.message || 'Gagal memverifikasi sertifikat'
+    certError.value = err.response?.data?.message || err.response?.data?.error || err.data?.message || err.message || 'Gagal memverifikasi sertifikat'
   } finally {
     certLoading.value = false
   }
@@ -223,7 +224,7 @@ function resetCertForm() {
 
 // Redirect to file verification with CID
 function goToFileVerification() {
-  const docCid = certResult.value?.documentFingerprint?.cid
+  const docCid = certResult.value?.document?.cid
   if (docCid) {
     router.push({ path: '/verify', query: { key: docCid } })
     verificationMode.value = 'file'
@@ -436,7 +437,7 @@ function formatDate(dateStr) {
                   </div>
 
                   <!-- Issuer Info (if available) -->
-                  <div v-if="certResult.issuer" class="flex items-start gap-4 p-4 rounded-xl bg-ink/5">
+                  <!-- <div v-if="certResult.issuer" class="flex items-start gap-4 p-4 rounded-xl bg-ink/5">
                     <div class="flex items-center justify-center flex-shrink-0 w-12 h-12 rounded-full bg-ocean/10">
                       <UserIcon class="w-6 h-6 text-ocean" />
                     </div>
@@ -449,7 +450,7 @@ function formatDate(dateStr) {
                         <p class="font-mono text-xs break-all text-ink/60">{{ certResult.issuer.signature }}</p>
                       </div>
                     </div>
-                  </div>
+                  </div> -->
 
                   <!-- Validity Period (if available) -->
                   <div v-if="certResult.issuedAt || certResult.expiresAt" class="grid gap-4 sm:grid-cols-2">
@@ -487,7 +488,7 @@ function formatDate(dateStr) {
                   </div>
 
                   <!-- Batch Info Summary (if available) -->
-                  <div v-if="certResult.batch" class="p-4 border border-ink/10 rounded-xl">
+                  <!-- <div v-if="certResult.batch" class="p-4 border border-ink/10 rounded-xl">
                     <h4 class="mb-3 text-sm font-semibold tracking-wider uppercase text-ink/70">Informasi Batch</h4>
                     <div class="grid gap-3 sm:grid-cols-2">
                       <div>
@@ -507,10 +508,10 @@ function formatDate(dateStr) {
                         <p class="text-sm font-medium text-ink">{{ certResult.batch.producerName || '-' }}</p>
                       </div>
                     </div>
-                  </div>
+                  </div> -->
 
                   <!-- Document Fingerprint -->
-                  <div v-if="certResult.documentFingerprint" class="p-4 border rounded-xl bg-ink/5 border-ink/10">
+                  <div v-if="certResult.document" class="p-4 border rounded-xl bg-ink/5 border-ink/10">
                     <div class="flex items-center gap-2 mb-3">
                       <FingerPrintIcon class="w-5 h-5 text-ink/60" />
                       <h4 class="text-sm font-semibold tracking-wider uppercase text-ink/70">Sidik Jari Dokumen</h4>
@@ -518,11 +519,11 @@ function formatDate(dateStr) {
                     <div class="space-y-2">
                       <div>
                         <p class="text-xs text-ink/60">CID (Content Identifier)</p>
-                        <p class="font-mono text-xs break-all text-ink">{{ certResult.documentFingerprint.cid }}</p>
+                        <p class="font-mono text-xs break-all text-ink">{{ certResult.document.cid }}</p>
                       </div>
-                      <div v-if="certResult.documentFingerprint.sha256">
+                      <div v-if="certResult.document.sha256">
                         <p class="text-xs text-ink/60">SHA-256 Hash</p>
-                        <p class="font-mono text-xs break-all text-ink">{{ certResult.documentFingerprint.sha256 }}</p>
+                        <p class="font-mono text-xs break-all text-ink">{{ certResult.document.sha256 }}</p>
                       </div>
                     </div>
                   </div>
@@ -530,7 +531,7 @@ function formatDate(dateStr) {
                   <!-- Action Buttons -->
                   <div class="flex flex-col gap-3 pt-4 sm:flex-row">
                     <button
-                      v-if="certResult.documentFingerprint?.cid && certResult.status === 'VALID'"
+                      v-if="certResult.document?.cid && certResult.status === 'VALID'"
                       @click="goToFileVerification"
                       class="flex items-center justify-center flex-1 gap-2 px-6 py-3 text-sm font-semibold text-white transition-all rounded-xl bg-primary hover:bg-primary/90"
                     >

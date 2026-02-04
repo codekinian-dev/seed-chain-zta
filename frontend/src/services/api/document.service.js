@@ -65,11 +65,8 @@ const documentService = {
         const formData = new FormData()
         formData.append('file', file)
 
-        const response = await httpClient.post(`/api/v1/documents/public-verify?cid=${encodeURIComponent(cid)}`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            }
-        })
+        // Use upload method which handles FormData correctly (no JSON.stringify, browser sets Content-Type with boundary)
+        const response = await httpClient.upload(`/api/v1/documents/public-verify?cid=${encodeURIComponent(cid)}`, formData)
         return response
     },
 
