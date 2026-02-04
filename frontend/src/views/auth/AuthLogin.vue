@@ -39,7 +39,7 @@ async function handleSubmit() {
 <template>
   <AuthLayout
     title="Welcome back"
-    subtitle="Sign in to manage seed certification workflows, monitor progress, and collaborate with field teams."
+    subtitle=""
     highlight-title="BenihChain"
     highlight-description="End-to-end insights across certification—from batch registration to final validation."
   >

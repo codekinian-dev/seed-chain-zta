@@ -52,9 +52,6 @@ export default {
       boxShadow: {
         soft: '0 20px 45px -20px rgba(15, 155, 142, 0.35)',
       },
-      backgroundImage: {
-        'accent-gradient': 'linear-gradient(135deg, #0F9B8E 0%, #0E4F82 50%, #F7C843 100%)',
-      },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
       },

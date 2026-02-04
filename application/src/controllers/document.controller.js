@@ -492,6 +492,15 @@ const verifyCertificate = async (req, res) => {
         // Get issuer info
         const issuer = seedBatch.actors?.issuer || {};
 
+        // Debug: Log the full batch structure to understand document storage
+        logger.info(`[Document Controller] Batch documents debug:`, {
+            documentsCount: seedBatch.documents?.length || 0,
+            documents: seedBatch.documents || [],
+            certification: certification,
+            hasCertDocCid: !!certification.cert_doc_cid,
+            certDocCid: certification.cert_doc_cid
+        });
+
         // Find certificate document for fingerprint
         // Try multiple matching strategies since document structure may vary
         let certDocument = (seedBatch.documents || []).find(doc =>
@@ -510,6 +519,26 @@ const verifyCertificate = async (req, res) => {
             certDocument = (seedBatch.documents || []).find(doc =>
                 doc.meta?.cert_id === certification.cert_id || doc.doc_id === certification.cert_id
             );
+        }
+
+        // Fallback: check if CID is stored directly in certification object
+        if (!certDocument && certification.cert_doc_cid) {
+            certDocument = {
+                cid: certification.cert_doc_cid,
+                sha256_hash: certification.cert_doc_hash || certification.sha256_hash,
+                file_name: certification.cert_doc_name || `certificate-${cert}.pdf`,
+                uploaded_at: certification.issued_at
+            };
+        }
+
+        // Fallback: check if CID is stored in certification.document
+        if (!certDocument && certification.document?.cid) {
+            certDocument = {
+                cid: certification.document.cid,
+                sha256_hash: certification.document.sha256_hash || certification.document.hash,
+                file_name: certification.document.file_name || certification.document.fileName,
+                uploaded_at: certification.document.uploaded_at
+            };
         }
 
         // Last resort: get the most recent document if any exist

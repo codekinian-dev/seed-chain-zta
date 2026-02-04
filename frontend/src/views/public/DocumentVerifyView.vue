@@ -367,20 +367,13 @@ function formatDate(dateStr) {
 </script>
 
 <template>
-  <div class="relative min-h-screen bg-surface">
-    <!-- Background decorations -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute -top-40 -right-32 h-[500px] w-[500px] rounded-full bg-primary/30 blur-3xl" />
-      <div class="absolute -bottom-56 -left-32 h-[460px] w-[460px] rounded-full bg-ocean/25 blur-3xl" />
-      <div class="absolute w-64 h-64 rounded-full top-1/3 right-1/4 bg-sunshine/30 blur-3xl" />
-    </div>
-
-    <div class="relative z-10 flex flex-col min-h-screen">
+  <div class="min-h-screen bg-gray-50">
+    <div class="flex flex-col min-h-screen">
       <!-- Header -->
-      <header class="px-6 py-6 border-b border-ink/10 bg-white/50 backdrop-blur-sm">
+      <header class="px-6 py-6 bg-white border-b border-gray-200">
         <div class="flex items-center justify-between max-w-4xl mx-auto">
           <div class="flex items-center gap-3">
-            <span class="inline-flex items-center justify-center text-2xl text-white shadow-lg h-11 w-11 rounded-2xl bg-gradient-to-br from-primary to-ocean">🌱</span>
+            <span class="inline-flex items-center justify-center text-2xl text-white shadow-md h-11 w-11 rounded-2xl bg-primary">🌱</span>
             <div>
               <span class="text-lg font-semibold text-ink">BenihChain</span>
               <p class="text-xs text-ink/60">Verifikasi Sertifikat Publik</p>
@@ -925,8 +918,8 @@ function formatDate(dateStr) {
       </main>
 
       <!-- Footer -->
-      <footer class="px-6 py-4 text-center border-t border-ink/10 bg-white/50">
-        <p class="text-sm text-ink/50">
+      <footer class="px-6 py-4 text-center bg-white border-t border-gray-200">
+        <p class="text-sm text-gray-500">
           © 2024 BenihChain - Sistem Sertifikasi Benih Terintegrasi Blockchain
         </p>
       </footer>

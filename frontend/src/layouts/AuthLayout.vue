@@ -24,13 +24,8 @@ defineProps({
 
 <template>
   <div class="relative min-h-screen bg-surface">
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute -top-40 -right-32 h-[500px] w-[500px] rounded-full bg-primary/30 blur-3xl" />
-      <div class="absolute -bottom-56 -left-32 h-[460px] w-[460px] rounded-full bg-ocean/25 blur-3xl" />
-      <div class="absolute w-64 h-64 rounded-full top-1/3 right-1/4 bg-sunshine/30 blur-3xl" />
-    </div>
     <div class="relative z-10 flex flex-col min-h-screen lg:flex-row">
-      <aside class="flex-col justify-between hidden w-full max-w-xl gap-8 p-12 text-white bg-gradient-to-br from-primary via-ocean to-ink lg:flex">
+      <aside class="flex-col justify-between hidden w-full max-w-xl gap-8 p-12 text-white bg-primary lg:flex">
         <div class="flex items-center gap-3 text-lg font-semibold">
           <span class="inline-flex items-center justify-center text-2xl shadow-inner h-11 w-11 rounded-2xl bg-white/15">🌱</span>
           <span>{{ highlightTitle }}</span>
@@ -38,14 +33,14 @@ defineProps({
         <div class="space-y-6">
           <div class="space-y-4">
             <p class="text-sm uppercase tracking-[0.4rem] text-white/60">Digital Certification</p>
-            <h2 class="text-4xl font-semibold leading-tight">
+            <!-- <h2 class="text-4xl font-semibold leading-tight">
               Accelerate seed certification with a unified, intelligent workflow.
-            </h2>
+            </h2> -->
             <p class="text-base text-white/80">
               {{ highlightDescription }}
             </p>
           </div>
-          <ul class="space-y-4 text-base text-white/80">
+          <!-- <ul class="space-y-4 text-base text-white/80">
             <li class="flex items-start gap-3">
               <span class="inline-flex items-center justify-center w-6 h-6 mt-1 text-sm font-semibold rounded-full bg-white/15">1</span>
               Real-time certification tracking from submission to certificate issuance.
@@ -58,7 +53,7 @@ defineProps({
               <span class="inline-flex items-center justify-center w-6 h-6 mt-1 text-sm font-semibold rounded-full bg-white/15">3</span>
               Interactive analytics dashboard to monitor seed quality and process efficiency.
             </li>
-          </ul>
+          </ul> -->
         </div>
         <div class="flex items-center gap-4 text-white/70">
           <!-- <div class="w-12 h-12 rounded-full bg-white/10" />

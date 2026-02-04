@@ -31,17 +31,14 @@ const props = defineProps({
 const accentStyles = computed(() => {
   const palette = {
     primary: {
-      halo: 'bg-primary/15',
       badge: 'bg-primary/10 text-primary',
       text: 'text-primary',
     },
     ocean: {
-      halo: 'bg-ocean/15',
       badge: 'bg-ocean/10 text-ocean',
       text: 'text-ocean',
     },
     sunshine: {
-      halo: 'bg-sunshine/20',
       badge: 'bg-sunshine/10 text-sunshine',
       text: 'text-sunshine',
     },
@@ -69,7 +66,6 @@ const trendStyles = computed(() => {
 
 <template>
   <div class="panel-card relative overflow-hidden px-6 py-6">
-    <div :class="['absolute -right-6 -top-10 h-32 w-32 rounded-full blur-2xl', accentStyles.halo]" />
     <div class="relative z-10 space-y-5">
       <div class="flex items-start justify-between gap-4">
         <div class="space-y-2">
