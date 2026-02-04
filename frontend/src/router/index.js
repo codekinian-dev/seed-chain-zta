@@ -20,6 +20,13 @@ const router = createRouter({
             component: () => import('../views/auth/AuthRegister.vue'),
             meta: { guestOnly: true },
         },
+        // Public routes (no auth required)
+        {
+            path: '/verify',
+            name: 'public-verify',
+            component: () => import('../views/public/DocumentVerifyView.vue'),
+            meta: { public: true },
+        },
         {
             path: '/dashboard',
             name: 'dashboard',

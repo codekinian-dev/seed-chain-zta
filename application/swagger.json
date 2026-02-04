@@ -32,6 +32,10 @@
     {
       "name": "Seed Batches",
       "description": "Seed batch management and certification operations"
+    },
+    {
+      "name": "Documents",
+      "description": "Document management - IPFS retrieval, download, and integrity verification"
     }
   ],
   "paths": {
@@ -1142,6 +1146,287 @@
           }
         }
       }
+    },
+    "/api/v1/documents/{cid}": {
+      "get": {
+        "tags": ["Documents"],
+        "summary": "Get document from IPFS",
+        "description": "Retrieve and stream a document from IPFS by its CID. The document content is streamed directly to the client with appropriate content-type headers. This endpoint is public since documents are immutable and verified by CID.",
+        "operationId": "getDocument",
+        "parameters": [{
+          "name": "cid",
+          "in": "path",
+          "required": true,
+          "description": "IPFS Content Identifier (CID) of the document",
+          "schema": {
+            "type": "string",
+            "example": "QmXyZ123abc456def789"
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "Document content streamed successfully",
+            "headers": {
+              "Content-Type": {
+                "description": "MIME type of the document",
+                "schema": {
+                  "type": "string",
+                  "example": "application/pdf"
+                }
+              },
+              "Content-Disposition": {
+                "description": "Inline display with CID as filename",
+                "schema": {
+                  "type": "string",
+                  "example": "inline; filename=\"QmXyZ123abc456def789\""
+                }
+              },
+              "X-IPFS-CID": {
+                "description": "The IPFS CID of the document",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Cache directive for immutable content",
+                "schema": {
+                  "type": "string",
+                  "example": "public, max-age=31536000"
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Document not found in IPFS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to retrieve document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{cid}/download": {
+      "get": {
+        "tags": ["Documents"],
+        "summary": "Download document from IPFS",
+        "description": "Download a document from IPFS with a specified filename. Use the optional filename query parameter to set the download filename. This endpoint is public since documents are immutable and verified by CID.",
+        "operationId": "downloadDocument",
+        "parameters": [{
+          "name": "cid",
+          "in": "path",
+          "required": true,
+          "description": "IPFS Content Identifier (CID) of the document",
+          "schema": {
+            "type": "string",
+            "example": "QmXyZ123abc456def789"
+          }
+        }, {
+          "name": "filename",
+          "in": "query",
+          "required": false,
+          "description": "Optional filename for the downloaded file",
+          "schema": {
+            "type": "string",
+            "example": "seed-batch-document.pdf"
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "Document downloaded successfully",
+            "headers": {
+              "Content-Type": {
+                "description": "MIME type of the document",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Disposition": {
+                "description": "Attachment with filename for download",
+                "schema": {
+                  "type": "string",
+                  "example": "attachment; filename=\"seed-batch-document.pdf\""
+                }
+              },
+              "X-IPFS-CID": {
+                "description": "The IPFS CID of the document",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to download document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{cid}/metadata": {
+      "get": {
+        "tags": ["Documents"],
+        "summary": "Get document metadata",
+        "description": "Retrieve metadata about a document stored in IPFS, including file size and SHA256 hash. This endpoint is public since metadata is non-sensitive.",
+        "operationId": "getDocumentMetadata",
+        "parameters": [{
+          "name": "cid",
+          "in": "path",
+          "required": true,
+          "description": "IPFS Content Identifier (CID) of the document",
+          "schema": {
+            "type": "string",
+            "example": "QmXyZ123abc456def789"
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "Document metadata retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentMetadataResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to get document metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/verify": {
+      "post": {
+        "tags": ["Documents"],
+        "summary": "Verify document integrity",
+        "description": "Verify the integrity of a document by comparing its SHA256 hash with an expected hash. Can either provide the expected hash directly, or provide batchId and docType to fetch the hash from blockchain metadata. This endpoint is public for transparency and verification purposes.",
+        "operationId": "verifyDocument",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyDocumentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document verification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyDocumentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CID format or missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Batch or document not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to verify document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1597,6 +1882,109 @@
                     "example": "X.509"
                   }
                 }
+              }
+            }
+          }
+        }
+      },
+      "DocumentMetadataResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "cid": {
+                "type": "string",
+                "description": "IPFS Content Identifier",
+                "example": "QmXyZ123abc456def789"
+              },
+              "size": {
+                "type": "integer",
+                "description": "File size in bytes",
+                "example": 102400
+              },
+              "sha256Hash": {
+                "type": "string",
+                "description": "SHA256 hash of the file content",
+                "example": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b5cc4d7e9b5fcf0c8"
+              }
+            }
+          }
+        }
+      },
+      "VerifyDocumentRequest": {
+        "type": "object",
+        "required": ["cid"],
+        "properties": {
+          "cid": {
+            "type": "string",
+            "description": "IPFS Content Identifier of the document to verify",
+            "example": "QmXyZ123abc456def789"
+          },
+          "expectedHash": {
+            "type": "string",
+            "description": "Expected SHA256 hash to compare against (optional if batchId and docType provided)",
+            "example": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b5cc4d7e9b5fcf0c8"
+          },
+          "batchId": {
+            "type": "string",
+            "description": "Seed batch ID to fetch expected hash from blockchain (optional)",
+            "example": "BATCH-20251120-001"
+          },
+          "docType": {
+            "type": "string",
+            "description": "Document type in the batch to verify (optional, used with batchId)",
+            "example": "seed_batch_document"
+          }
+        }
+      },
+      "VerifyDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Document integrity verified successfully"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "cid": {
+                "type": "string",
+                "description": "IPFS Content Identifier",
+                "example": "QmXyZ123abc456def789"
+              },
+              "valid": {
+                "type": "boolean",
+                "description": "Whether the document integrity is valid",
+                "example": true
+              },
+              "calculatedHash": {
+                "type": "string",
+                "description": "SHA256 hash calculated from IPFS content",
+                "example": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b5cc4d7e9b5fcf0c8"
+              },
+              "expectedHash": {
+                "type": "string",
+                "description": "Expected SHA256 hash used for comparison",
+                "example": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b5cc4d7e9b5fcf0c8"
+              },
+              "fileSize": {
+                "type": "integer",
+                "description": "File size in bytes",
+                "example": 102400
+              },
+              "verified": {
+                "type": "boolean",
+                "description": "Whether verification was performed",
+                "example": true
               }
             }
           }

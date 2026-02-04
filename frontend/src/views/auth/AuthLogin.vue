@@ -111,6 +111,16 @@ async function handleSubmit() {
         </span>
         <span v-else>Sign in</span>
       </button>
+
+      <!-- Public Verification Link -->
+      <div class="pt-4 mt-4 text-center border-t border-ink/10">
+        <p class="text-sm text-ink/60">
+          Perlu memverifikasi dokumen?
+          <RouterLink to="/verify" class="font-semibold text-primary hover:text-primary/80">
+            Verifikasi Publik →
+          </RouterLink>
+        </p>
+      </div>
     </form>
 
     <template #footer>

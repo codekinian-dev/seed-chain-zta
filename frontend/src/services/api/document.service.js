@@ -55,6 +55,25 @@ const documentService = {
     },
 
     /**
+     * Public document verification with file upload
+     * Verifies uploaded document against IPFS stored document
+     * @param {string} cid - IPFS CID from QR code
+     * @param {File} file - File to verify
+     * @returns {Promise}
+     */
+    async publicVerify(cid, file) {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await httpClient.post(`/api/v1/documents/public-verify?cid=${encodeURIComponent(cid)}`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+        return response
+    },
+
+    /**
      * Download document as blob
      * @param {string} cid - IPFS CID
      * @returns {Promise<Blob>}
