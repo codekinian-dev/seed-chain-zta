@@ -264,7 +264,27 @@ const publicVerify = async (req, res) => {
         const uploadedHash = await documentService.calculateFileHash(uploadedFile.path);
 
         // Get stored document metadata from IPFS
-        const storedMetadata = await documentService.getFileMetadata(cid);
+        let storedMetadata;
+        try {
+            storedMetadata = await documentService.getFileMetadata(cid);
+        } catch (ipfsError) {
+            // Clean up uploaded file
+            const fs = require('fs');
+            try {
+                fs.unlinkSync(uploadedFile.path);
+            } catch (cleanupError) {
+                logger.warn(`[Document Controller] Failed to cleanup uploaded file: ${cleanupError.message}`);
+            }
+
+            logger.error(`[Document Controller] IPFS retrieval error: ${ipfsError.message}`);
+
+            // Check if it's a 404 error
+            if (ipfsError.message?.includes('404') || ipfsError.message?.includes('not found')) {
+                throw new AppError('Document not found in IPFS. The CID may be invalid or the document has not been uploaded yet.', 404);
+            }
+
+            throw new AppError('Failed to retrieve document from IPFS. Please try again later.', 503);
+        }
 
         // Compare hashes
         const isValid = uploadedHash.toLowerCase() === storedMetadata.sha256Hash.toLowerCase();
@@ -360,10 +380,188 @@ const publicVerify = async (req, res) => {
     }
 };
 
+/**
+ * Public certificate verification via QR Code
+ * Verifies certificate number against batch ID
+ * Returns certificate status and details
+ */
+const verifyCertificate = async (req, res) => {
+    try {
+        const { cert, batch } = req.query;
+
+        logger.info(`[Document Controller] Public certificate verification`, { cert, batch });
+
+        // Validate required params
+        if (!cert) {
+            throw new AppError('Certificate number (cert) is required', 400);
+        }
+
+        if (!batch) {
+            throw new AppError('Batch ID (batch) is required', 400);
+        }
+
+        // Query seed batch from blockchain
+        let seedBatch;
+        try {
+            seedBatch = await fabricService.query('querySeedBatch', [batch]);
+        } catch (fabricError) {
+            logger.error(`[Document Controller] Blockchain query error: ${fabricError.message}`);
+
+            if (fabricError.message?.includes('tidak ditemukan') || fabricError.message?.includes('not found')) {
+                return res.status(200).json({
+                    success: true,
+                    status: 'NOT_FOUND',
+                    message: 'Batch tidak ditemukan di sistem',
+                    data: {
+                        certNumber: cert,
+                        batchId: batch,
+                        valid: false,
+                        verifiedAt: new Date().toISOString()
+                    }
+                });
+            }
+
+            throw new AppError('Failed to query blockchain', 503);
+        }
+
+        if (!seedBatch) {
+            return res.status(200).json({
+                success: true,
+                status: 'NOT_FOUND',
+                message: 'Batch tidak ditemukan di sistem',
+                data: {
+                    certNumber: cert,
+                    batchId: batch,
+                    valid: false,
+                    verifiedAt: new Date().toISOString()
+                }
+            });
+        }
+
+        // Check if certification exists and matches
+        const certification = seedBatch.certification;
+
+        if (!certification || !certification.cert_number) {
+            return res.status(200).json({
+                success: true,
+                status: 'NOT_CERTIFIED',
+                message: 'Batch ini belum memiliki sertifikat',
+                data: {
+                    certNumber: cert,
+                    batchId: batch,
+                    valid: false,
+                    batchStatus: seedBatch.status?.current || seedBatch.status,
+                    verifiedAt: new Date().toISOString()
+                }
+            });
+        }
+
+        // Verify certificate number matches
+        if (certification.cert_number !== cert) {
+            return res.status(200).json({
+                success: true,
+                status: 'MISMATCH',
+                message: 'Nomor sertifikat tidak sesuai dengan batch ini',
+                data: {
+                    certNumber: cert,
+                    batchId: batch,
+                    valid: false,
+                    verifiedAt: new Date().toISOString()
+                }
+            });
+        }
+
+        // Determine certificate status
+        let status = 'VALID';
+        let statusMessage = 'Sertifikat valid dan aktif';
+
+        // Check if revoked
+        if (certification.revoked_at) {
+            status = 'REVOKED';
+            statusMessage = `Sertifikat telah dicabut pada ${new Date(certification.revoked_at).toLocaleDateString('id-ID')}`;
+        }
+        // Check if expired
+        else if (certification.expires_at) {
+            const expiryDate = new Date(certification.expires_at);
+            if (expiryDate < new Date()) {
+                status = 'EXPIRED';
+                statusMessage = `Sertifikat kedaluwarsa pada ${expiryDate.toLocaleDateString('id-ID')}`;
+            }
+        }
+
+        // Get issuer info
+        const issuer = seedBatch.actors?.issuer || {};
+
+        // Find certificate document for fingerprint
+        const certDocument = (seedBatch.documents || []).find(doc =>
+            doc.doc_type === 'certificate' && doc.meta?.cert_number === cert
+        );
+
+        // Build response
+        const responseData = {
+            certNumber: certification.cert_number,
+            certId: certification.cert_id,
+            batchId: batch,
+            valid: status === 'VALID',
+            status,
+            statusMessage,
+
+            // Certificate details
+            issuedAt: certification.issued_at,
+            expiresAt: certification.expires_at,
+            revokedAt: certification.revoked_at,
+            revokeReason: certification.revoke_reason,
+
+            // Issuer info
+            issuer: {
+                name: issuer.name || issuer.actor_name,
+                organization: issuer.org || issuer.organization,
+                role: issuer.role,
+                issuedAt: issuer.at || issuer.timestamp
+            },
+
+            // Batch info
+            batch: {
+                batchNumber: seedBatch.batch_number || seedBatch.batchNumber,
+                varietyName: seedBatch.variety?.name || seedBatch.varietyName,
+                producerName: seedBatch.producer?.name || seedBatch.producerName,
+                quantity: seedBatch.quantity?.certified || seedBatch.certifiedQuantity,
+                quantityUnit: seedBatch.quantity?.qty_base_unit || seedBatch.quantityUnit || 'kg',
+                status: seedBatch.status?.current || seedBatch.status
+            },
+
+            // Document fingerprint
+            document: certDocument ? {
+                cid: certDocument.cid,
+                sha256Hash: certDocument.sha256_hash,
+                fileName: certDocument.file_name,
+                uploadedAt: certDocument.uploaded_at
+            } : null,
+
+            verifiedAt: new Date().toISOString()
+        };
+
+        res.status(200).json({
+            success: true,
+            status,
+            message: statusMessage,
+            data: responseData
+        });
+
+    } catch (error) {
+        logger.error(`[Document Controller] Error verifying certificate: ${error.message}`);
+        throw new AppError(
+            error.message || 'Failed to verify certificate',
+            error.statusCode || 500
+        );
+    }
+};
+
 module.exports = {
     getDocument,
     downloadDocument,
     verifyDocument,
     getDocumentMetadata,
-    publicVerify
+    publicVerify,
+    verifyCertificate
 };

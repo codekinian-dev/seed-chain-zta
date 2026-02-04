@@ -26,6 +26,18 @@ router.post(
 );
 
 /**
+ * @route   GET /api/v1/documents/verify-certificate
+ * @desc    Public certificate verification via QR Code
+ * @access  Public - For QR code scanning verification
+ * @query   cert - Certificate number
+ * @query   batch - Batch ID
+ */
+router.get(
+    '/verify-certificate',
+    asyncHandler(documentController.verifyCertificate)
+);
+
+/**
  * @route   GET /api/v1/documents/:cid
  * @desc    Get/stream document from IPFS by CID
  * @access  Public - Documents are immutable and verified by CID

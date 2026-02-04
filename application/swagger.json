@@ -1495,6 +1495,65 @@
           }
         }
       }
+    },
+    "/api/v1/documents/verify-certificate": {
+      "get": {
+        "tags": ["Documents"],
+        "summary": "Public certificate verification via QR Code",
+        "description": "Public endpoint for verifying seed certification certificates via QR Code scanning. Validates certificate number against batch ID and returns certificate status (VALID/REVOKED/EXPIRED/NOT_FOUND), issuer information, and document fingerprint. This is designed for public verification flow where users scan QR codes on certificate labels.",
+        "operationId": "verifyCertificate",
+        "parameters": [{
+          "name": "cert",
+          "in": "query",
+          "required": true,
+          "description": "Certificate number to verify (e.g., CERT-2024-001)",
+          "schema": {
+            "type": "string",
+            "example": "CERT-2024-001"
+          }
+        }, {
+          "name": "batch",
+          "in": "query",
+          "required": true,
+          "description": "Batch ID that the certificate should belong to",
+          "schema": {
+            "type": "string",
+            "example": "BATCH-123456"
+          }
+        }],
+        "responses": {
+          "200": {
+            "description": "Certificate verification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CertificateVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing certificate number or batch ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to verify certificate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2191,6 +2250,130 @@
                 }
               }
             }
+          }
+        }
+      },
+      "CertificateVerifyResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Certificate verification status",
+            "enum": ["VALID", "REVOKED", "EXPIRED", "NOT_FOUND", "NOT_CERTIFIED", "MISMATCH"],
+            "example": "VALID"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable verification result message",
+            "example": "Certificate is valid and active"
+          },
+          "certNumber": {
+            "type": "string",
+            "description": "The certificate number that was verified",
+            "example": "CERT-2024-001"
+          },
+          "issuer": {
+            "type": "object",
+            "nullable": true,
+            "description": "Information about certificate issuer (only included for valid certificates)",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the certificate issuer",
+                "example": "John Smith"
+              },
+              "organization": {
+                "type": "string",
+                "description": "Organization of the issuer",
+                "example": "Badan Pengawas Mutu Benih"
+              },
+              "signature": {
+                "type": "string",
+                "description": "Digital signature identifier (truncated for display)",
+                "example": "sig_abc123...xyz789"
+              }
+            }
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Certificate issue date",
+            "example": "2025-01-15T10:00:00.000Z"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Certificate expiry date",
+            "example": "2026-01-15T10:00:00.000Z"
+          },
+          "revokedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Revocation date (only included if certificate is revoked)",
+            "example": null
+          },
+          "revokeReason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Reason for revocation (only included if certificate is revoked)",
+            "example": null
+          },
+          "batch": {
+            "type": "object",
+            "nullable": true,
+            "description": "Associated batch information",
+            "properties": {
+              "batchId": {
+                "type": "string",
+                "description": "Unique batch identifier",
+                "example": "BATCH-123456"
+              },
+              "batchNumber": {
+                "type": "string",
+                "description": "Batch number",
+                "example": "BN-2024-0001"
+              },
+              "varietyName": {
+                "type": "string",
+                "description": "Name of the seed variety",
+                "example": "Ciherang"
+              },
+              "producerName": {
+                "type": "string",
+                "description": "Name of the seed producer",
+                "example": "PT Pertani"
+              }
+            }
+          },
+          "documentFingerprint": {
+            "type": "object",
+            "nullable": true,
+            "description": "Document fingerprint for additional file verification",
+            "properties": {
+              "cid": {
+                "type": "string",
+                "description": "IPFS Content Identifier of the certificate document",
+                "example": "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco"
+              },
+              "sha256": {
+                "type": "string",
+                "description": "SHA-256 hash of the certificate document",
+                "example": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b5cc4d7e9b5fcf0c8"
+              }
+            }
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of verification",
+            "example": "2025-02-04T10:30:00.000Z"
           }
         }
       }

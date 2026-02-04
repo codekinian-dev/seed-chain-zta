@@ -74,6 +74,18 @@ const documentService = {
     },
 
     /**
+     * Public certificate verification via QR Code
+     * Verifies certificate number against batch ID
+     * @param {string} certNumber - Certificate number
+     * @param {string} batchId - Batch ID
+     * @returns {Promise}
+     */
+    async verifyCertificate(certNumber, batchId) {
+        const response = await httpClient.get(`/api/v1/documents/verify-certificate?cert=${encodeURIComponent(certNumber)}&batch=${encodeURIComponent(batchId)}`)
+        return response
+    },
+
+    /**
      * Download document as blob
      * @param {string} cid - IPFS CID
      * @returns {Promise<Blob>}
