@@ -23,61 +23,16 @@ class QuerySeedBatchWorkload extends WorkloadModuleBase {
         this.workerIndex = workerIndex;
         this.totalWorkers = totalWorkers;
 
-        // Fetch existing batch IDs from ledger
-        const statuses = ['REGISTERED', 'SUBMITTED', 'CERTIFIED'];
+        // Use hardcoded batch IDs from ledger
+        this.batchIds = [
+            'BATCH-20260204-56266B2A',
+            'BATCH-20260204-54213DCD',
+            'BATCH-20260204-462F8079',
+            'BATCH-20260204-D35F4251',
+            'BATCH-20260204-0E63FDD9'
+        ];
 
-        for (const status of statuses) {
-            try {
-                const queryRequest = {
-                    contractId: this.roundArguments.contractId,
-                    contractFunction: 'querySeedBatchesByStatus',
-                    contractArguments: [status],
-                    readOnly: true,
-                    invokerIdentity: 'appUser'
-                };
-
-                const result = await this.sutAdapter.sendRequests(queryRequest);
-
-                // Handle different response formats
-                let resultData = null;
-                if (result && result.status === 'success') {
-                    resultData = result.result;
-                } else if (result && typeof result === 'object' && result.result) {
-                    resultData = result.result;
-                } else if (result && Buffer.isBuffer(result)) {
-                    resultData = result;
-                }
-
-                if (resultData) {
-                    const resultStr = resultData.toString();
-                    console.log(`[Worker ${workerIndex}] Query ${status} raw result length: ${resultStr.length}`);
-
-                    if (resultStr && resultStr.length > 2) {  // More than just "[]"
-                        const batches = JSON.parse(resultStr);
-                        if (Array.isArray(batches) && batches.length > 0) {
-                            const ids = batches.map(b => b.Key || b.id || b.batch_id).filter(id => id);
-                            this.batchIds.push(...ids);
-                            console.log(`[Worker ${workerIndex}] Found ${ids.length} ${status} batches`);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.warn(`[Worker ${workerIndex}] Could not fetch ${status} batches: ${error.message}`);
-            }
-        }
-
-        this.batchIds = [...new Set(this.batchIds)];
-
-        if (this.batchIds.length === 0) {
-            console.error('[QuerySeedBatch-150] ⚠️  NO BATCHES FOUND IN LEDGER!');
-            console.error('[QuerySeedBatch-150] Please run Scenario A (createSeedBatch) first to populate data.');
-            this.batchIds.push('BATCH-NO-DATA-FOUND');
-        }
-
-        console.log(`[Worker ${workerIndex}] Total ${this.batchIds.length} batch IDs for 150 TPS query round`);
-        if (this.batchIds.length > 0 && this.batchIds.length <= 10) {
-            console.log(`[Worker ${workerIndex}] Batch IDs: ${this.batchIds.join(', ')}`);
-        }
+        console.log(`[Worker ${workerIndex}] Using ${this.batchIds.length} batch IDs for 150 TPS query round`);
     }
 
     /**
@@ -94,7 +49,7 @@ class QuerySeedBatchWorkload extends WorkloadModuleBase {
             contractFunction: 'querySeedBatch',
             contractArguments: [batchId],
             readOnly: true,
-            invokerIdentity: 'appUser'
+            invokerIdentity: 'farmer1'
         };
 
         try {
