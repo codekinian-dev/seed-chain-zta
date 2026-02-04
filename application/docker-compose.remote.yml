@@ -46,7 +46,7 @@ services:
 
       # Mount HANYA TLS certificates (bukan seluruh crypto-config)
       # TLS certs ini jarang berubah, hanya perlu sync sekali
-      - ./tls-certs:/app/tls-certs:ro
+      - ./tls-certs:/app/tls-certs
 
       # Mount logs for persistence
       - ./logs:/app/logs
