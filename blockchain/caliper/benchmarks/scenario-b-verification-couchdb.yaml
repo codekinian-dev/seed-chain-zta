@@ -1,0 +1,76 @@
+test:
+  name: scenario-b-verification-couchdb
+  description: Scenario B - Public Verification (Read-Heavy, Optimized for CouchDB Remote)
+  workers:
+    number: 3
+  rounds:
+    # --- TAHAP 1: Pemanasan (CouchDB Safe Zone) ---
+    - label: verification-10tps
+      txDuration: 60
+      rateControl: { type: fixed-rate, opts: { tps: 10 } }
+      workload:
+        module: ./workload/querySeedBatch-50.js
+        arguments: { contractId: benih-certification }
+
+    # --- TAHAP 2: Beban Ringan ---
+    - label: verification-25tps
+      txDuration: 60
+      rateControl: { type: fixed-rate, opts: { tps: 25 } }
+      workload:
+        module: ./workload/querySeedBatch-100.js
+        arguments: { contractId: benih-certification }
+
+    # --- TAHAP 3: Beban Menengah ---
+    - label: verification-50tps
+      txDuration: 60
+      rateControl: { type: fixed-rate, opts: { tps: 50 } }
+      workload:
+        module: ./workload/querySeedBatch-150.js
+        arguments: { contractId: benih-certification }
+
+    # --- TAHAP 4: Mencari Batas CouchDB ---
+    - label: verification-75tps
+      txDuration: 60
+      rateControl: { type: fixed-rate, opts: { tps: 75 } }
+      workload:
+        module: ./workload/querySeedBatch-200.js
+        arguments: { contractId: benih-certification }
+
+    # --- TAHAP 5: Stress Test CouchDB ---
+    - label: verification-100tps
+      txDuration: 60
+      rateControl: { type: fixed-rate, opts: { tps: 100 } }
+      workload:
+        module: ./workload/querySeedBatch-250.js
+        arguments: { contractId: benih-certification }
+
+monitors:
+  resource:
+    - module: prometheus
+      options:
+        url: "http://152.42.164.128:9090"
+        metrics:
+          include: [peer*, orderer*, couch*]
+          queries:
+            - name: Avg Memory (MB)
+              query: 'sum(container_memory_usage_bytes{name=~".+"}) by (name)'
+              step: 10
+              label: name
+              statistic: avg
+              multiplier: 0.000001
+            - name: Max Memory (MB)
+              query: 'sum(container_memory_usage_bytes{name=~".+"}) by (name)'
+              step: 10
+              label: name
+              statistic: max
+              multiplier: 0.000001
+            - name: Avg CPU (%)
+              query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+              step: 10
+              label: name
+              statistic: avg
+            - name: Max CPU (%)
+              query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+              step: 10
+              label: name
+              statistic: max

@@ -1,0 +1,48 @@
+test:
+  name: create-seed-batch-remote-test
+  description: Performance test untuk createSeedBatch function (optimized for remote)
+  workers:
+    number: 2
+  rounds:
+    - label: createSeedBatch
+      description: Create seed batches dengan berbagai data
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 2
+      workload:
+        module: ../workload/createSeedBatch.js
+        arguments:
+          contractId: benih-certification
+
+monitors:
+  resource:
+    - module: prometheus
+      options:
+        url: "http://152.42.164.128:9090"
+        metrics:
+          include: [peer*, orderer*, couch*]
+          queries:
+            - name: Avg Memory (MB)
+              query: 'sum(container_memory_usage_bytes{name=~".+"}) by (name)'
+              step: 10
+              label: name
+              statistic: avg
+              multiplier: 0.000001
+            - name: Max Memory (MB)
+              query: 'sum(container_memory_usage_bytes{name=~".+"}) by (name)'
+              step: 10
+              label: name
+              statistic: max
+              multiplier: 0.000001
+            - name: Avg CPU (%)
+              query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+              step: 10
+              label: name
+              statistic: avg
+            - name: Max CPU (%)
+              query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+              step: 10
+              label: name
+              statistic: max
