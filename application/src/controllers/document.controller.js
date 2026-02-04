@@ -493,9 +493,39 @@ const verifyCertificate = async (req, res) => {
         const issuer = seedBatch.actors?.issuer || {};
 
         // Find certificate document for fingerprint
-        const certDocument = (seedBatch.documents || []).find(doc =>
+        // Try multiple matching strategies since document structure may vary
+        let certDocument = (seedBatch.documents || []).find(doc =>
             doc.doc_type === 'certificate' && doc.meta?.cert_number === cert
         );
+
+        // Fallback: find any certificate document
+        if (!certDocument) {
+            certDocument = (seedBatch.documents || []).find(doc =>
+                doc.doc_type === 'certificate'
+            );
+        }
+
+        // Fallback: find document by certification cert_id
+        if (!certDocument && certification.cert_id) {
+            certDocument = (seedBatch.documents || []).find(doc =>
+                doc.meta?.cert_id === certification.cert_id || doc.doc_id === certification.cert_id
+            );
+        }
+
+        // Last resort: get the most recent document if any exist
+        if (!certDocument && seedBatch.documents && seedBatch.documents.length > 0) {
+            // Sort by uploaded_at descending and get the first one
+            const sortedDocs = [...seedBatch.documents].sort((a, b) => {
+                const dateA = new Date(a.uploaded_at || 0);
+                const dateB = new Date(b.uploaded_at || 0);
+                return dateB - dateA;
+            });
+            certDocument = sortedDocs[0];
+        }
+
+        logger.info(`[Document Controller] Certificate document found: ${!!certDocument}`, {
+            certDocument: certDocument ? { cid: certDocument.cid, doc_type: certDocument.doc_type } : null
+        });
 
         // Build response
         const responseData = {
