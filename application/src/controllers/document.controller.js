@@ -144,7 +144,7 @@ const verifyDocument = async (req, res) => {
 
             try {
                 // Use admin identity to query blockchain
-                const seedBatch = await fabricService.query('querySeedBatch', [batchId]);
+                const seedBatch = await fabricService.queryChaincode('querySeedBatch', [batchId]);
 
                 if (!seedBatch) {
                     throw new AppError('Batch not found', 404);
@@ -316,7 +316,7 @@ const publicVerify = async (req, res) => {
         let batchData = null;
         try {
             // Query all seed batches to find one containing this document
-            const allBatches = await fabricService.query('queryAllSeedBatches', []);
+            const allBatches = await fabricService.queryChaincode('queryAllSeedBatches', []);
 
             if (allBatches && Array.isArray(allBatches)) {
                 for (const batch of allBatches) {
@@ -403,7 +403,7 @@ const verifyCertificate = async (req, res) => {
         // Query seed batch from blockchain
         let seedBatch;
         try {
-            seedBatch = await fabricService.query('querySeedBatch', [batch]);
+            seedBatch = await fabricService.queryChaincode('querySeedBatch', [batch]);
         } catch (fabricError) {
             logger.error(`[Document Controller] Blockchain query error: ${fabricError.message}`);
 
