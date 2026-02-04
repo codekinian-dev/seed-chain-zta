@@ -290,10 +290,23 @@ async function handleFileVerify() {
   
   try {
     const response = await documentService.publicVerify(cid.value.trim(), selectedFile.value)
-    fileResult.value = response.data
+    // httpClient returns JSON directly (not axios-style response.data)
+    // Backend returns { success, verified, message, data: {...} }
+    console.log('File verification response:', response)
+    fileResult.value = {
+      verified: response.verified,
+      message: response.message,
+      cid: response.data?.cid,
+      hash: response.data?.hash,
+      storedHash: response.data?.storedHash,
+      uploadedHash: response.data?.uploadedHash,
+      fileSize: response.data?.fileSize,
+      verifiedAt: response.data?.verifiedAt,
+      batchData: response.data?.batchData
+    }
   } catch (err) {
     console.error('File verification error:', err)
-    fileError.value = err.response?.data?.message || err.response?.data?.error || err.message || 'Gagal memverifikasi dokumen'
+    fileError.value = err.data?.message || err.message || 'Gagal memverifikasi dokumen'
   } finally {
     fileLoading.value = false
   }
