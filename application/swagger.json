@@ -1427,6 +1427,74 @@
           }
         }
       }
+    },
+    "/api/v1/documents/public-verify": {
+      "post": {
+        "tags": ["Documents"],
+        "summary": "Public document verification with file upload",
+        "description": "Public endpoint for verifying document authenticity by uploading a file and comparing its hash with the document stored in IPFS. This endpoint is designed for QR code scanning verification flow where the CID is provided as a query parameter. If verification passes, returns the associated seed batch certification data from blockchain.",
+        "operationId": "publicVerifyDocument",
+        "parameters": [{
+          "name": "cid",
+          "in": "query",
+          "required": true,
+          "description": "IPFS Content Identifier (CID) of the document to verify against. This is typically obtained from scanning a QR code on the certificate.",
+          "schema": {
+            "type": "string",
+            "example": "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco"
+          }
+        }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The document file to verify (PDF, DOC, DOCX, XLS, XLSX, JPG, PNG). Max size: 10MB"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document verification result with batch data if verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicVerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CID format, missing CID, or missing file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to verify document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1985,6 +2053,142 @@
                 "type": "boolean",
                 "description": "Whether verification was performed",
                 "example": true
+              }
+            }
+          }
+        }
+      },
+      "PublicVerifyResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "Whether the uploaded document matches the stored document",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Document verified successfully - integrity confirmed"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "cid": {
+                "type": "string",
+                "description": "IPFS Content Identifier",
+                "example": "QmXyZ123abc456def789"
+              },
+              "hash": {
+                "type": "string",
+                "description": "SHA256 hash of the stored document",
+                "example": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b5cc4d7e9b5fcf0c8"
+              },
+              "uploadedHash": {
+                "type": "string",
+                "description": "SHA256 hash of the uploaded file (only shown if verification failed)",
+                "example": "b681b7e51cf530505b122844dfc8c291e73d76cf1ceda43c6dd5e8a6d6fd1d9"
+              },
+              "storedHash": {
+                "type": "string",
+                "description": "SHA256 hash of the stored document (only shown if verification failed)",
+                "example": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b5cc4d7e9b5fcf0c8"
+              },
+              "fileSize": {
+                "type": "integer",
+                "description": "File size in bytes",
+                "example": 102400
+              },
+              "verifiedAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timestamp of verification",
+                "example": "2025-02-04T10:30:00.000Z"
+              },
+              "batchData": {
+                "type": "object",
+                "nullable": true,
+                "description": "Seed batch certification data (only included if document is verified and associated with a batch)",
+                "properties": {
+                  "batchId": {
+                    "type": "string",
+                    "description": "Unique batch identifier",
+                    "example": "BATCH-2024-001"
+                  },
+                  "batchNumber": {
+                    "type": "string",
+                    "description": "Batch number",
+                    "example": "BN-2024-0001"
+                  },
+                  "varietyName": {
+                    "type": "string",
+                    "description": "Name of the seed variety",
+                    "example": "Ciherang"
+                  },
+                  "producerName": {
+                    "type": "string",
+                    "description": "Name of the seed producer",
+                    "example": "PT Pertani"
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "Current batch status",
+                    "enum": ["REGISTERED", "SUBMITTED", "INSPECTED", "EVALUATED", "CERTIFIED", "DISTRIBUTED", "REVOKED"],
+                    "example": "CERTIFIED"
+                  },
+                  "quantity": {
+                    "type": "number",
+                    "description": "Quantity of seeds",
+                    "example": 1000
+                  },
+                  "quantityUnit": {
+                    "type": "string",
+                    "description": "Unit of quantity measurement",
+                    "example": "kg"
+                  },
+                  "certificationStatus": {
+                    "type": "string",
+                    "description": "Certification status",
+                    "example": "CERTIFIED"
+                  },
+                  "documentType": {
+                    "type": "string",
+                    "description": "Type of the verified document",
+                    "example": "certificate"
+                  },
+                  "documentName": {
+                    "type": "string",
+                    "description": "Original filename of the document",
+                    "example": "certificate-2024-001.pdf"
+                  },
+                  "uploadedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "When the document was uploaded",
+                    "example": "2025-01-15T08:00:00.000Z"
+                  },
+                  "certificate": {
+                    "type": "object",
+                    "nullable": true,
+                    "description": "Certificate details if batch is certified",
+                    "properties": {
+                      "certNumber": {
+                        "type": "string",
+                        "description": "Certificate number",
+                        "example": "CERT-2024-00123"
+                      },
+                      "issuedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Certificate issue date",
+                        "example": "2025-01-20T10:00:00.000Z"
+                      }
+                    }
+                  }
+                }
               }
             }
           }
