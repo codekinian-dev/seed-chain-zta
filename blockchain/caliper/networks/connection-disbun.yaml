@@ -7,10 +7,12 @@ client:
     path: /tmp/disbun-kvs
     cryptoStore:
       path: /tmp/disbun-cvs
+
+  # Client credentials - farmer1 with role_producer
   clientPrivateKey:
-    path: ../credentials/appUser/key.pem
+    path: ../credentials/farmer1/key.pem
   clientSignedCert:
-    path: ../credentials/appUser/cert.pem
+    path: ../credentials/farmer1/cert.pem
 
 channels:
   benihchannel:

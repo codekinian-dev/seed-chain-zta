@@ -7,10 +7,11 @@ client:
     path: /tmp/bpsbp-kvs-remote
     cryptoStore:
       path: /tmp/bpsbp-cvs-remote
+  # Client credentials - farmer1 with role_producer
   clientPrivateKey:
-    path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/Admin@chain-bpsbp.jabarchain.me/msp/keystore/priv_sk
+    path: ../credentials/farmer1/key.pem
   clientSignedCert:
-    path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/users/Admin@chain-bpsbp.jabarchain.me/msp/signcerts/Admin@chain-bpsbp.jabarchain.me-cert.pem
+    path: ../credentials/farmer1/cert.pem
 
 channels:
   benihchannel:
@@ -56,7 +57,7 @@ orderers:
       request-timeout: 180000
       grpc.max_receive_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/ordererOrganizations/jabarchain.me/orderers/chain-orderer.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/orderer/orderer-tls-ca.crt
 
 peers:
   pusat.chain-bpsbp.jabarchain.me:
@@ -68,7 +69,7 @@ peers:
       grpc.max_receive_message_length: -1
       grpc.max_send_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/peers/pusat-tls-ca.crt
 
   cert.chain-bpsbp.jabarchain.me:
     url: grpcs://152.42.164.128:8051
@@ -79,7 +80,7 @@ peers:
       grpc.max_receive_message_length: -1
       grpc.max_send_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/peers/cert-tls-ca.crt
 
   sekretariat.chain-disbun.jabarchain.me:
     url: grpcs://152.42.164.128:9051
@@ -90,7 +91,7 @@ peers:
       grpc.max_receive_message_length: -1
       grpc.max_send_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/peers/sekretariat-tls-ca.crt
 
   digital.chain-disbun.jabarchain.me:
     url: grpcs://152.42.164.128:10051
@@ -101,7 +102,7 @@ peers:
       grpc.max_receive_message_length: -1
       grpc.max_send_message_length: -1
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls/ca.crt
+      path: ../../application/tls-certs/peers/digital-tls-ca.crt
 
 certificateAuthorities:
   ca-bpsbp:
@@ -109,7 +110,7 @@ certificateAuthorities:
     httpOptions:
       verify: false
     tlsCACerts:
-      path: ../network/organizations/peerOrganizations/chain-bpsbp.jabarchain.me/ca/ca-cert.pem
+      path: ../../application/tls-certs/ca/ca-bpsbp-tls.pem
     registrar:
       - enrollId: admin
         enrollSecret: adminpw

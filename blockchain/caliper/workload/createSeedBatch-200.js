@@ -57,7 +57,7 @@ class CreateSeedBatchWorkload extends WorkloadModuleBase {
                 data.seedSourceDocHash                 // seedSourceDocHash (SHA256 64 hex)
             ],
             readOnly: false,
-            invokerIdentity: 'appUser'  // Using appUser for testing
+            invokerIdentity: 'farmer1'  // farmer1 has role_producer
         };
 
         try {

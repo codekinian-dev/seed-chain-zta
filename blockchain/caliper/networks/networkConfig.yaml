@@ -12,6 +12,11 @@ organizations:
   - mspid: BPSBPBenihMSP
     identities:
       certificates:
+        - name: farmer1
+          clientSignedCert:
+            path: ./credentials/farmer1/cert.pem
+          clientPrivateKey:
+            path: ./credentials/farmer1/key.pem
         # appUser for all testing operations
         - name: appUser
           clientSignedCert:

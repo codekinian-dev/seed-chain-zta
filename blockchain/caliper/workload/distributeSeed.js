@@ -32,7 +32,7 @@ class DistributeSeedWorkload extends WorkloadModuleBase {
             contractFunction: 'querySeedBatchesByStatus',
             contractArguments: ['CERTIFIED'],
             readOnly: true,
-            invokerIdentity: 'appUser'  // Using appUser for testing
+            invokerIdentity: 'farmer1'  // farmer1 has role_producer
         };
 
         try {
@@ -79,7 +79,7 @@ class DistributeSeedWorkload extends WorkloadModuleBase {
                 evidenceDocHash
             ],
             readOnly: false,
-            invokerIdentity: 'appUser'  // Using appUser for testing
+            invokerIdentity: 'farmer1'  // farmer1 has role_producer
         };
 
         await this.sutAdapter.sendRequests(request);
