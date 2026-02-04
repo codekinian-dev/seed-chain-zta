@@ -37,28 +37,47 @@ class QuerySeedBatchWorkload extends WorkloadModuleBase {
                 };
 
                 const result = await this.sutAdapter.sendRequests(queryRequest);
-                if (result && result.status === 'success' && result.result) {
-                    const batches = JSON.parse(result.result.toString());
-                    const ids = batches.map(b => b.Key || b.batch_id);
-                    this.batchIds.push(...ids);
+
+                // Handle different response formats
+                let resultData = null;
+                if (result && result.status === 'success') {
+                    resultData = result.result;
+                } else if (result && typeof result === 'object' && result.result) {
+                    resultData = result.result;
+                } else if (result && Buffer.isBuffer(result)) {
+                    resultData = result;
+                }
+
+                if (resultData) {
+                    const resultStr = resultData.toString();
+                    console.log(`[Worker ${workerIndex}] Query ${status} raw result length: ${resultStr.length}`);
+
+                    if (resultStr && resultStr.length > 2) {  // More than just "[]"
+                        const batches = JSON.parse(resultStr);
+                        if (Array.isArray(batches) && batches.length > 0) {
+                            const ids = batches.map(b => b.Key || b.id || b.batch_id).filter(id => id);
+                            this.batchIds.push(...ids);
+                            console.log(`[Worker ${workerIndex}] Found ${ids.length} ${status} batches`);
+                        }
+                    }
                 }
             } catch (error) {
-                console.warn(`Could not fetch ${status} batches: ${error.message}`);
+                console.warn(`[Worker ${workerIndex}] Could not fetch ${status} batches: ${error.message}`);
             }
         }
 
         this.batchIds = [...new Set(this.batchIds)];
 
         if (this.batchIds.length === 0) {
-            console.warn('[QuerySeedBatch-250] No existing batches found. Using fallback.');
-            const today = new Date();
-            const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-            for (let i = 1; i <= 100; i++) {
-                this.batchIds.push(`BATCH-${dateStr}-${String(i).padStart(4, '0')}`);
-            }
+            console.error('[QuerySeedBatch-250] ⚠️  NO BATCHES FOUND IN LEDGER!');
+            console.error('[QuerySeedBatch-250] Please run Scenario A (createSeedBatch) first to populate data.');
+            this.batchIds.push('BATCH-NO-DATA-FOUND');
         }
 
-        console.log(`[Worker ${workerIndex}] Found ${this.batchIds.length} batch IDs for 250 TPS query round`);
+        console.log(`[Worker ${workerIndex}] Total ${this.batchIds.length} batch IDs for 250 TPS query round`);
+        if (this.batchIds.length > 0 && this.batchIds.length <= 10) {
+            console.log(`[Worker ${workerIndex}] Batch IDs: ${this.batchIds.join(', ')}`);
+        }
     }
 
     /**
