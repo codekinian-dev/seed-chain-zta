@@ -13,7 +13,8 @@ const seedBatchFailed = new Counter('seed_batch_failed');
 const seedBatchDuration = new Trend('seed_batch_duration');
 
 // Load PDF file once at init stage (global scope)
-const pdfFile = open('./documents/test.pdf', 'b');
+const pdfFileData = open('./documents/test.pdf', 'b');
+const pdfFile = http.file(pdfFileData, 'test.pdf', 'application/pdf');
 
 // Load seed batch dataset from JSON file
 const seedBatchDataset = new SharedArray('seedBatchData', function () {
@@ -174,7 +175,7 @@ export default function () {
     formData.append('seedClass', seedData.seedClass);
     formData.append('declaredQuantity', String(seedData.declaredQuantity));
     formData.append('qtyBaseUnit', seedData.qtyBaseUnit);
-    formData.append('document', http.file(pdfFile, 'test.pdf', 'application/pdf'));
+    formData.append('document', pdfFile); // Use pre-loaded file object
 
     const params = {
         headers: {
