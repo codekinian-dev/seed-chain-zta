@@ -127,6 +127,7 @@ const createSeedBatch = async (req, res) => {
             req.file.originalname, // seedSourceDocName
             uploadedCid, // seedSourceIpfsCid
             req.body.declaredQuantity.toString(), // declaredQuantity
+            req.body.qtyBaseUnit || 'GRAM', // qtyBaseUnit
             sha256Hash // seedSourceDocHash for integrity verification
         ];
 
@@ -795,6 +796,11 @@ const createSeedBatchLoadTest = async (req, res) => {
             mockCid += base58Chars.charAt(Math.floor(Math.random() * base58Chars.length));
         }
 
+        // Generate mock SHA256 hash for testing (64 hex characters)
+        const mockSha256 = Array.from({ length: 64 }, () =>
+            '0123456789abcdef'.charAt(Math.floor(Math.random() * 16))
+        ).join('');
+
         // Prepare chaincode arguments with mock data (updated for new structure)
         const args = [
             req.body.varietyName || 'Test Variety',
@@ -807,7 +813,9 @@ const createSeedBatchLoadTest = async (req, res) => {
             userUUID,
             req.body.documentName || 'test_document.pdf',
             mockCid,
-            (req.body.declaredQuantity || 1000).toString() // declaredQuantity
+            (req.body.declaredQuantity || 1000).toString(), // declaredQuantity
+            req.body.qtyBaseUnit || 'GRAM', // qtyBaseUnit
+            mockSha256 // seedSourceDocHash for integrity verification
         ];
 
         // Use user-specific identity for the transaction

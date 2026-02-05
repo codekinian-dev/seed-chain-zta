@@ -52,7 +52,9 @@ const createSeedBatchSchema = Joi.object({
             'number.base': 'Declared quantity must be a number',
             'number.positive': 'Declared quantity must be positive',
             'any.required': 'Declared quantity is required'
-        })
+        }),
+
+    qtyBaseUnit: Joi.string().default('GRAM')
 });
 
 // Create Seed Batch Schema for Load Testing (all fields optional)
@@ -65,6 +67,7 @@ const createSeedBatchLoadTestSchema = Joi.object({
     iupbNumber: Joi.string().min(5).max(50).optional(),
     seedClass: Joi.string().valid('BS', 'BD', 'BP', 'BR').optional(),
     declaredQuantity: Joi.number().positive().optional(),
+    qtyBaseUnit: Joi.string().optional(),
     documentName: Joi.string().optional()
 }).unknown(true); // Allow extra fields for flexibility
 

@@ -452,9 +452,9 @@ class SeedBatchContractZTA extends Contract {
     // =========================================================
     // HELPER: Initialize Quantity Object
     // =========================================================
-    _initializeQuantity(declaredQty = 0) {
+    _initializeQuantity(declaredQty = 0, qtyBaseUnit = 'GRAM') {
         return {
-            qty_base_unit: 'GRAM',
+            qty_base_unit: qtyBaseUnit,
             declared: declaredQty,
             tested_sample: 0,
             certified: 0,
@@ -523,9 +523,9 @@ class SeedBatchContractZTA extends Contract {
 
     // =========================================================
     // 1. createSeedBatch [role_producer]
-    // Parameters updated: removed manual id, added declaredQuantity, added sha256Hash for document integrity
+    // Parameters updated: removed manual id, added declaredQuantity, qtyBaseUnit, added sha256Hash for document integrity
     // =========================================================
-    async createSeedBatch(ctx, varietyName, commodity, harvestDate, seedSourceNumber, origin, iupbNumber, seedClass, producerUUID, seedSourceDocName, seedSourceIpfsCid, declaredQuantity, seedSourceDocHash) {
+    async createSeedBatch(ctx, varietyName, commodity, harvestDate, seedSourceNumber, origin, iupbNumber, seedClass, producerUUID, seedSourceDocName, seedSourceIpfsCid, declaredQuantity, qtyBaseUnit, seedSourceDocHash) {
         // ZTA: Verify identity and context
         const identity = this._verifyIdentityAndContext(ctx, 'role_producer');
 
@@ -541,6 +541,9 @@ class SeedBatchContractZTA extends Contract {
         this._validateRequired('seedSourceDocName', seedSourceDocName);
         this._validateIPFSCid('seedSourceIpfsCid', seedSourceIpfsCid);
         this._validateSHA256Hash('seedSourceDocHash', seedSourceDocHash);
+
+        // Normalize quantity base unit (default to GRAM if not provided)
+        const normalizedUnit = (qtyBaseUnit || 'GRAM').toUpperCase();
 
         // Validate declared quantity
         const declaredQty = parseFloat(declaredQuantity) || 0;
@@ -639,7 +642,7 @@ class SeedBatchContractZTA extends Contract {
             },
 
             // NEW: Quantity tracking
-            quantity: this._initializeQuantity(declaredQty),
+            quantity: this._initializeQuantity(declaredQty, normalizedUnit),
 
             actors: {
                 producer: this._createActorObject(identity),
@@ -672,6 +675,7 @@ class SeedBatchContractZTA extends Contract {
             commodity: commodity,
             seedClass: seedClass,
             declaredQuantity: declaredQty,
+            qtyBaseUnit: normalizedUnit,
             seedSourceDoc: seedSourceDocName,
             producerKeycloakId: identity.keycloakId
         }, identity);
