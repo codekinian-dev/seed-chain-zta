@@ -229,7 +229,6 @@ export function setup() {
     console.log('=== K6 Load Test Setup ===');
     console.log(`Target: Max 50 Virtual Users`);
     console.log(`Duration: ~6.5 minutes total`);
-    console.log(`Keycloak: ${KEYCLOAK_URL}`);
     console.log(`API: ${API_BASE_URL}`);
     console.log('==========================');
 
