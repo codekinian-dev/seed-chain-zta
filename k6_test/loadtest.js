@@ -23,10 +23,10 @@ const seedBatchDataset = new SharedArray('seedBatchData', function () {
 // K6 options - Load test configuration
 export const options = {
     stages: [
-        { duration: '1m', target: 10 },   // Ramp up to 10 users
-        { duration: '2m', target: 10 },   // Stay at 10 users
         { duration: '1m', target: 20 },   // Ramp up to 20 users
         { duration: '2m', target: 20 },   // Stay at 20 users
+        { duration: '1m', target: 50 },   // Ramp up to 50 users
+        { duration: '2m', target: 50 },   // Stay at 50 users
         { duration: '30s', target: 0 },   // Ramp down
     ],
     thresholds: {
@@ -224,7 +224,7 @@ export default function () {
  */
 export function setup() {
     console.log('=== K6 Load Test Setup ===');
-    console.log(`Target: Max 20 Virtual Users`);
+    console.log(`Target: Max 50 Virtual Users`);
     console.log(`Duration: ~6.5 minutes total`);
     console.log(`Keycloak: ${KEYCLOAK_URL}`);
     console.log(`API: ${API_BASE_URL}`);

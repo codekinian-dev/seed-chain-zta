@@ -13,20 +13,11 @@ const queryNotFound = new Counter('query_not_found');
 
 // K6 options - Query test configuration
 export const options = {
-    // stages: [
-    //     { duration: '30s', target: 10 },   // Ramp up to 10 users
-    //     { duration: '1m', target: 10 },    // Stay at 10 users
-    //     { duration: '30s', target: 30 },   // Ramp up to 30 users
-    //     { duration: '1m', target: 30 },    // Stay at 30 users
-    //     { duration: '30s', target: 50 },   // Ramp up to 50 users
-    //     { duration: '1m', target: 50 },    // Stay at 50 users
-    //     { duration: '30s', target: 0 },    // Ramp down
-    // ],
     stages: [
-        { duration: '1m', target: 10 },   // Ramp up to 10 users
-        { duration: '2m', target: 10 },   // Stay at 10 users
         { duration: '1m', target: 20 },   // Ramp up to 20 users
         { duration: '2m', target: 20 },   // Stay at 20 users
+        { duration: '1m', target: 50 },   // Ramp up to 50 users
+        { duration: '2m', target: 50 },   // Stay at 50 users
         { duration: '30s', target: 0 },   // Ramp down
     ],
     thresholds: {
@@ -43,12 +34,39 @@ const KEYCLOAK_REALM = 'SeedCertificationRealm';
 const KEYCLOAK_CLIENT_ID = 'seed-cert-frontend'; // Public client - no secret required
 const API_BASE_URL = 'https://gateway.jabarchain.me';
 
-// Multiple test user credentials for concurrent load testing
-// Each VU will use a different user to avoid session conflicts
-const TEST_USERS = Array.from({ length: 49 }, (_, i) => ({
-    username: `producer_test${i + 1}`,
-    password: 'Test123!',
-}));
+// Test user credentials from query_result.csv
+// These users are registered via setup-test-users.sh
+const TEST_USERS = [
+    { username: '1E1DFC06', password: 'Test123!' },
+    { username: '46FC9A16', password: 'Test123!' },
+    { username: 'B59D7AAB', password: 'Test123!' },
+    { username: 'C258D1E8', password: 'Test123!' },
+    { username: 'E9C38C5C', password: 'Test123!' },
+    { username: '812E38B8', password: 'Test123!' },
+    { username: 'FA076AF8', password: 'Test123!' },
+    { username: '0604DE6E', password: 'Test123!' },
+    { username: '3595C469', password: 'Test123!' },
+    { username: '7BF8E819', password: 'Test123!' },
+    { username: '0E540A27', password: 'Test123!' },
+    { username: 'BF785D7D', password: 'Test123!' },
+    { username: 'CC562ABD', password: 'Test123!' },
+    { username: '51E748FE', password: 'Test123!' },
+    { username: '63AF1539', password: 'Test123!' },
+    { username: 'A1B9FEBB', password: 'Test123!' },
+    { username: 'kpri_rati', password: 'Test123!' },
+    { username: '28CF0230', password: 'Test123!' },
+    { username: '91420A44', password: 'Test123!' },
+    { username: '5089220F', password: 'Test123!' },
+    { username: 'C362EC88', password: 'Test123!' },
+    { username: 'B9741EC8', password: 'Test123!' },
+    { username: '1ECD114C', password: 'Test123!' },
+    { username: '7DCF7CA4', password: 'Test123!' },
+    { username: '1A6A8FD7', password: 'Test123!' },
+    { username: '48CA8C6A', password: 'Test123!' },
+    { username: 'DC6629E6', password: 'Test123!' },
+    { username: '1E845C34', password: 'Test123!' },
+    { username: 'F3376F5A', password: 'Test123!' },
+];
 
 /**
  * Get access token from Keycloak
