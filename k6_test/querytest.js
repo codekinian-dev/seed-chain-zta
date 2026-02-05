@@ -1,7 +1,6 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Counter, Trend } from 'k6/metrics';
-import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
 // Custom metrics
@@ -11,13 +10,13 @@ const queryFailed = new Counter('query_failed');
 const queryDuration = new Trend('query_duration');
 const queryNotFound = new Counter('query_not_found');
 
-// K6 options - Query test configuration
+// K6 options - Query test configuration (reduced VUs to prevent OOM)
 export const options = {
     stages: [
-        { duration: '1m', target: 20 },   // Ramp up to 20 users
-        { duration: '2m', target: 20 },   // Stay at 20 users
-        { duration: '1m', target: 50 },   // Ramp up to 50 users
-        { duration: '2m', target: 50 },   // Stay at 50 users
+        { duration: '30s', target: 5 },   // Ramp up to 5 users
+        { duration: '1m', target: 5 },    // Stay at 5 users
+        { duration: '30s', target: 10 },  // Ramp up to 10 users
+        { duration: '1m', target: 10 },   // Stay at 10 users
         { duration: '30s', target: 0 },   // Ramp down
     ],
     thresholds: {
@@ -191,10 +190,9 @@ export default function () {
  */
 export function setup() {
     console.log('=== K6 Query Test Setup ===');
-    console.log(`Target: Max 50 Virtual Users`);
-    console.log(`Duration: ~5.5 minutes total`);
+    console.log(`Target: Max 10 Virtual Users`);
+    console.log(`Duration: ~3.5 minutes total`);
     console.log(`Query Range: batch-1 to batch-5000`);
-    console.log(`Keycloak: ${KEYCLOAK_URL}`);
     console.log(`API: ${API_BASE_URL}`);
     console.log('===========================');
 
@@ -256,7 +254,6 @@ export function handleSummary(data) {
     const csvContent = `${csvHeader}\n${csvData}`;
 
     return {
-        [`reports/query-report-${timestamp}.html`]: htmlReport(data),
         [`reports/query-report-${timestamp}.csv`]: csvContent,
         'stdout': textSummary(data, { indent: ' ', enableColors: true }),
     };

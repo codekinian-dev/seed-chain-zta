@@ -2,8 +2,6 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { SharedArray } from 'k6/data';
 import { Rate, Counter, Trend } from 'k6/metrics';
-import { FormData } from 'https://jslib.k6.io/formdata/0.0.2/index.js';
-import { htmlReport } from "https://raw.githubusercontent.com/benc-uk/k6-reporter/main/dist/bundle.js";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
 // Custom metrics
@@ -21,13 +19,13 @@ const seedBatchDataset = new SharedArray('seedBatchData', function () {
     return JSON.parse(open('./documents/seed-batch-dataset.json'));
 });
 
-// K6 options - Load test configuration
+// K6 options - Load test configuration (reduced VUs to prevent OOM)
 export const options = {
     stages: [
-        { duration: '1m', target: 20 },   // Ramp up to 20 users
-        { duration: '2m', target: 20 },   // Stay at 20 users
-        { duration: '1m', target: 50 },   // Ramp up to 50 users
-        { duration: '2m', target: 50 },   // Stay at 50 users
+        { duration: '30s', target: 5 },   // Ramp up to 5 users
+        { duration: '1m', target: 5 },    // Stay at 5 users
+        { duration: '30s', target: 10 },  // Ramp up to 10 users
+        { duration: '1m', target: 10 },   // Stay at 10 users
         { duration: '30s', target: 0 },   // Ramp down
     ],
     thresholds: {
@@ -164,28 +162,28 @@ export default function () {
 
     const createUrl = `${API_BASE_URL}/api/seed-batches`;
 
-    // Create multipart form data with all required fields
-    const formData = new FormData();
-    formData.append('varietyName', seedData.varietyName);
-    formData.append('commodity', seedData.commodity);
-    formData.append('harvestDate', seedData.harvestDate);
-    formData.append('seedSourceNumber', seedData.seedSourceNumber);
-    formData.append('origin', seedData.origin);
-    formData.append('iupbNumber', seedData.iupbNumber);
-    formData.append('seedClass', seedData.seedClass);
-    formData.append('declaredQuantity', String(seedData.declaredQuantity));
-    formData.append('qtyBaseUnit', seedData.qtyBaseUnit);
-    formData.append('document', pdfFile); // Use pre-loaded file object
+    // Use K6 native multipart/form-data (more memory efficient than FormData library)
+    const formPayload = {
+        varietyName: seedData.varietyName,
+        commodity: seedData.commodity,
+        harvestDate: seedData.harvestDate,
+        seedSourceNumber: seedData.seedSourceNumber,
+        origin: seedData.origin,
+        iupbNumber: seedData.iupbNumber,
+        seedClass: seedData.seedClass,
+        declaredQuantity: String(seedData.declaredQuantity),
+        qtyBaseUnit: seedData.qtyBaseUnit,
+        document: pdfFile,
+    };
 
     const params = {
         headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data; boundary=' + formData.boundary,
         },
         tags: { name: 'CreateSeedBatch' },
     };
 
-    const response = http.post(createUrl, formData.body(), params);
+    const response = http.post(createUrl, formPayload, params);
 
     // Record response time for seed batch creation
     seedBatchDuration.add(response.timings.duration);
@@ -228,8 +226,8 @@ export default function () {
  */
 export function setup() {
     console.log('=== K6 Load Test Setup ===');
-    console.log(`Target: Max 50 Virtual Users`);
-    console.log(`Duration: ~6.5 minutes total`);
+    console.log(`Target: Max 10 Virtual Users`);
+    console.log(`Duration: ~3.5 minutes total`);
     console.log(`API: ${API_BASE_URL}`);
     console.log('==========================');
 
@@ -291,7 +289,6 @@ export function handleSummary(data) {
     const csvContent = `${csvHeader}\n${csvData}`;
 
     return {
-        [`reports/report-${timestamp}.html`]: htmlReport(data),
         [`reports/report-${timestamp}.csv`]: csvContent,
         'stdout': textSummary(data, { indent: ' ', enableColors: true }),
     };
