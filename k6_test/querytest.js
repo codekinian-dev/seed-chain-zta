@@ -108,12 +108,24 @@ function getAccessToken(userIndex) {
     return response.json('data').accessToken;
 }
 
+// Real batch IDs to query
+const BATCH_IDS = [
+    'BATCH-20260205-01238849',
+    'BATCH-20260205-0181839F',
+    'BATCH-20260205-018B0D6A',
+    'BATCH-20260205-01DEF56B',
+    'BATCH-20260205-03C50AC7',
+    'BATCH-20260205-0453E3FA',
+    'BATCH-20260205-06BC4CC6',
+    'BATCH-20260205-071B0DB2',
+];
+
 /**
- * Generate random batch ID from batch-1 to batch-5000
+ * Get random batch ID from predefined list
  */
 function getRandomBatchId() {
-    const batchNumber = Math.floor(Math.random() * 500) + 1;
-    return `BATCH-${batchNumber}`;
+    const index = Math.floor(Math.random() * BATCH_IDS.length);
+    return BATCH_IDS[index];
 }
 
 /**
@@ -192,7 +204,7 @@ export function setup() {
     console.log('=== K6 Query Test Setup ===');
     console.log(`Target: Max 10 Virtual Users`);
     console.log(`Duration: ~3.5 minutes total`);
-    console.log(`Query Range: batch-1 to batch-5000`);
+    console.log(`Query Batch IDs: ${BATCH_IDS.length} predefined batches`);
     console.log(`API: ${API_BASE_URL}`);
     console.log('===========================');
 
