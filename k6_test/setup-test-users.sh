@@ -1,130 +1,114 @@
 #!/bin/bash
 
-# Setup multiple test users for K6 load testing
-# This script creates 5 producer users to avoid concurrent session conflicts
+# Setup test users for K6 load testing from query_result.csv data
+# Uses gateway.jabarchain.me register-and-enroll API
 
-KEYCLOAK_URL="https://auth.jabarchain.me"
-REALM="SeedCertificationRealm"
-ADMIN_USER="disbun"
-ADMIN_PASSWORD="@Keycloak123!"
+GATEWAY_URL="https://gateway.jabarchain.me"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CSV_FILE="$SCRIPT_DIR/documents/query_result.csv"
+PASSWORD="Test123!"
 
-echo "=== Setting up K6 Load Test Users ==="
-echo "Keycloak: $KEYCLOAK_URL"
-echo "Realm: $REALM"
+echo "=== Setting up K6 Load Test Users from CSV ==="
+echo "Gateway: $GATEWAY_URL"
+echo "CSV File: $CSV_FILE"
 echo ""
 
-# Get admin access token
-echo "Getting admin access token..."
-ADMIN_TOKEN=$(curl -s -X POST "$KEYCLOAK_URL/realms/master/protocol/openid-connect/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=$ADMIN_USER" \
-  -d "password=$ADMIN_PASSWORD" \
-  -d "grant_type=password" \
-  -d "client_id=admin-cli" | jq -r '.access_token')
-
-if [ "$ADMIN_TOKEN" == "null" ] || [ -z "$ADMIN_TOKEN" ]; then
-    echo "❌ Failed to get admin token. Check Keycloak credentials."
+# Check if CSV file exists
+if [ ! -f "$CSV_FILE" ]; then
+    echo "❌ CSV file not found: $CSV_FILE"
     exit 1
 fi
 
-echo "✓ Admin token obtained"
-echo ""
-
-# Function to create user
-create_user() {
+# Function to register and enroll user via gateway API
+register_and_enroll_user() {
     local USERNAME=$1
-    local PASSWORD=$2
+    local NAMA_PEMOHON=$2
     
-    echo "Creating user: $USERNAME..."
+    echo "Registering user: $USERNAME ($NAMA_PEMOHON)..."
     
-    # Create user
-    CREATE_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$KEYCLOAK_URL/admin/realms/$REALM/users" \
-      -H "Authorization: Bearer $ADMIN_TOKEN" \
+    # Extract first and last name from nama_pemohon
+    FIRST_NAME=$(echo "$NAMA_PEMOHON" | awk '{print $1}' | tr -d '*')
+    LAST_NAME=$(echo "$NAMA_PEMOHON" | awk '{$1=""; print $0}' | xargs | tr -d '*')
+    
+    # If names are empty, use defaults
+    if [ -z "$FIRST_NAME" ]; then
+        FIRST_NAME="Test"
+    fi
+    if [ -z "$LAST_NAME" ]; then
+        LAST_NAME="User"
+    fi
+    
+    # Call register-and-enroll API
+    RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$GATEWAY_URL/api/v1/identity/register-and-enroll" \
       -H "Content-Type: application/json" \
       -d "{
         \"username\": \"$USERNAME\",
-        \"enabled\": true,
-        \"emailVerified\": true,
-        \"firstName\": \"Load\",
-        \"lastName\": \"Test User\",
-        \"email\": \"${USERNAME}@test.com\"
+        \"password\": \"$PASSWORD\",
+        \"email\": \"${USERNAME}@test.jabarchain.me\",
+        \"firstName\": \"$FIRST_NAME\",
+        \"lastName\": \"$LAST_NAME\",
+        \"role\": \"role_producer\",
+        \"organization\": \"Test Organization\",
+        \"phone\": \"081234567890\",
+        \"address\": \"Test Address\"
       }")
     
-    HTTP_CODE=$(echo "$CREATE_RESPONSE" | tail -n1)
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+    BODY=$(echo "$RESPONSE" | sed '$d')
     
-    if [ "$HTTP_CODE" == "201" ] || [ "$HTTP_CODE" == "409" ]; then
-        if [ "$HTTP_CODE" == "409" ]; then
-            echo "  ⚠️  User already exists"
-        else
-            echo "  ✓ User created"
-        fi
-        
-        # Get user ID
-        USER_ID=$(curl -s -X GET "$KEYCLOAK_URL/admin/realms/$REALM/users?username=$USERNAME" \
-          -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
-        
-        # Set password
-        curl -s -X PUT "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID/reset-password" \
-          -H "Authorization: Bearer $ADMIN_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d "{
-            \"type\": \"password\",
-            \"value\": \"$PASSWORD\",
-            \"temporary\": false
-          }" > /dev/null
-        
-        echo "  ✓ Password set"
-        
-        # Assign role_producer role (with role_ prefix as required by policy engine)
-        # Get role_producer role ID
-        PRODUCER_ROLE=$(curl -s -X GET "$KEYCLOAK_URL/admin/realms/$REALM/roles/role_producer" \
-          -H "Authorization: Bearer $ADMIN_TOKEN")
-        
-        ROLE_ID=$(echo $PRODUCER_ROLE | jq -r '.id')
-        ROLE_NAME=$(echo $PRODUCER_ROLE | jq -r '.name')
-        
-        if [ "$ROLE_ID" != "null" ]; then
-            curl -s -X POST "$KEYCLOAK_URL/admin/realms/$REALM/users/$USER_ID/role-mappings/realm" \
-              -H "Authorization: Bearer $ADMIN_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "[{
-                \"id\": \"$ROLE_ID\",
-                \"name\": \"$ROLE_NAME\"
-              }]" > /dev/null
-            
-            echo "  ✓ role_producer assigned"
-        fi
-        
-        echo "  ✓ $USERNAME setup complete"
+    if [ "$HTTP_CODE" == "201" ]; then
+        echo "  ✓ User registered and enrolled successfully"
+    elif [ "$HTTP_CODE" == "409" ]; then
+        echo "  ⚠️  User already exists"
+    elif [ "$HTTP_CODE" == "200" ]; then
+        echo "  ✓ User processed (already enrolled)"
     else
-        echo "  ❌ Failed to create user (HTTP $HTTP_CODE)"
+        echo "  ❌ Failed (HTTP $HTTP_CODE)"
+        echo "     Response: $BODY"
     fi
     
     echo ""
 }
 
-# Create test users
-echo "Creating test users..."
+# Create temporary file to store unique users
+TEMP_FILE=$(mktemp)
+
+echo "Processing CSV to extract unique users..."
+
+# Extract unique username and nama_pemohon (skip header, get columns 2 and 3)
+tail -n +2 "$CSV_FILE" | while IFS=',' read -r id username nama_pemohon rest; do
+    # Clean values (remove quotes)
+    username=$(echo "$username" | tr -d '"')
+    nama_pemohon=$(echo "$nama_pemohon" | tr -d '"')
+    
+    # Output username|nama_pemohon format
+    echo "${username}|${nama_pemohon}"
+done | sort -t'|' -k1,1 -u > "$TEMP_FILE"
+
+TOTAL_USERS=$(wc -l < "$TEMP_FILE" | tr -d ' ')
+echo "Found $TOTAL_USERS unique users to register"
 echo ""
 
-# create_user "producer_test" "Test123!"
-# create_user "producer_test2" "Test123!"
-# create_user "producer_test3" "Test123!"
-# create_user "producer_test4" "Test123!"
-# create_user "producer_test5" "Test123!"
-for i in {1..50}; do
-  create_user "producer_test$i" "Test123!"
-done
+# Register each unique user
+COUNT=0
+while IFS='|' read -r username nama_pemohon; do
+    COUNT=$((COUNT + 1))
+    echo "[$COUNT/$TOTAL_USERS]"
+    register_and_enroll_user "$username" "$nama_pemohon"
+    
+    # Small delay to avoid overwhelming the server
+    sleep 0.5
+done < "$TEMP_FILE"
 
+# Cleanup
+rm -f "$TEMP_FILE"
 
 echo "=== Setup Complete ==="
 echo ""
-echo "Test users created:"
-echo "  - producer_test (password: Test123!)"
-echo "  - producer_test2 (password: Test123!)"
-echo "  - producer_test3 (password: Test123!)"
-echo "  - producer_test4 (password: Test123!)"
-echo "  - producer_test5 (password: Test123!)"
+echo "Total users processed: $TOTAL_USERS"
+echo "Password for all users: $PASSWORD"
 echo ""
-echo "All users have 'role_producer' role assigned."
-echo "You can now run K6 load tests with up to 50 concurrent VUs."
+echo "Users can now login with their username and password."
+echo "You can run K6 load tests with these users."
+echo ""
+echo "Test users created:"

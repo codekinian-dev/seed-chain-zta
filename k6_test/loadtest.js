@@ -15,6 +15,11 @@ const seedBatchDuration = new Trend('seed_batch_duration');
 // Load PDF file once at init stage (global scope)
 const pdfFile = open('./documents/test.pdf', 'b');
 
+// Load seed batch dataset from JSON file
+const seedBatchDataset = new SharedArray('seedBatchData', function () {
+    return JSON.parse(open('./documents/seed-batch-dataset.json'));
+});
+
 // K6 options - Load test configuration
 export const options = {
     stages: [
@@ -38,12 +43,39 @@ const KEYCLOAK_REALM = 'SeedCertificationRealm';
 const KEYCLOAK_CLIENT_ID = 'seed-cert-frontend'; // Public client - no secret required
 const API_BASE_URL = 'https://gateway.jabarchain.me';
 
-// Multiple test user credentials for concurrent load testing
-// Each VU will use a different user to avoid session conflicts
-const TEST_USERS = Array.from({ length: 49 }, (_, i) => ({
-    username: `producer_test${i + 1}`,
-    password: 'Test123!',
-}));
+// Test user credentials from query_result.csv
+// These users are registered via setup-test-users.sh
+const TEST_USERS = [
+    { username: '1E1DFC06', password: 'Test123!' },
+    { username: '46FC9A16', password: 'Test123!' },
+    { username: 'B59D7AAB', password: 'Test123!' },
+    { username: 'C258D1E8', password: 'Test123!' },
+    { username: 'E9C38C5C', password: 'Test123!' },
+    { username: '812E38B8', password: 'Test123!' },
+    { username: 'FA076AF8', password: 'Test123!' },
+    { username: '0604DE6E', password: 'Test123!' },
+    { username: '3595C469', password: 'Test123!' },
+    { username: '7BF8E819', password: 'Test123!' },
+    { username: '0E540A27', password: 'Test123!' },
+    { username: 'BF785D7D', password: 'Test123!' },
+    { username: 'CC562ABD', password: 'Test123!' },
+    { username: '51E748FE', password: 'Test123!' },
+    { username: '63AF1539', password: 'Test123!' },
+    { username: 'A1B9FEBB', password: 'Test123!' },
+    { username: 'kpri_rati', password: 'Test123!' },
+    { username: '28CF0230', password: 'Test123!' },
+    { username: '91420A44', password: 'Test123!' },
+    { username: '5089220F', password: 'Test123!' },
+    { username: 'C362EC88', password: 'Test123!' },
+    { username: 'B9741EC8', password: 'Test123!' },
+    { username: '1ECD114C', password: 'Test123!' },
+    { username: '7DCF7CA4', password: 'Test123!' },
+    { username: '1A6A8FD7', password: 'Test123!' },
+    { username: '48CA8C6A', password: 'Test123!' },
+    { username: 'DC6629E6', password: 'Test123!' },
+    { username: '1E845C34', password: 'Test123!' },
+    { username: 'F3376F5A', password: 'Test123!' },
+];
 
 
 /**
@@ -85,23 +117,26 @@ function getAccessToken(userIndex) {
 }
 
 /**
- * Generate dummy seed batch data
+ * Get seed batch data from dataset
+ * Uses modulo to cycle through dataset entries
  */
-function generateSeedBatchData(iteration) {
+function getSeedBatchData(iteration) {
     const timestamp = Date.now();
-    const commodities = ['Karet', 'Sawit', 'Kakao', 'Kopi', 'Teh'];
-    const varieties = ['Varietas A', 'Varietas B', 'Varietas C', 'Varietas Super', 'Varietas Unggul'];
-    const origins = ['Jawa Barat', 'Jawa Tengah', 'Jawa Timur', 'Sumatera Utara', 'Kalimantan'];
-    const seedClasses = ['BS', 'BD', 'BP', 'BR']; // Valid seed class codes
+    const dataIndex = iteration % seedBatchDataset.length;
+    const baseData = seedBatchDataset[dataIndex];
 
+    // Map dataset fields to API expected fields
+    // Add unique suffix to seedSourceNumber to avoid duplicates
     return {
-        varietyName: varieties[iteration % varieties.length],
-        commodity: commodities[iteration % commodities.length],
-        harvestDate: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        seedSourceNumber: `SRC-${timestamp}-${iteration}`,
-        origin: origins[iteration % origins.length],
-        iupNumber: `IUP-${timestamp}-${Math.floor(Math.random() * 10000)}`,
-        seedClass: seedClasses[iteration % seedClasses.length]
+        varietyName: baseData.variety,
+        commodity: baseData.commodity,
+        harvestDate: baseData.harvestDate,
+        seedSourceNumber: `${baseData.seedSourceNumber}-${timestamp}-${iteration}`,
+        origin: baseData.origin,
+        iupbNumber: baseData.iupbNumber,
+        seedClass: baseData.seedClass,
+        declaredQuantity: baseData.declaredQuantity,
+        qtyBaseUnit: 'GRAM' // Default unit
     };
 }
 
@@ -121,19 +156,21 @@ export default function () {
 
     // Step 2: Create seed batch using standard endpoint with file upload
     const iteration = __ITER;
-    const seedData = generateSeedBatchData(iteration);
+    const seedData = getSeedBatchData(iteration);
 
     const createUrl = `${API_BASE_URL}/api/seed-batches`;
 
-    // Create multipart form data
+    // Create multipart form data with all required fields
     const formData = new FormData();
     formData.append('varietyName', seedData.varietyName);
     formData.append('commodity', seedData.commodity);
     formData.append('harvestDate', seedData.harvestDate);
     formData.append('seedSourceNumber', seedData.seedSourceNumber);
     formData.append('origin', seedData.origin);
-    formData.append('iupNumber', seedData.iupNumber);
+    formData.append('iupbNumber', seedData.iupbNumber);
     formData.append('seedClass', seedData.seedClass);
+    formData.append('declaredQuantity', String(seedData.declaredQuantity));
+    formData.append('qtyBaseUnit', seedData.qtyBaseUnit);
     formData.append('document', http.file(pdfFile, 'test.pdf', 'application/pdf'));
 
     const params = {
