@@ -65,9 +65,17 @@ const TEST_USERS = [
 ];
 
 /**
- * Get access token via Gateway Login API
+ * Get access token via Gateway Login API with caching
+ * Token is cached per VU to avoid rate limiting (429)
  */
+const tokenCache = {};
+
 function getAccessToken(userIndex) {
+    // Check if we already have a cached token for this VU
+    if (tokenCache[userIndex]) {
+        return tokenCache[userIndex];
+    }
+
     // Select user based on VU ID to distribute load across multiple users
     const user = TEST_USERS[userIndex % TEST_USERS.length];
 
@@ -105,7 +113,11 @@ function getAccessToken(userIndex) {
         return null;
     }
 
-    return response.json('data').accessToken;
+    // Cache the token for this VU
+    const token = response.json('data').accessToken;
+    tokenCache[userIndex] = token;
+
+    return token;
 }
 
 // Real batch IDs to query
