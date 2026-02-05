@@ -37,10 +37,7 @@ export const options = {
     },
 };
 
-// Keycloak and API configuration
-const KEYCLOAK_URL = 'https://auth.jabarchain.me';
-const KEYCLOAK_REALM = 'SeedCertificationRealm';
-const KEYCLOAK_CLIENT_ID = 'seed-cert-frontend'; // Public client - no secret required
+// API configuration
 const API_BASE_URL = 'https://gateway.jabarchain.me';
 
 // Test user credentials from query_result.csv
@@ -79,41 +76,47 @@ const TEST_USERS = [
 
 
 /**
- * Get access token from Keycloak
+ * Get access token via Gateway Login API
  */
 function getAccessToken(userIndex) {
     // Select user based on VU ID to distribute load across multiple users
     const user = TEST_USERS[userIndex % TEST_USERS.length];
 
-    const tokenUrl = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
+    const loginUrl = `${API_BASE_URL}/api/v1/identity/login`;
 
-    const payload = {
-        grant_type: 'password',
-        client_id: KEYCLOAK_CLIENT_ID,
+    const payload = JSON.stringify({
         username: user.username,
         password: user.password,
-    };
+    });
 
     const params = {
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
         },
     };
 
-    const response = http.post(tokenUrl, payload, params);
+    const response = http.post(loginUrl, payload, params);
 
     const checkRes = check(response, {
-        'Keycloak login successful': (r) => r.status === 200,
-        'Access token received': (r) => r.json('access_token') !== undefined,
+        'Gateway login successful': (r) => r.status === 200,
+        'Access token received': (r) => {
+            try {
+                const body = r.json();
+                return body.success === true && body.data?.accessToken !== undefined;
+            } catch (e) {
+                return false;
+            }
+        },
     });
 
     if (!checkRes) {
-        console.error(`Keycloak login failed for ${user.username}: ${response.status} - ${response.body}`);
+        console.error(`Gateway login failed for ${user.username}: ${response.status} - ${response.body}`);
         errorRate.add(1);
         return null;
     }
 
-    return response.json('access_token');
+    return response.json('data').accessToken;
 }
 
 /**
@@ -241,17 +244,55 @@ export function teardown(data) {
 }
 
 /**
- * Handle Summary - Generate HTML report with timestamp
+ * Handle Summary - Generate HTML and CSV reports with timestamp
  */
 export function handleSummary(data) {
     const now = new Date();
     const timestamp = now.toISOString()
         .replace(/T/, '_')
         .replace(/:/g, '-')
-        .replace(/\..+/, ''); // Format: 2025-11-28_14-30-45
+        .replace(/\..*/, ''); // Format: 2025-11-28_14-30-45
+
+    // Extract metrics for CSV
+    const httpReqDuration = data.metrics.http_req_duration || {};
+    const seedBatchDurationMetric = data.metrics.seed_batch_duration || {};
+    const iterations = data.metrics.iterations || {};
+    const httpReqs = data.metrics.http_reqs || {};
+
+    // Calculate metrics
+    const avgResponseTime = httpReqDuration.values?.avg || 0;
+    const p95ResponseTime = httpReqDuration.values?.['p(95)'] || 0;
+    const p99ResponseTime = httpReqDuration.values?.['p(99)'] || 0;
+    const minResponseTime = httpReqDuration.values?.min || 0;
+    const maxResponseTime = httpReqDuration.values?.max || 0;
+    const medResponseTime = httpReqDuration.values?.med || 0;
+
+    // Throughput (RPS) = total requests / total duration in seconds
+    const totalRequests = httpReqs.values?.count || 0;
+    const testDuration = (data.state?.testRunDurationMs || 390000) / 1000; // default ~6.5 min
+    const throughputRPS = totalRequests / testDuration;
+
+    // Overhead calculation (difference between total response time and actual processing)
+    // Using p95 - median as a proxy for overhead/variability
+    const overhead = p95ResponseTime - medResponseTime;
+
+    // Seed batch specific metrics
+    const seedBatchAvg = seedBatchDurationMetric.values?.avg || 0;
+    const seedBatchP95 = seedBatchDurationMetric.values?.['p(95)'] || 0;
+
+    // Get success/failure counts
+    const seedBatchCreatedCount = data.metrics.seed_batch_created?.values?.count || 0;
+    const seedBatchFailedCount = data.metrics.seed_batch_failed?.values?.count || 0;
+    const errorRateValue = data.metrics.errors?.values?.rate || 0;
+
+    // CSV Header and Data
+    const csvHeader = 'Timestamp,Test_Type,Total_Requests,Success_Count,Failed_Count,Error_Rate_Percent,Avg_Response_Time_ms,Med_Response_Time_ms,P95_Response_Time_ms,P99_Response_Time_ms,Min_Response_Time_ms,Max_Response_Time_ms,Throughput_RPS,Overhead_ms,SeedBatch_Avg_ms,SeedBatch_P95_ms,Test_Duration_sec';
+    const csvData = `${now.toISOString()},CreateSeedBatch,${totalRequests},${seedBatchCreatedCount},${seedBatchFailedCount},${(errorRateValue * 100).toFixed(2)},${avgResponseTime.toFixed(2)},${medResponseTime.toFixed(2)},${p95ResponseTime.toFixed(2)},${p99ResponseTime.toFixed(2)},${minResponseTime.toFixed(2)},${maxResponseTime.toFixed(2)},${throughputRPS.toFixed(4)},${overhead.toFixed(2)},${seedBatchAvg.toFixed(2)},${seedBatchP95.toFixed(2)},${testDuration.toFixed(2)}`;
+    const csvContent = `${csvHeader}\n${csvData}`;
 
     return {
         [`reports/report-${timestamp}.html`]: htmlReport(data),
+        [`reports/report-${timestamp}.csv`]: csvContent,
         'stdout': textSummary(data, { indent: ' ', enableColors: true }),
     };
 }
