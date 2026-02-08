@@ -73,12 +73,18 @@ const documentService = {
     /**
      * Public certificate verification via QR Code
      * Verifies certificate number against batch ID
+     * Optionally verifies distribution by dist_id
      * @param {string} certNumber - Certificate number
      * @param {string} batchId - Batch ID
+     * @param {string} [distId] - Optional distribution ID
      * @returns {Promise}
      */
-    async verifyCertificate(certNumber, batchId) {
-        const response = await httpClient.get(`/api/v1/documents/verify-certificate?cert=${encodeURIComponent(certNumber)}&batch=${encodeURIComponent(batchId)}`)
+    async verifyCertificate(certNumber, batchId, distId = null) {
+        let url = `/api/v1/documents/verify-certificate?cert=${encodeURIComponent(certNumber)}&batch=${encodeURIComponent(batchId)}`
+        if (distId) {
+            url += `&distribute=${encodeURIComponent(distId)}`
+        }
+        const response = await httpClient.get(url)
         return response
     },
 

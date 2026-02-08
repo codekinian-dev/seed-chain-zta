@@ -17,7 +17,10 @@ import {
   FingerPrintIcon,
   UserIcon,
   CalendarDaysIcon,
-  HashtagIcon
+  HashtagIcon,
+  TruckIcon,
+  MapPinIcon,
+  CubeIcon
 } from '@heroicons/vue/24/outline'
 import documentService from '../../services/api/document.service'
 
@@ -30,6 +33,7 @@ const verificationMode = ref('certificate')
 // Certificate verification state
 const certNumber = ref('')
 const batchId = ref('')
+const distId = ref('')
 const certResult = ref(null)
 const certLoading = ref(false)
 const certError = ref(null)
@@ -61,6 +65,15 @@ const statusLabels = {
   'CERTIFIED': 'Tersertifikasi',
   'DISTRIBUTED': 'Didistribusikan',
   'REVOKED': 'Dicabut'
+}
+
+// Destination type labels
+const destinationTypeLabels = {
+  'WAREHOUSE': 'Gudang',
+  'RETAILER': 'Pengecer',
+  'FARMER_GROUP': 'Kelompok Tani',
+  'DISTRIBUTOR': 'Distributor',
+  'OTHER': 'Lainnya'
 }
 
 // Computed
@@ -163,6 +176,7 @@ watch(() => route.query, () => {
 function initFromUrl() {
   const urlCert = route.query.cert
   const urlBatch = route.query.batch
+  const urlDist = route.query.distribute
   const urlKey = route.query.key || route.query.cid
 
   // Determine mode based on URL params
@@ -170,6 +184,7 @@ function initFromUrl() {
     verificationMode.value = 'certificate'
     certNumber.value = urlCert
     batchId.value = urlBatch
+    distId.value = urlDist || ''
     // Auto-verify on mount
     handleCertVerify()
   } else if (urlKey) {
@@ -187,7 +202,11 @@ async function handleCertVerify() {
   certResult.value = null
   
   try {
-    const response = await documentService.verifyCertificate(certNumber.value.trim(), batchId.value.trim())
+    const response = await documentService.verifyCertificate(
+      certNumber.value.trim(), 
+      batchId.value.trim(),
+      distId.value.trim() || null
+    )
     // httpClient returns JSON directly (not axios-style response.data)
     // Backend returns { success, status, message, data: {...} }
     console.log('Certificate verification response:', response)
@@ -207,6 +226,7 @@ async function handleCertVerify() {
         cid: response.data.document.cid,
         sha256: response.data.document.sha256Hash
       } : null,
+      distribution: response.data?.distribution || null,
       verifiedAt: response.data?.verifiedAt
     }
   } catch (err) {
@@ -341,6 +361,10 @@ function getDocTypeLabel(docType) {
 
 function getStatusLabel(status) {
   return statusLabels[status] || status || '-'
+}
+
+function getDestinationTypeLabel(destType) {
+  return destinationTypeLabels[destType] || destType || '-'
 }
 
 function getStatusClass(status) {
@@ -530,6 +554,82 @@ function formatDate(dateStr) {
                       <div v-if="certResult.document.sha256">
                         <p class="text-xs text-ink/60">SHA-256 Hash</p>
                         <p class="font-mono text-xs break-all text-ink">{{ certResult.document.sha256 }}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Distribution Info (if available) -->
+                  <div v-if="certResult.distribution" class="overflow-hidden border rounded-xl border-ink/10">
+                    <div class="flex items-center gap-2 px-4 py-3 bg-purple-50">
+                      <TruckIcon class="w-5 h-5 text-purple-600" />
+                      <h4 class="text-sm font-semibold tracking-wider text-purple-800 uppercase">Informasi Distribusi</h4>
+                    </div>
+                    
+                    <!-- Distribution Valid -->
+                    <div v-if="certResult.distribution.valid" class="p-4 space-y-4 bg-white">
+                      <!-- Distribution ID & Date -->
+                      <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="flex items-center gap-3 p-3 rounded-lg bg-ink/5">
+                          <div class="flex items-center justify-center flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full">
+                            <HashtagIcon class="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <p class="text-xs font-medium tracking-wider uppercase text-ink/60">ID Distribusi</p>
+                            <p class="font-mono text-sm font-semibold text-ink">{{ certResult.distribution.distId }}</p>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-3 p-3 rounded-lg bg-ink/5">
+                          <div class="flex items-center justify-center flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full">
+                            <CalendarDaysIcon class="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <p class="text-xs font-medium tracking-wider uppercase text-ink/60">Tanggal Distribusi</p>
+                            <p class="text-sm font-semibold text-ink">{{ formatDate(certResult.distribution.distributedAt) }}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Quantity -->
+                      <div class="flex items-center gap-3 p-3 rounded-lg bg-ink/5">
+                        <div class="flex items-center justify-center flex-shrink-0 w-10 h-10 bg-green-100 rounded-full">
+                          <CubeIcon class="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p class="text-xs font-medium tracking-wider uppercase text-ink/60">Jumlah Didistribusikan</p>
+                          <p class="text-lg font-semibold text-ink">
+                            {{ certResult.distribution.quantity }} {{ certResult.distribution.quantityUnit || 'kg' }}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <!-- Destination -->
+                      <div class="p-4 border rounded-lg bg-ink/5 border-ink/10">
+                        <div class="flex items-center gap-2 mb-3">
+                          <MapPinIcon class="w-5 h-5 text-ink/60" />
+                          <p class="text-xs font-medium tracking-wider uppercase text-ink/60">Tujuan Distribusi</p>
+                        </div>
+                        <div class="space-y-2">
+                          <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full">
+                              {{ getDestinationTypeLabel(certResult.distribution.destination?.type) }}
+                            </span>
+                          </div>
+                          <p class="text-sm font-semibold text-ink">{{ certResult.distribution.destination?.name || '-' }}</p>
+                          <p class="text-sm text-ink/70">{{ certResult.distribution.destination?.address || '-' }}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Distribution Not Valid/Not Found -->
+                    <div v-else class="p-4 bg-amber-50">
+                      <div class="flex items-start gap-3">
+                        <ExclamationTriangleIcon class="flex-shrink-0 w-5 h-5 text-amber-500 mt-0.5" />
+                        <div>
+                          <p class="font-medium text-amber-800">Distribusi Tidak Ditemukan</p>
+                          <p class="mt-1 text-sm text-amber-700">
+                            ID Distribusi <span class="font-mono">{{ certResult.distribution.distId }}</span> tidak ditemukan untuk batch ini.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>

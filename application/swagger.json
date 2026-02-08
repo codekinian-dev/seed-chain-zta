@@ -1527,6 +1527,15 @@
             "type": "string",
             "example": "BATCH-123456"
           }
+        }, {
+          "name": "distribute",
+          "in": "query",
+          "required": false,
+          "description": "Optional distribution ID to verify (e.g., DIST-20260208-0001). When provided, returns distribution details along with certificate verification.",
+          "schema": {
+            "type": "string",
+            "example": "DIST-20260208-0001"
+          }
         }],
         "responses": {
           "200": {
@@ -2373,6 +2382,84 @@
                 "type": "string",
                 "description": "SHA-256 hash of the certificate document",
                 "example": "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b5cc4d7e9b5fcf0c8"
+              }
+            }
+          },
+          "distribution": {
+            "type": "object",
+            "nullable": true,
+            "description": "Distribution information (only included when 'distribute' query parameter is provided)",
+            "properties": {
+              "distId": {
+                "type": "string",
+                "description": "Distribution ID",
+                "example": "DIST-20260208-0001"
+              },
+              "distributedAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Distribution timestamp",
+                "example": "2026-02-08T10:00:00.000Z"
+              },
+              "quantity": {
+                "type": "number",
+                "description": "Quantity distributed",
+                "example": 100
+              },
+              "quantityUnit": {
+                "type": "string",
+                "description": "Unit of quantity",
+                "example": "kg"
+              },
+              "destination": {
+                "type": "object",
+                "description": "Distribution destination details",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "Destination type",
+                    "enum": ["WAREHOUSE", "RETAILER", "FARMER_GROUP", "DISTRIBUTOR", "OTHER"],
+                    "example": "FARMER_GROUP"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Destination name",
+                    "example": "Kelompok Tani Maju Bersama"
+                  },
+                  "address": {
+                    "type": "string",
+                    "description": "Destination address",
+                    "example": "Desa Sukamaju, Kec. Cianjur, Jawa Barat"
+                  }
+                }
+              },
+              "evidence": {
+                "type": "object",
+                "nullable": true,
+                "description": "Distribution evidence document (if uploaded)",
+                "properties": {
+                  "docId": {
+                    "type": "string",
+                    "description": "Document ID",
+                    "example": "DOC-DIST-20260208-0001"
+                  },
+                  "cid": {
+                    "type": "string",
+                    "description": "IPFS CID of evidence document",
+                    "example": "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco"
+                  }
+                }
+              },
+              "valid": {
+                "type": "boolean",
+                "description": "Whether the distribution ID is valid and found",
+                "example": true
+              },
+              "message": {
+                "type": "string",
+                "nullable": true,
+                "description": "Error message if distribution not found",
+                "example": null
               }
             }
           },

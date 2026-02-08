@@ -383,13 +383,14 @@ const publicVerify = async (req, res) => {
 /**
  * Public certificate verification via QR Code
  * Verifies certificate number against batch ID
- * Returns certificate status and details
+ * Optionally verifies distribution by dist_id
+ * Returns certificate status, details, and distribution info
  */
 const verifyCertificate = async (req, res) => {
     try {
-        const { cert, batch } = req.query;
+        const { cert, batch, distribute } = req.query;
 
-        logger.info(`[Document Controller] Public certificate verification`, { cert, batch });
+        logger.info(`[Document Controller] Public certificate verification`, { cert, batch, distribute });
 
         // Validate required params
         if (!cert) {
@@ -597,8 +598,42 @@ const verifyCertificate = async (req, res) => {
                 uploadedAt: certDocument.uploaded_at
             } : null,
 
+            // Distribution info (if requested)
+            distribution: null,
+
             verifiedAt: new Date().toISOString()
         };
+
+        // If distribute parameter provided, find and include distribution data
+        if (distribute && seedBatch.distributions) {
+            const distRecord = seedBatch.distributions.find(d => d.dist_id === distribute);
+
+            if (distRecord) {
+                responseData.distribution = {
+                    distId: distRecord.dist_id,
+                    distributedAt: distRecord.distributed_at,
+                    quantity: distRecord.qty,
+                    quantityUnit: seedBatch.quantity?.qty_base_unit || 'kg',
+                    destination: {
+                        type: distRecord.to?.destination_type,
+                        name: distRecord.to?.name,
+                        address: distRecord.to?.address
+                    },
+                    evidence: distRecord.evidence ? {
+                        docId: distRecord.evidence.doc_id,
+                        cid: distRecord.evidence.cid
+                    } : null,
+                    valid: true
+                };
+            } else {
+                // Distribution ID not found
+                responseData.distribution = {
+                    distId: distribute,
+                    valid: false,
+                    message: 'Distribusi tidak ditemukan untuk batch ini'
+                };
+            }
+        }
 
         res.status(200).json({
             success: true,
