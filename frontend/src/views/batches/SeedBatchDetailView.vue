@@ -1151,15 +1151,15 @@ onMounted(() => {
               <input 
                 v-model.number="distributionForm.quantity"
                 type="number"
-                min="0.01"
+                min="1"
                 :max="batch.quantity?.remaining || 0"
-                step="0.01"
+                step="1"
                 class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
                 :placeholder="`Max: ${batch.quantity?.remaining || 0}`"
                 :disabled="submitting"
               />
               <p class="mt-1 text-xs text-ink/60">
-                Must be between 0.01 and {{ batch.quantity?.remaining?.toLocaleString() || 0 }} {{ batch.quantity?.qty_base_unit || 'kg' }}
+                Must be between 1 and {{ batch.quantity?.remaining?.toLocaleString() || 0 }} {{ batch.quantity?.qty_base_unit || 'kg' }}
               </p>
             </div>
 
