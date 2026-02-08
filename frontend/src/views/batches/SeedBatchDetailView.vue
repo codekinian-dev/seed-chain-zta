@@ -549,6 +549,48 @@ onMounted(() => {
               <label class="text-xs font-semibold text-ink/60">Label Color</label>
               <p class="mt-1 text-sm text-ink">{{ batch.label_color }}</p>
             </div>
+            
+            <!-- Quantity Information -->
+            <div v-if="batch.quantity" class="md:col-span-2 p-3 bg-ocean/5 rounded-lg border border-ocean/20">
+              <label class="text-xs font-semibold text-ocean mb-2 block">Quantity Information</label>
+              <div class="grid gap-3 md:grid-cols-4">
+                <div>
+                  <label class="text-xs text-ink/60">Declared</label>
+                  <p class="text-sm font-semibold text-ink">
+                    {{ batch.quantity.declared?.toLocaleString() || '-' }} 
+                    <span class="text-xs font-normal text-ink/60">{{ batch.quantity.qty_base_unit || 'GRAM' }}</span>
+                  </p>
+                </div>
+                <div>
+                  <label class="text-xs text-ink/60">Tested Sample</label>
+                  <p class="text-sm font-semibold text-ink">
+                    {{ batch.quantity.tested_sample?.toLocaleString() || '0' }} 
+                    <span class="text-xs font-normal text-ink/60">{{ batch.quantity.qty_base_unit || 'GRAM' }}</span>
+                  </p>
+                </div>
+                <div>
+                  <label class="text-xs text-ink/60">Certified</label>
+                  <p class="text-sm font-semibold text-ink">
+                    {{ batch.quantity.certified?.toLocaleString() || '0' }} 
+                    <span class="text-xs font-normal text-ink/60">{{ batch.quantity.qty_base_unit || 'GRAM' }}</span>
+                  </p>
+                </div>
+                <div>
+                  <label class="text-xs text-ink/60">Remaining</label>
+                  <p class="text-sm font-semibold text-ink">
+                    {{ batch.quantity.remaining?.toLocaleString() || batch.quantity.declared?.toLocaleString() || '-' }} 
+                    <span class="text-xs font-normal text-ink/60">{{ batch.quantity.qty_base_unit || 'GRAM' }}</span>
+                  </p>
+                </div>
+              </div>
+              <div v-if="batch.quantity.distributed_total > 0" class="mt-2 pt-2 border-t border-ocean/10">
+                <div class="flex justify-between text-xs">
+                  <span class="text-ink/60">Distributed Total:</span>
+                  <span class="font-semibold text-ink">{{ batch.quantity.distributed_total?.toLocaleString() }} {{ batch.quantity.qty_base_unit || 'GRAM' }}</span>
+                </div>
+              </div>
+            </div>
+
             <div>
               <label class="text-xs font-semibold text-ink/60">Created By</label>
               <p class="mt-1 text-sm text-ink">{{ batch.created_by }}</p>
