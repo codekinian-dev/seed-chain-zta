@@ -128,7 +128,16 @@ const canIssueCertificate = () => {
 }
 
 const canDistribute = () => {
-  return batch.value && batch.value.current_status === 'CERTIFIED' && hasRole('role_producer')
+  // Can distribute if:
+  // 1. Status is CERTIFIED or DISTRIBUTED (multiple distributions allowed)
+  // 2. User has role_producer
+  // 3. Remaining quantity > 0
+  if (!batch.value || !hasRole('role_producer')) return false
+  
+  const status = batch.value.current_status
+  const remaining = batch.value.quantity?.remaining ?? batch.value.quantity?.certified ?? 0
+  
+  return ['CERTIFIED', 'DISTRIBUTED'].includes(status) && remaining > 0
 }
 
 const hasRole = (roleName) => {
@@ -337,6 +346,13 @@ const handleDistribute = async () => {
 
   if (!distributionForm.value.quantity || distributionForm.value.quantity <= 0) {
     submitError.value = 'Quantity must be greater than 0'
+    return
+  }
+
+  // Validate against remaining quantity
+  const remaining = batch.value?.quantity?.remaining ?? 0
+  if (distributionForm.value.quantity > remaining) {
+    submitError.value = `Quantity cannot exceed remaining stock (${remaining.toLocaleString()} ${batch.value?.quantity?.qty_base_unit || 'kg'})`
     return
   }
 
@@ -1053,13 +1069,30 @@ onMounted(() => {
           </div>
         </section>
 
-        <!-- Distribution (CERTIFIED - role_producer) -->
-        <section v-else-if="canDistribute()" class="p-6 panel-card">
+        <!-- Distribution (CERTIFIED/DISTRIBUTED - role_producer with remaining qty) -->
+        <section v-if="canDistribute()" class="p-6 panel-card">
           <div class="flex items-center gap-3 mb-6">
-            <CloudArrowUpIcon class="w-6 h-6 text-primary" />
+            <TruckIcon class="w-6 h-6 text-primary" />
             <div>
-              <h3 class="text-lg font-semibold text-ink">Distribution</h3>
-              <p class="text-sm text-ink/60">Record distribution information for certified batch.</p>
+              <h3 class="text-lg font-semibold text-ink">Record Distribution</h3>
+              <p class="text-sm text-ink/60">Distribute certified seeds to various destinations.</p>
+            </div>
+          </div>
+
+          <!-- Remaining Quantity Info -->
+          <div class="p-4 mb-4 rounded-lg bg-ocean/5 border border-ocean/20">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-xs font-semibold text-ocean uppercase">Available for Distribution</p>
+                <p class="text-2xl font-bold text-ink">
+                  {{ batch.quantity?.remaining?.toLocaleString() || 0 }}
+                  <span class="text-sm font-normal text-ink/60">{{ batch.quantity?.qty_base_unit || 'kg' }}</span>
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-ink/60">Total Distributions: {{ batch.distributions?.length || 0 }}</p>
+                <p class="text-xs text-ink/60">Distributed: {{ batch.quantity?.distributed_total?.toLocaleString() || 0 }} {{ batch.quantity?.qty_base_unit || 'kg' }}</p>
+              </div>
             </div>
           </div>
 
@@ -1112,17 +1145,22 @@ onMounted(() => {
             </div>
 
             <div>
-              <label class="block mb-2 text-sm font-semibold text-ink">Quantity (kg) *</label>
+              <label class="block mb-2 text-sm font-semibold text-ink">
+                Quantity ({{ batch.quantity?.qty_base_unit || 'kg' }}) *
+              </label>
               <input 
                 v-model.number="distributionForm.quantity"
                 type="number"
                 min="0.01"
+                :max="batch.quantity?.remaining || 0"
                 step="0.01"
                 class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                placeholder="e.g., 1000"
+                :placeholder="`Max: ${batch.quantity?.remaining || 0}`"
                 :disabled="submitting"
               />
-              <p class="mt-1 text-xs text-ink/60">Must be greater than 0</p>
+              <p class="mt-1 text-xs text-ink/60">
+                Must be between 0.01 and {{ batch.quantity?.remaining?.toLocaleString() || 0 }} {{ batch.quantity?.qty_base_unit || 'kg' }}
+              </p>
             </div>
 
             <!-- Evidence Upload (Optional) -->
