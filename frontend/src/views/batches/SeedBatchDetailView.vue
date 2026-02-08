@@ -1079,12 +1079,11 @@ onMounted(() => {
                 class="w-full px-4 py-2 border rounded-lg border-ink/20 focus:border-primary focus:ring-2 focus:ring-primary/20"
                 :disabled="submitting"
               >
-                <option value="distributor">Distributor</option>
-                <option value="retailer">Retailer</option>
-                <option value="farmer">Farmer</option>
-                <option value="cooperative">Cooperative</option>
-                <option value="government">Government Agency</option>
-                <option value="other">Other</option>
+                <option value="DISTRIBUTOR">Distributor</option>
+                <option value="RETAILER">Retailer</option>
+                <option value="FARMER_GROUP">Farmer Group</option>
+                <option value="WAREHOUSE">Warehouse</option>
+                <option value="OTHER">Other</option>
               </select>
             </div>
 
