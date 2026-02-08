@@ -15,7 +15,9 @@
   "channels": {
     "benihchannel": {
       "orderers": [
-        "chain-orderer.jabarchain.me"
+        "chain-orderer.jabarchain.me",
+        "chain-orderer2.jabarchain.me",
+        "chain-orderer3.jabarchain.me"
       ],
       "peers": {
         "pusat.chain-bpsbp.jabarchain.me": {
@@ -60,6 +62,38 @@
       },
       "tlsCACerts": {
         "path": "./crypto-config/ordererOrganizations/jabarchain.me/orderers/chain-orderer.jabarchain.me/tls/ca.crt"
+      }
+    },
+    "chain-orderer2.jabarchain.me": {
+      "url": "grpcs://152.42.164.128:8050",
+      "grpcOptions": {
+        "ssl-target-name-override": "chain-orderer2.jabarchain.me",
+        "grpc.max_send_message_length": 209715200,
+        "grpc.max_receive_message_length": 209715200,
+        "grpc.keepalive_time_ms": 360000,
+        "grpc.keepalive_timeout_ms": 180000,
+        "grpc.initial_reconnect_backoff_ms": 5000,
+        "grpc.max_reconnect_backoff_ms": 30000,
+        "request-timeout": 120000
+      },
+      "tlsCACerts": {
+        "path": "./crypto-config/ordererOrganizations/jabarchain.me/orderers/chain-orderer2.jabarchain.me/tls/ca.crt"
+      }
+    },
+    "chain-orderer3.jabarchain.me": {
+      "url": "grpcs://152.42.164.128:9050",
+      "grpcOptions": {
+        "ssl-target-name-override": "chain-orderer3.jabarchain.me",
+        "grpc.max_send_message_length": 209715200,
+        "grpc.max_receive_message_length": 209715200,
+        "grpc.keepalive_time_ms": 360000,
+        "grpc.keepalive_timeout_ms": 180000,
+        "grpc.initial_reconnect_backoff_ms": 5000,
+        "grpc.max_reconnect_backoff_ms": 30000,
+        "request-timeout": 120000
+      },
+      "tlsCACerts": {
+        "path": "./crypto-config/ordererOrganizations/jabarchain.me/orderers/chain-orderer3.jabarchain.me/tls/ca.crt"
       }
     }
   },

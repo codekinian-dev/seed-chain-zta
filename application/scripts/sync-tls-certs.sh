@@ -45,6 +45,28 @@ else
     echo "    ❌ Failed to sync Orderer TLS CA"
 fi
 
+# Sync Orderer2 TLS CA cert (for CFT support)
+echo "  - Orderer2 TLS CA..."
+scp "$BLOCKCHAIN_USER@$BLOCKCHAIN_SERVER:$BLOCKCHAIN_CRYPTO_PATH/ordererOrganizations/jabarchain.me/orderers/chain-orderer2.jabarchain.me/tls/ca.crt" \
+    "$TLS_DIR/orderer/orderer2-tls-ca.crt" 2>/dev/null
+
+if [ $? -eq 0 ]; then
+    echo "    ✅ Orderer2 TLS CA synced"
+else
+    echo "    ❌ Failed to sync Orderer2 TLS CA"
+fi
+
+# Sync Orderer3 TLS CA cert (for CFT support)
+echo "  - Orderer3 TLS CA..."
+scp "$BLOCKCHAIN_USER@$BLOCKCHAIN_SERVER:$BLOCKCHAIN_CRYPTO_PATH/ordererOrganizations/jabarchain.me/orderers/chain-orderer3.jabarchain.me/tls/ca.crt" \
+    "$TLS_DIR/orderer/orderer3-tls-ca.crt" 2>/dev/null
+
+if [ $? -eq 0 ]; then
+    echo "    ✅ Orderer3 TLS CA synced"
+else
+    echo "    ❌ Failed to sync Orderer3 TLS CA"
+fi
+
 # Sync Peer TLS CA certs
 echo "  - Peer pusat TLS CA..."
 scp "$BLOCKCHAIN_USER@$BLOCKCHAIN_SERVER:$BLOCKCHAIN_CRYPTO_PATH/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls/ca.crt" \

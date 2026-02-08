@@ -53,12 +53,33 @@ class FabricGateway {
                 endorseTimeout: 300,
                 strategy: require('fabric-network').DefaultEventHandlerStrategies.MSPID_SCOPE_ANYFORTX
             },
+            // Enable orderer failover for CFT (Crash Fault Tolerance)
+            queryHandlerOptions: {
+                timeout: 60,
+                strategy: require('fabric-network').DefaultQueryHandlerStrategies.MSPID_SCOPE_ROUND_ROBIN
+            },
             clientTlsIdentity: undefined,
             grpcOptions: {
                 'grpc.max_receive_message_length': 200 * 1024 * 1024,
                 'grpc.max_send_message_length': 200 * 1024 * 1024,
                 'grpc.keepalive_time_ms': 120000,
-                'grpc.keepalive_timeout_ms': 20000
+                'grpc.keepalive_timeout_ms': 20000,
+                // Add retry and failover options
+                'grpc.initial_reconnect_backoff_ms': 1000,
+                'grpc.max_reconnect_backoff_ms': 10000,
+                'grpc.enable_retries': 1,
+                'grpc.service_config': JSON.stringify({
+                    methodConfig: [{
+                        name: [{}],
+                        retryPolicy: {
+                            maxAttempts: 5,
+                            initialBackoff: '0.5s',
+                            maxBackoff: '30s',
+                            backoffMultiplier: 2,
+                            retryableStatusCodes: ['UNAVAILABLE', 'DEADLINE_EXCEEDED']
+                        }
+                    }]
+                })
             }
         };
     }

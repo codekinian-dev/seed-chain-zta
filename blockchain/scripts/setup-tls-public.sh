@@ -51,20 +51,37 @@ mkdir -p "$PUBLIC_TLS_PATH/ca"
 # Copy TLS certificates (public certificates only, no private keys)
 echo "📦 Copying TLS certificates..."
 
-# Orderer TLS CA
+# Orderer TLS CA (all 3 orderers for CFT support)
 cp "$ORGANIZATIONS_PATH/ordererOrganizations/jabarchain.me/orderers/chain-orderer.jabarchain.me/tls/ca.crt" \
    "$PUBLIC_TLS_PATH/orderer/orderer-tls-ca.crt" 2>/dev/null && echo "  ✅ Orderer TLS CA"
 
-# Peer TLS CAs  
+cp "$ORGANIZATIONS_PATH/ordererOrganizations/jabarchain.me/orderers/chain-orderer2.jabarchain.me/tls/ca.crt" \
+   "$PUBLIC_TLS_PATH/orderer/orderer2-tls-ca.crt" 2>/dev/null && echo "  ✅ Orderer2 TLS CA"
+
+cp "$ORGANIZATIONS_PATH/ordererOrganizations/jabarchain.me/orderers/chain-orderer3.jabarchain.me/tls/ca.crt" \
+   "$PUBLIC_TLS_PATH/orderer/orderer3-tls-ca.crt" 2>/dev/null && echo "  ✅ Orderer3 TLS CA"
+
+# BPSBP Peer TLS CAs  
 cp "$ORGANIZATIONS_PATH/peerOrganizations/chain-bpsbp.jabarchain.me/peers/pusat.chain-bpsbp.jabarchain.me/tls/ca.crt" \
-   "$PUBLIC_TLS_PATH/peers/pusat-tls-ca.crt" 2>/dev/null && echo "  ✅ Peer pusat TLS CA"
+   "$PUBLIC_TLS_PATH/peers/pusat-tls-ca.crt" 2>/dev/null && echo "  ✅ Peer pusat (BPSBP) TLS CA"
 
 cp "$ORGANIZATIONS_PATH/peerOrganizations/chain-bpsbp.jabarchain.me/peers/cert.chain-bpsbp.jabarchain.me/tls/ca.crt" \
-   "$PUBLIC_TLS_PATH/peers/cert-tls-ca.crt" 2>/dev/null && echo "  ✅ Peer cert TLS CA"
+   "$PUBLIC_TLS_PATH/peers/cert-tls-ca.crt" 2>/dev/null && echo "  ✅ Peer cert (BPSBP) TLS CA"
 
-# Fabric CA TLS - dari folder fabric-ca
+# Disbun Peer TLS CAs
+cp "$ORGANIZATIONS_PATH/peerOrganizations/chain-disbun.jabarchain.me/peers/sekretariat.chain-disbun.jabarchain.me/tls/ca.crt" \
+   "$PUBLIC_TLS_PATH/peers/sekretariat-tls-ca.crt" 2>/dev/null && echo "  ✅ Peer sekretariat (Disbun) TLS CA"
+
+cp "$ORGANIZATIONS_PATH/peerOrganizations/chain-disbun.jabarchain.me/peers/digital.chain-disbun.jabarchain.me/tls/ca.crt" \
+   "$PUBLIC_TLS_PATH/peers/digital-tls-ca.crt" 2>/dev/null && echo "  ✅ Peer digital (Disbun) TLS CA"
+
+# BPSBP Fabric CA TLS - dari folder fabric-ca
 cp "$ORGANIZATIONS_PATH/fabric-ca/bpsbp/ca-cert.pem" \
-   "$PUBLIC_TLS_PATH/ca/ca-bpsbp-tls.pem" 2>/dev/null && echo "  ✅ Fabric CA TLS"
+   "$PUBLIC_TLS_PATH/ca/ca-bpsbp-tls.pem" 2>/dev/null && echo "  ✅ Fabric CA BPSBP TLS"
+
+# Disbun Fabric CA TLS
+cp "$ORGANIZATIONS_PATH/fabric-ca/disbun/ca-cert.pem" \
+   "$PUBLIC_TLS_PATH/ca/ca-disbun-tls.pem" 2>/dev/null && echo "  ✅ Fabric CA Disbun TLS"
 
 # Create bundle
 echo ""
