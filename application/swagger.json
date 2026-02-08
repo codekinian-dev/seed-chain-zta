@@ -596,6 +596,13 @@
                     "description": "Declared seed quantity (must be positive)",
                     "example": 1000
                   },
+                  "qtyBaseUnit": {
+                    "type": "string",
+                    "enum": ["GRAM", "KG", "TON", "BIJI", "BATANG"],
+                    "description": "Unit of measurement for the declared quantity (GRAM=Gram, KG=Kilogram, TON=Ton, BIJI=Seeds/Pieces, BATANG=Stems/Plants)",
+                    "default": "GRAM",
+                    "example": "KG"
+                  },
                   "document": {
                     "type": "string",
                     "format": "binary",

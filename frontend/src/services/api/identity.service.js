@@ -92,36 +92,28 @@ const identityService = {
 
     /**
      * Enroll user identity in Fabric CA
-     * @param {Object} enrollData - Enrollment data
      * @returns {Promise}
      */
-    async enroll(enrollData) {
-        const response = await httpClient.post('/api/v1/identity/enroll', {
-            username: enrollData.username,
-            affiliation: enrollData.affiliation || 'org1.department1',
-        })
+    async enroll() {
+        const response = await httpClient.post('/api/v1/identity/enroll')
         return response
     },
 
     /**
      * Check user identity status
-     * @param {string} username - Username to check
      * @returns {Promise}
      */
-    async getStatus(username) {
-        const response = await httpClient.get(`/api/v1/identity/status?username=${username}`)
+    async getStatus() {
+        const response = await httpClient.get('/api/v1/identity/status')
         return response
     },
 
     /**
      * Re-enroll user identity
-     * @param {string} username - Username to re-enroll
      * @returns {Promise}
      */
-    async reenroll(username) {
-        const response = await httpClient.post('/api/v1/identity/reenroll', {
-            username,
-        })
+    async reenroll() {
+        const response = await httpClient.post('/api/v1/identity/reenroll')
         return response
     },
 

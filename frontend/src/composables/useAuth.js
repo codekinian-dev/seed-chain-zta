@@ -73,6 +73,60 @@ export function useAuth() {
     }
 
     /**
+     * Enroll user identity in blockchain
+     */
+    const enroll = async () => {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const response = await identityService.enroll()
+            return response
+        } catch (err) {
+            error.value = err.message
+            throw err
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    /**
+     * Re-enroll user identity (refresh certificate)
+     */
+    const reenroll = async () => {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const response = await identityService.reenroll()
+            return response
+        } catch (err) {
+            error.value = err.message
+            throw err
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    /**
+     * Check identity status
+     */
+    const checkIdentityStatus = async () => {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const response = await identityService.getStatus()
+            return response
+        } catch (err) {
+            error.value = err.message
+            throw err
+        } finally {
+            isLoading.value = false
+        }
+    }
+
+    /**
      * Logout user
      */
     const logout = () => {
@@ -100,6 +154,9 @@ export function useAuth() {
         login,
         register,
         registerAndEnroll,
+        enroll,
+        reenroll,
+        checkIdentityStatus,
         logout,
         refreshUser,
     }

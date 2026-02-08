@@ -31,6 +31,7 @@ const formData = reactive({
   iupbNumber: '',
   seedClass: 'BD', // Default to BD (Breeder Seed)
   declaredQuantity: null,
+  qtyBaseUnit: 'KG', // Default to KG (Kilogram)
 })
 
 const seedClassOptions = [
@@ -38,6 +39,14 @@ const seedClassOptions = [
   { value: 'BD', label: 'BD - Foundation Seed (Benih Dasar)' },
   { value: 'BP', label: 'BP - Stock Seed (Benih Pokok)' },
   { value: 'BR', label: 'BR - Extension Seed (Benih Sebar)' },
+]
+
+const qtyUnitOptions = [
+  { value: 'GRAM', label: 'Gram (g)' },
+  { value: 'KG', label: 'Kilogram (kg)' },
+  { value: 'TON', label: 'Ton' },
+  { value: 'BIJI', label: 'Biji (Seeds)' },
+  { value: 'BATANG', label: 'Batang (Stems)' },
 ]
 
 const handleFileChange = (event) => {
@@ -96,6 +105,7 @@ const handleSubmit = async () => {
     data.append('iupbNumber', formData.iupbNumber)
     data.append('seedClass', formData.seedClass)
     data.append('declaredQuantity', formData.declaredQuantity.toString())
+    data.append('qtyBaseUnit', formData.qtyBaseUnit)
     data.append('document', selectedFile.value)
 
     console.log('Submitting seed batch:', {
@@ -107,6 +117,7 @@ const handleSubmit = async () => {
       iupbNumber: formData.iupbNumber,
       seedClass: formData.seedClass,
       declaredQuantity: formData.declaredQuantity,
+      qtyBaseUnit: formData.qtyBaseUnit,
       fileName: selectedFile.value.name
     })
 
@@ -237,17 +248,32 @@ const goBackToList = () => router.push('/seed-batches')
               />
             </div>
             <div class="input-group">
-              <label class="input-label">Declared Quantity (kg) *</label>
-              <input 
-                type="number" 
-                class="text-input" 
-                placeholder="e.g., 1000"
-                min="0.01"
-                step="0.01"
-                v-model.number="formData.declaredQuantity"
-                :disabled="loading"
-              />
-              <p class="mt-1 text-xs text-ink/60">Total quantity in kilograms</p>
+              <label class="input-label">Declared Quantity *</label>
+              <div class="flex gap-2">
+                <input 
+                  type="number" 
+                  class="text-input flex-1" 
+                  placeholder="e.g., 1000"
+                  min="0.01"
+                  step="0.01"
+                  v-model.number="formData.declaredQuantity"
+                  :disabled="loading"
+                />
+                <select 
+                  class="text-input w-32"
+                  v-model="formData.qtyBaseUnit"
+                  :disabled="loading"
+                >
+                  <option 
+                    v-for="option in qtyUnitOptions" 
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+              <p class="mt-1 text-xs text-ink/60">Total quantity with unit of measurement</p>
             </div>
             <div class="input-group">
               <label class="input-label">Seed Class *</label>

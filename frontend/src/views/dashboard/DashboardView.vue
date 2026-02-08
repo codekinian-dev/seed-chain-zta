@@ -33,6 +33,11 @@ const loadHealthStatus = async () => {
   }
 }
 
+// Enroll/Reenroll state
+const enrollLoading = ref(false)
+const enrollError = ref(null)
+const enrollSuccess = ref(null)
+
 // Load identity status
 const loadIdentityStatus = async () => {
   if (!currentUser) {
@@ -42,8 +47,16 @@ const loadIdentityStatus = async () => {
 
   try {
     identityError.value = null
-    const response = await identityService.getStatus(currentUser.username)
-    identityStatus.value = response.data || response
+    const response = await identityService.getStatus()
+    const data = response.data || response
+    // Map backend response (hasIdentity) to frontend expected format (enrolled)
+    identityStatus.value = {
+      enrolled: data.hasIdentity || false,
+      identity: data.identity || null,
+      mspId: data.identity?.mspId,
+      type: data.identity?.type,
+      metadata: data.identity?.metadata
+    }
   } catch (error) {
     console.error('Failed to load identity status:', error)
     identityError.value = error.message || 'Failed to check enrollment status'
@@ -51,9 +64,49 @@ const loadIdentityStatus = async () => {
   }
 }
 
+// Enroll user identity
+const handleEnroll = async () => {
+  enrollLoading.value = true
+  enrollError.value = null
+  enrollSuccess.value = null
+
+  try {
+    const response = await identityService.enroll()
+    enrollSuccess.value = response.message || 'Identity enrolled successfully!'
+    // Reload identity status after enrollment
+    await loadIdentityStatus()
+  } catch (error) {
+    console.error('Failed to enroll identity:', error)
+    enrollError.value = error.message || 'Failed to enroll identity'
+  } finally {
+    enrollLoading.value = false
+  }
+}
+
+// Re-enroll user identity
+const handleReenroll = async () => {
+  enrollLoading.value = true
+  enrollError.value = null
+  enrollSuccess.value = null
+
+  try {
+    const response = await identityService.reenroll()
+    enrollSuccess.value = response.message || 'Identity re-enrolled successfully!'
+    // Reload identity status after reenrollment
+    await loadIdentityStatus()
+  } catch (error) {
+    console.error('Failed to re-enroll identity:', error)
+    enrollError.value = error.message || 'Failed to re-enroll identity'
+  } finally {
+    enrollLoading.value = false
+  }
+}
+
 // Load all data
 const loadData = async () => {
   loading.value = true
+  enrollError.value = null
+  enrollSuccess.value = null
   await Promise.all([
     loadHealthStatus(),
     loadIdentityStatus()
@@ -260,28 +313,51 @@ onMounted(() => {
           </div>
 
           <!-- Enrollment Details -->
-          <div v-if="identityStatus.enrolled && identityStatus.certificate" class="space-y-3">
-            <h4 class="text-sm font-semibold text-ink">Certificate Details</h4>
+          <div v-if="identityStatus.enrolled && identityStatus.identity" class="space-y-3">
+            <h4 class="text-sm font-semibold text-ink">Blockchain Identity Details</h4>
             <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2 text-xs">
               <div v-if="identityStatus.mspId" class="flex justify-between">
                 <span class="text-ink/60">MSP ID</span>
                 <span class="font-mono text-ink">{{ identityStatus.mspId }}</span>
               </div>
-              <div v-if="identityStatus.affiliation" class="flex justify-between">
-                <span class="text-ink/60">Affiliation</span>
-                <span class="font-mono text-ink">{{ identityStatus.affiliation }}</span>
-              </div>
               <div v-if="identityStatus.type" class="flex justify-between">
                 <span class="text-ink/60">Type</span>
                 <span class="font-mono text-ink">{{ identityStatus.type }}</span>
               </div>
+              <div v-if="identityStatus.identity?.userId" class="flex justify-between">
+                <span class="text-ink/60">User ID</span>
+                <span class="font-mono text-ink text-right break-all">{{ identityStatus.identity.userId }}</span>
+              </div>
             </div>
           </div>
 
-          <!-- Action Button -->
-          <div v-if="!identityStatus.enrolled" class="pt-4 border-t border-gray-200">
-            <button class="w-full primary-button" @click="$router.push('/identity/enroll')">
-              Enroll Identity
+          <!-- Enroll/Reenroll Messages -->
+          <div v-if="enrollError" class="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-sm text-red-700">{{ enrollError }}</p>
+          </div>
+          <div v-if="enrollSuccess" class="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p class="text-sm text-green-700">{{ enrollSuccess }}</p>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="pt-4 border-t border-gray-200 space-y-2">
+            <button 
+              v-if="!identityStatus.enrolled" 
+              class="w-full primary-button flex items-center justify-center gap-2" 
+              @click="handleEnroll"
+              :disabled="enrollLoading"
+            >
+              <ArrowPathIcon v-if="enrollLoading" class="w-4 h-4 animate-spin" />
+              <span>{{ enrollLoading ? 'Enrolling...' : 'Enroll Identity' }}</span>
+            </button>
+            <button 
+              v-if="identityStatus.enrolled" 
+              class="w-full secondary-button flex items-center justify-center gap-2" 
+              @click="handleReenroll"
+              :disabled="enrollLoading"
+            >
+              <ArrowPathIcon v-if="enrollLoading" class="w-4 h-4 animate-spin" />
+              <span>{{ enrollLoading ? 'Re-enrolling...' : 'Re-enroll Identity (Refresh Certificate)' }}</span>
             </button>
           </div>
         </div>
