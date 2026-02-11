@@ -1450,15 +1450,25 @@ onMounted(() => {
                   <div class="absolute left-6 top-8 bottom-8 w-0.5 bg-gradient-to-b from-ocean via-primary to-primary/30 z-0"></div>
                   
                   <div class="relative z-10 space-y-4">
-                    <div 
-                      v-for="(block, index) in blockchainData.blocks" 
-                      :key="block?.blockNumber ?? index"
-                      class="flex items-start gap-4"
-                    >
-                      <!-- Block Number Indicator -->
-                      <div class="flex items-center justify-center flex-shrink-0 w-12 h-12 text-sm font-bold text-white shadow-lg bg-ocean rounded-xl">
-                        #{{ block?.blockNumber ?? index + 1 }}
+                    <div v-for="(block, index) in blockchainData.blocks" :key="block?.blockNumber ?? index">
+                      <!-- Gap Indicator (if there are blocks between) -->
+                      <div 
+                        v-if="index > 0 && block?.blockNumber - blockchainData.blocks[index - 1]?.blockNumber > 1"
+                        class="flex items-center gap-4 pl-3 mb-4"
+                      >
+                        <div class="flex items-center justify-center flex-shrink-0 w-6 h-6 text-xs font-medium border-2 border-dashed text-ink/40 border-ink/30 rounded-full bg-white">
+                          ...
+                        </div>
+                        <div class="px-3 py-1.5 text-xs text-ink/50 bg-ink/5 rounded-lg italic">
+                          {{ block.blockNumber - blockchainData.blocks[index - 1].blockNumber - 1 }} block(s) from other batches
+                        </div>
                       </div>
+                      
+                      <div class="flex items-start gap-4">
+                        <!-- Block Number Indicator -->
+                        <div class="flex items-center justify-center flex-shrink-0 w-12 h-12 text-sm font-bold text-white shadow-lg bg-ocean rounded-xl">
+                          #{{ block?.blockNumber ?? index + 1 }}
+                        </div>
                       
                       <!-- Block Details -->
                       <div class="flex-1 p-4 transition-shadow bg-white border shadow-sm rounded-xl border-ink/10 hover:shadow-md">
@@ -1512,6 +1522,7 @@ onMounted(() => {
                       </div>
                     </div>
                   </div>
+                  </div>
                 </div>
               </div>
 
@@ -1530,6 +1541,11 @@ onMounted(() => {
                     <p class="mt-1 text-xs text-ink/60">
                       Each block contains the hash of the previous block, creating an immutable chain. 
                       Any modification to historical data would break this chain linkage, making tampering immediately detectable.
+                    </p>
+                    <p class="mt-2 text-xs text-ink/60">
+                      <strong>Note:</strong> Block numbers are global across the entire blockchain. 
+                      The "Previous Block Header Hash" links to the immediately preceding block in the global chain, 
+                      which may not be shown here if it belongs to a different batch.
                     </p>
                   </div>
                 </div>
