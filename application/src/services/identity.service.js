@@ -158,6 +158,7 @@ class IdentityService {
             'role_pbt_chief_inspector': 'role_pbt_chief',
             'role_lsm_head': 'role_lsm_head',
             'role_lsm_issuer': 'role_lsm_head',
+            'role_admin': 'role_admin'
         };
 
         return roleMapping[keycloakRole.toLowerCase()] || null;
