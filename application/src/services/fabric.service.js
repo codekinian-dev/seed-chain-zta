@@ -493,15 +493,29 @@ class FabricGateway {
 
                         // Previous hash - always a buffer in decoded block
                         if (block.header.previous_hash) {
-                            previousHash = block.header.previous_hash;
+                            // Convert Buffer to hex string
+                            if (Buffer.isBuffer(block.header.previous_hash)) {
+                                previousHash = block.header.previous_hash.toString('hex');
+                            } else if (block.header.previous_hash instanceof Uint8Array) {
+                                previousHash = Buffer.from(block.header.previous_hash).toString('hex');
+                            } else {
+                                previousHash = String(block.header.previous_hash);
+                            }
                         }
 
                         // Data hash
                         if (block.header.data_hash) {
-                            dataHash = block.header.data_hash;
+                            // Convert Buffer to hex string
+                            if (Buffer.isBuffer(block.header.data_hash)) {
+                                dataHash = block.header.data_hash.toString('hex');
+                            } else if (block.header.data_hash instanceof Uint8Array) {
+                                dataHash = Buffer.from(block.header.data_hash).toString('hex');
+                            } else {
+                                dataHash = String(block.header.data_hash);
+                            }
                         }
 
-                        logger.info(`[Fabric] Block #${blockNumber} - prevHash: ${previousHash}, dataHash: ${dataHash}`);
+                        logger.info(`[Fabric] Block #${blockNumber} - prevHash: ${previousHash?.substring(0, 16)}..., dataHash: ${dataHash?.substring(0, 16)}...`);
                     }
 
                     enrichedHistory.push({
