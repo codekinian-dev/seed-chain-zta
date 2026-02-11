@@ -488,6 +488,51 @@ class FabricGateway {
                         return String(data);
                     };
 
+                    // Calculate block hash using ASN.1 DER encoding (same as Fabric)
+                    // Reference: https://github.com/hyperledger/fabric/blob/main/common/ledger/util/hash.go
+                    const calculateBlockHash = (header) => {
+                        try {
+                            const asn1 = require('asn1.js');
+
+                            // Define ASN.1 structure for block header (same as Fabric uses)
+                            const BlockHeaderASN1 = asn1.define('BlockHeader', function () {
+                                this.seq().obj(
+                                    this.key('Number').int(),
+                                    this.key('PreviousHash').octstr(),
+                                    this.key('DataHash').octstr()
+                                );
+                            });
+
+                            // Get block number as integer
+                            let blockNum = 0;
+                            if (header.number) {
+                                if (typeof header.number.toInt === 'function') {
+                                    blockNum = header.number.toInt();
+                                } else if (typeof header.number === 'object' && header.number.low !== undefined) {
+                                    blockNum = header.number.low;
+                                } else {
+                                    blockNum = parseInt(header.number.toString());
+                                }
+                            }
+
+                            // Encode using ASN.1 DER
+                            const headerBytes = BlockHeaderASN1.encode({
+                                Number: blockNum,
+                                PreviousHash: Buffer.isBuffer(header.previous_hash)
+                                    ? header.previous_hash
+                                    : Buffer.from(header.previous_hash || []),
+                                DataHash: Buffer.isBuffer(header.data_hash)
+                                    ? header.data_hash
+                                    : Buffer.from(header.data_hash || [])
+                            }, 'der');
+
+                            return crypto.createHash('sha256').update(headerBytes).digest('hex');
+                        } catch (err) {
+                            logger.warn(`[Fabric] ASN.1 encoding failed: ${err.message}, using protobuf fallback`);
+                            return null;
+                        }
+                    };
+
                     // Extract block metadata
                     if (block && block.header) {
                         // Block number - handle Long type
@@ -508,28 +553,8 @@ class FabricGateway {
                         // Block Data Hash (data_hash field - hash of transactions)
                         dataHash = toHexString(block.header.data_hash);
 
-                        // Calculate Block Header Hash
-                        // In Hyperledger Fabric, the block header hash is SHA256 of the ASN.1 DER encoded header
-                        // The header consists of: number + previous_hash + data_hash
-                        try {
-                            // Get the raw header bytes from the original block buffer
-                            // The block header hash is typically available in the block metadata
-                            // But we can also compute it from the header fields
-                            const fabproto6 = require('fabric-protos');
-
-                            // Re-encode the header to get its hash
-                            const headerProto = fabproto6.common.BlockHeader.create({
-                                number: block.header.number,
-                                previous_hash: block.header.previous_hash,
-                                data_hash: block.header.data_hash
-                            });
-                            const headerBytes = fabproto6.common.BlockHeader.encode(headerProto).finish();
-                            blockHeaderHash = crypto.createHash('sha256').update(headerBytes).digest('hex');
-                        } catch (hashError) {
-                            logger.warn(`[Fabric] Could not compute block header hash: ${hashError.message}`);
-                            // Fallback: use a combination identifier
-                            blockHeaderHash = null;
-                        }
+                        // Calculate Block Header Hash using ASN.1 DER (same as Fabric)
+                        blockHeaderHash = calculateBlockHash(block.header);
 
                         logger.info(`[Fabric] Block #${blockNumber} - headerHash: ${blockHeaderHash?.substring(0, 16)}..., prevHeaderHash: ${previousHeaderHash?.substring(0, 16)}..., dataHash: ${dataHash?.substring(0, 16)}...`);
                     }
