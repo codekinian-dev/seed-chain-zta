@@ -617,7 +617,8 @@ function _extractPrimaryRole(roles) {
         'role_pbt_chief',
         'role_pbt_chief_inspector',
         'role_lsm_head',
-        'role_lsm_issuer'
+        'role_lsm_issuer',
+        'role_admin'
     ];
 
     for (const role of rolePriority) {

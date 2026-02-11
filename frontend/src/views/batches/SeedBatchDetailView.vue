@@ -499,11 +499,12 @@ const loadBlockchainAudit = async () => {
 
   try {
     const response = await seedBatchService.getBlockchainAudit(batchId)
-    blockchainData.value = response.data || response
+    // Response structure: { success, batchId, totalTransactions, chainIntegrity, blocks }
+    blockchainData.value = response || {}
     console.log('Blockchain audit data:', blockchainData.value)
   } catch (err) {
-    blockchainError.value = err.message || 'Failed to load blockchain audit data'
     console.error('Error loading blockchain audit:', err)
+    blockchainError.value = err.message || 'Failed to load blockchain audit data'
   } finally {
     blockchainLoading.value = false
   }
@@ -516,6 +517,14 @@ const closeBlockchainModal = () => {
 // Format block hash for display (truncate)
 const formatHash = (hash) => {
   if (!hash) return '-'
+  // Handle if hash is not a string
+  if (typeof hash !== 'string') {
+    try {
+      hash = String(hash)
+    } catch {
+      return '-'
+    }
+  }
   if (hash.length <= 20) return hash
   return `${hash.substring(0, 10)}...${hash.substring(hash.length - 10)}`
 }
@@ -1442,12 +1451,12 @@ onMounted(() => {
                   <div class="relative z-10 space-y-4">
                     <div 
                       v-for="(block, index) in blockchainData.blocks" 
-                      :key="block.blockNumber || index"
+                      :key="block?.blockNumber ?? index"
                       class="flex items-start gap-4"
                     >
                       <!-- Block Number Indicator -->
                       <div class="flex items-center justify-center flex-shrink-0 w-12 h-12 text-sm font-bold text-white shadow-lg bg-ocean rounded-xl">
-                        #{{ block.blockNumber }}
+                        #{{ block?.blockNumber ?? index + 1 }}
                       </div>
                       
                       <!-- Block Details -->
