@@ -11,6 +11,10 @@ import {
   DocumentCheckIcon,
   UserGroupIcon,
   TruckIcon,
+  InformationCircleIcon,
+  XMarkIcon,
+  CubeIcon,
+  LinkIcon,
 } from '@heroicons/vue/24/outline'
 import DashboardLayout from '../../layouts/DashboardLayout.vue'
 import TimelineView from '../../components/batches/TimelineView.vue'
@@ -65,6 +69,12 @@ const distributionForm = ref({
 
 // Distribution evidence file (optional)
 const distributionEvidence = ref(null)
+
+// Blockchain audit modal state
+const showBlockchainModal = ref(false)
+const blockchainData = ref(null)
+const blockchainLoading = ref(false)
+const blockchainError = ref(null)
 
 const statusToneClass = (status) => {
   const statusMap = {
@@ -480,6 +490,36 @@ const loadBatch = async () => {
 
 const goBack = () => router.push('/seed-batches')
 
+// Load blockchain audit data
+const loadBlockchainAudit = async () => {
+  showBlockchainModal.value = true
+  blockchainLoading.value = true
+  blockchainError.value = null
+  blockchainData.value = null
+
+  try {
+    const response = await seedBatchService.getBlockchainAudit(batchId)
+    blockchainData.value = response.data || response
+    console.log('Blockchain audit data:', blockchainData.value)
+  } catch (err) {
+    blockchainError.value = err.message || 'Failed to load blockchain audit data'
+    console.error('Error loading blockchain audit:', err)
+  } finally {
+    blockchainLoading.value = false
+  }
+}
+
+const closeBlockchainModal = () => {
+  showBlockchainModal.value = false
+}
+
+// Format block hash for display (truncate)
+const formatHash = (hash) => {
+  if (!hash) return '-'
+  if (hash.length <= 20) return hash
+  return `${hash.substring(0, 10)}...${hash.substring(hash.length - 10)}`
+}
+
 onMounted(() => {
   loadBatch()
 })
@@ -523,9 +563,19 @@ onMounted(() => {
                 <p class="text-sm text-ink/60">Seed batch details and status.</p>
               </div>
             </div>
-            <span :class="['status-pill', statusToneClass(batch.current_status)]">
-              {{ formatStatus(batch.current_status) }}
-            </span>
+            <div class="flex items-center gap-2">
+              <button 
+                @click="loadBlockchainAudit"
+                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-ocean bg-ocean/10 rounded-lg hover:bg-ocean/20 transition-colors"
+                title="View Blockchain History"
+              >
+                <CubeIcon class="w-4 h-4" />
+                <span>Blockchain Info</span>
+              </button>
+              <span :class="['status-pill', statusToneClass(batch.current_status)]">
+                {{ formatStatus(batch.current_status) }}
+              </span>
+            </div>
           </div>
 
           <div class="grid gap-4 md:grid-cols-2">
@@ -1326,5 +1376,151 @@ onMounted(() => {
         </div>
       </aside>
     </div>
+
+    <!-- Blockchain Audit Modal -->
+    <Teleport to="body">
+      <div v-if="showBlockchainModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="closeBlockchainModal">
+        <div class="w-full max-w-3xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-ink/10 bg-gradient-to-r from-ocean/10 to-primary/10">
+            <div class="flex items-center gap-3">
+              <CubeIcon class="w-6 h-6 text-ocean" />
+              <div>
+                <h2 class="text-lg font-semibold text-ink">Blockchain Block History</h2>
+                <p class="text-sm text-ink/60">Batch ID: {{ batchId }}</p>
+              </div>
+            </div>
+            <button @click="closeBlockchainModal" class="p-2 rounded-lg hover:bg-ink/10 transition-colors">
+              <XMarkIcon class="w-5 h-5 text-ink/60" />
+            </button>
+          </div>
+
+          <!-- Modal Content -->
+          <div class="flex-1 overflow-y-auto p-6">
+            <!-- Loading State -->
+            <div v-if="blockchainLoading" class="flex items-center justify-center py-12">
+              <div class="text-center">
+                <div class="inline-block w-8 h-8 border-4 rounded-full border-t-transparent border-ocean animate-spin"></div>
+                <p class="mt-2 text-sm text-ink/60">Loading blockchain data...</p>
+              </div>
+            </div>
+
+            <!-- Error State -->
+            <div v-else-if="blockchainError" class="p-4 text-sm text-red-700 bg-red-100 rounded-lg">
+              {{ blockchainError }}
+            </div>
+
+            <!-- Data Display -->
+            <div v-else-if="blockchainData" class="space-y-6">
+              <!-- Summary Info -->
+              <div class="p-4 bg-ocean/5 rounded-xl border border-ocean/20">
+                <h3 class="text-sm font-semibold text-ocean mb-3">Chain Summary</h3>
+                <div class="grid gap-3 md:grid-cols-3">
+                  <div>
+                    <label class="text-xs text-ink/60">Total Blocks</label>
+                    <p class="text-lg font-bold text-ink">{{ blockchainData.blocks?.length || 0 }}</p>
+                  </div>
+                  <div>
+                    <label class="text-xs text-ink/60">Batch ID</label>
+                    <p class="text-sm font-semibold text-ink">{{ blockchainData.batchId || batchId }}</p>
+                  </div>
+                  <div>
+                    <label class="text-xs text-ink/60">Channel</label>
+                    <p class="text-sm font-semibold text-ink">{{ blockchainData.channel || 'mychannel' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Blocks List -->
+              <div v-if="blockchainData.blocks && blockchainData.blocks.length > 0" class="space-y-4">
+                <h3 class="text-sm font-semibold text-ink">Block Chain</h3>
+                
+                <div class="relative">
+                  <!-- Chain Connection Line -->
+                  <div class="absolute left-6 top-8 bottom-8 w-0.5 bg-gradient-to-b from-ocean via-primary to-primary/30 z-0"></div>
+                  
+                  <div class="space-y-4 relative z-10">
+                    <div 
+                      v-for="(block, index) in blockchainData.blocks" 
+                      :key="block.blockNumber || index"
+                      class="flex items-start gap-4"
+                    >
+                      <!-- Block Number Indicator -->
+                      <div class="flex-shrink-0 w-12 h-12 bg-ocean text-white rounded-xl flex items-center justify-center font-bold text-sm shadow-lg">
+                        #{{ block.blockNumber }}
+                      </div>
+                      
+                      <!-- Block Details -->
+                      <div class="flex-1 p-4 bg-white rounded-xl border border-ink/10 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="grid gap-3 md:grid-cols-2">
+                          <div>
+                            <label class="text-xs text-ink/60 flex items-center gap-1">
+                              <span>Transaction ID</span>
+                            </label>
+                            <p class="text-xs font-mono text-ink break-all" :title="block.txId">{{ formatHash(block.txId) }}</p>
+                          </div>
+                          <div>
+                            <label class="text-xs text-ink/60">Action</label>
+                            <p class="text-sm font-semibold text-primary">{{ block.action || '-' }}</p>
+                          </div>
+                          <div>
+                            <label class="text-xs text-ink/60 flex items-center gap-1">
+                              <span>Block Hash</span>
+                            </label>
+                            <p class="text-xs font-mono text-ink break-all" :title="block.dataHash || block.blockHash">{{ formatHash(block.dataHash || block.blockHash) }}</p>
+                          </div>
+                          <div>
+                            <label class="text-xs text-ink/60 flex items-center gap-1">
+                              <LinkIcon class="w-3 h-3" />
+                              <span>Previous Block Hash</span>
+                            </label>
+                            <p class="text-xs font-mono text-ink break-all" :title="block.previousBlockHash">{{ formatHash(block.previousBlockHash) }}</p>
+                          </div>
+                          <div v-if="block.timestamp" class="md:col-span-2">
+                            <label class="text-xs text-ink/60">Timestamp</label>
+                            <p class="text-sm text-ink">{{ formatDate(block.timestamp) }}</p>
+                          </div>
+                          <div v-if="block.creatorMspId" class="md:col-span-2">
+                            <label class="text-xs text-ink/60">Creator MSP</label>
+                            <p class="text-sm text-ink">{{ block.creatorMspId }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- No Blocks -->
+              <div v-else class="p-8 text-center text-ink/60 bg-ink/5 rounded-xl">
+                <CubeIcon class="w-12 h-12 mx-auto mb-3 text-ink/30" />
+                <p class="text-sm">No blockchain records found for this batch.</p>
+              </div>
+
+              <!-- Chain Integrity Note -->
+              <div class="p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <div class="flex items-start gap-3">
+                  <InformationCircleIcon class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 class="text-sm font-semibold text-primary">Chain Integrity</h4>
+                    <p class="text-xs text-ink/60 mt-1">
+                      Each block contains the hash of the previous block, creating an immutable chain. 
+                      Any modification to historical data would break this chain linkage, making tampering immediately detectable.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="px-6 py-4 border-t border-ink/10 bg-ink/5">
+            <button @click="closeBlockchainModal" class="w-full py-2.5 text-sm font-medium text-ink bg-white border border-ink/20 rounded-lg hover:bg-ink/5 transition-colors">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </DashboardLayout>
 </template>

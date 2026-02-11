@@ -154,6 +154,16 @@ const seedBatchService = {
     async verifyDocument(params) {
         return documentService.verifyDocument(params)
     },
+
+    /**
+     * Get blockchain audit block history for a batch
+     * @param {string} id - Batch ID
+     * @returns {Promise}
+     */
+    async getBlockchainAudit(id) {
+        const response = await httpClient.get(`/api/blockchain-audit/batch/${id}/blocks`)
+        return response
+    },
 }
 
 export default seedBatchService
