@@ -8,16 +8,16 @@ const { asyncHandler } = require('../middleware/error');
  * Blockchain Audit Log Routes
  * 
  * API endpoints for querying AuditLog data stored on the Hyperledger Fabric blockchain.
- * All endpoints require admin role access.
+ * All endpoints require LSM Head role access.
  * 
  * The AuditLog records are created by the chaincode for every transaction
  * and contain details about who did what, when, and on which resource.
  */
 
 /**
- * Middleware to check admin access
+ * Middleware to check LSM Head access
  */
-const requireAdmin = (req, res, next) => {
+const requireLsmHead = (req, res, next) => {
     const token = req.kauth?.grant?.access_token?.content;
 
     if (!token) {
@@ -32,15 +32,15 @@ const requireAdmin = (req, res, next) => {
     const clientRoles = token.resource_access?.['benih-app']?.roles || [];
     const allRoles = [...realmRoles, ...clientRoles];
 
-    if (!allRoles.includes('role_admin')) {
-        logger.warn('[BlockchainAudit] Admin access denied', {
+    if (!allRoles.includes('role_lsm_head')) {
+        logger.warn('[BlockchainAudit] LSM Head access denied', {
             userId: token.sub,
             username: token.preferred_username,
             roles: allRoles
         });
         return res.status(403).json({
             success: false,
-            error: 'Admin access required for blockchain audit logs'
+            error: 'LSM Head access required for blockchain audit logs'
         });
     }
 
@@ -61,39 +61,39 @@ const requireAdmin = (req, res, next) => {
  */
 router.get(
     '/logs',
-    requireAdmin,
+    requireLsmHead,
     asyncHandler(blockchainAuditController.queryBlockchainAuditLogs)
 );
 
 /**
  * @route   GET /api/blockchain-audit/stats
  * @desc    Get audit log statistics summary
- * @access  Admin only
+ * @access  LSM Head only
  * 
  * Query Parameters:
  * - days: Number of days to include in statistics (default: 7)
  */
 router.get(
     '/stats',
-    requireAdmin,
+    requireLsmHead,
     asyncHandler(blockchainAuditController.getAuditStats)
 );
 
 /**
  * @route   GET /api/blockchain-audit/tx/:txId
  * @desc    Get audit log by blockchain transaction ID
- * @access  Admin only
+ * @access  LSM Head only
  */
 router.get(
     '/tx/:txId',
-    requireAdmin,
+    requireLsmHead,
     asyncHandler(blockchainAuditController.getAuditLogByTxId)
 );
 
 /**
  * @route   GET /api/blockchain-audit/resource/:resourceId
  * @desc    Get audit logs for a specific resource (e.g., seed batch ID)
- * @access  Admin only
+ * @access  LSM Head only
  * 
  * Query Parameters:
  * - limit: Number of records to return (default: 100)
@@ -101,14 +101,14 @@ router.get(
  */
 router.get(
     '/resource/:resourceId',
-    requireAdmin,
+    requireLsmHead,
     asyncHandler(blockchainAuditController.getAuditLogsByResourceId)
 );
 
 /**
  * @route   GET /api/blockchain-audit/user/:keycloakId
  * @desc    Get audit logs for a specific user by Keycloak ID
- * @access  Admin only
+ * @access  LSM Head only
  * 
  * Query Parameters:
  * - limit: Number of records to return (default: 100)
@@ -116,14 +116,14 @@ router.get(
  */
 router.get(
     '/user/:keycloakId',
-    requireAdmin,
+    requireLsmHead,
     asyncHandler(blockchainAuditController.getAuditLogsByUser)
 );
 
 /**
  * @route   GET /api/blockchain-audit/chain-info
  * @desc    Get blockchain chain information (height, latest block hash)
- * @access  Admin only
+ * @access  LSM Head only
  * 
  * Returns:
  * - Channel name
@@ -133,14 +133,14 @@ router.get(
  */
 router.get(
     '/chain-info',
-    requireAdmin,
+    requireLsmHead,
     asyncHandler(blockchainAuditController.getChainInfo)
 );
 
 /**
  * @route   GET /api/blockchain-audit/batch/:batchId/blocks
  * @desc    Get block history for a seed batch showing chain linkage
- * @access  Admin only
+ * @access  LSM Head only
  * 
  * This endpoint shows all transactions related to a batch with their
  * block information, including previousBlockHash which demonstrates
@@ -155,14 +155,14 @@ router.get(
  */
 router.get(
     '/batch/:batchId/blocks',
-    requireAdmin,
+    requireLsmHead,
     asyncHandler(blockchainAuditController.getBatchBlockHistory)
 );
 
 /**
  * @route   GET /api/blockchain-audit/block/:blockNumber
  * @desc    Get detailed information about a specific block by its number
- * @access  Admin only
+ * @access  LSM Head only
  * 
  * Returns:
  * - Block header (number, previous hash, data hash)
@@ -171,7 +171,7 @@ router.get(
  */
 router.get(
     '/block/:blockNumber',
-    requireAdmin,
+    requireLsmHead,
     asyncHandler(blockchainAuditController.getBlockByNumber)
 );
 
