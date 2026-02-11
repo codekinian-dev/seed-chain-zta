@@ -125,6 +125,7 @@ const initializeServices = async () => {
         const documentRoutes = require('./routes/document.routes');
         const webhookRoutes = require('./routes/webhooks');
         const policyAdminRoutes = require('./routes/policyAdmin.routes');
+        const blockchainAuditRoutes = require('./routes/blockchainAudit.routes');
 
         app.use('/api/health', healthRoutes);
         app.use('/api/seed-batches', seedBatchRoutes);
@@ -133,6 +134,9 @@ const initializeServices = async () => {
 
         // Policy Administration (admin only)
         app.use('/api/policies', keycloak.protect(), policyAdminRoutes);
+
+        // Blockchain Audit Logs (admin only)
+        app.use('/api/blockchain-audit', keycloak.protect(), blockchainAuditRoutes);
 
         // Webhooks endpoint (no auth required - should be secured by network/firewall)
         app.use('/api/webhooks', webhookRoutes);
@@ -154,6 +158,7 @@ const initializeServices = async () => {
                 endpoints: {
                     health: '/api/health',
                     seedBatches: '/api/seed-batches',
+                    blockchainAudit: '/api/blockchain-audit',
                     webhooks: '/api/webhooks',
                     documentation: '/api-docs'
                 }
