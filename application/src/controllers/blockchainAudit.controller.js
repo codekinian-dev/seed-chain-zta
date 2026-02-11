@@ -528,7 +528,7 @@ const getBatchBlockHistory = async (req, res) => {
                     if (hash.data && Array.isArray(hash.data)) {
                         return Buffer.from(hash.data).toString('hex');
                     }
-                    return JSON.stringify(hash);
+                    return null; // Don't stringify objects
                 }
                 return String(hash);
             };
@@ -540,12 +540,18 @@ const getBatchBlockHistory = async (req, res) => {
                 timestamp: timestampStr,
                 isDelete: entry.isDelete || false,
 
-                // Block hash information - this shows the chain linkage
+                // Block hash information - 3 explicit fields for clarity
                 blockHashes: {
-                    // Hash of this block's data
-                    dataHash: ensureHashString(entry.blockDataHash),
-                    // Hash of the previous block - THIS LINKS THE CHAIN
-                    previousBlockHash: ensureHashString(entry.previousBlockHash)
+                    // Hash of this block's header (SHA256 of header)
+                    // This becomes the previousHeaderHash for the next block
+                    blockHeaderHash: ensureHashString(entry.blockHeaderHash),
+
+                    // Hash of the previous block's header
+                    // This links this block to the previous block in the chain
+                    previousHeaderHash: ensureHashString(entry.previousHeaderHash),
+
+                    // Hash of the transactions/data in this block
+                    blockDataHash: ensureHashString(entry.blockDataHash)
                 },
 
                 // The actual data/state at this point in time
@@ -565,14 +571,24 @@ const getBatchBlockHistory = async (req, res) => {
             block.sequence = index + 1;
         });
 
-        // Build chain visualization
+        // Build chain visualization - show how blocks are linked
         const chainVisualization = blockChain.map((block, index) => {
             const prevBlock = index > 0 ? blockChain[index - 1] : null;
+
+            // Verify chain linkage: this block's previousHeaderHash should equal previous block's blockHeaderHash
+            let chainLinkValid = null;
+            if (prevBlock && block.blockHashes.previousHeaderHash && prevBlock.blockHashes.blockHeaderHash) {
+                chainLinkValid = block.blockHashes.previousHeaderHash === prevBlock.blockHashes.blockHeaderHash;
+            }
+
             return {
                 blockNumber: block.blockNumber,
+                blockHeaderHash: block.blockHashes.blockHeaderHash,
                 linkedToPrevious: prevBlock ? {
                     previousBlockNumber: prevBlock.blockNumber,
-                    hashMatch: block.blockHashes.previousBlockHash === prevBlock.blockHashes.dataHash
+                    previousBlockHeaderHash: prevBlock.blockHashes.blockHeaderHash,
+                    thisBlockPreviousHash: block.blockHashes.previousHeaderHash,
+                    chainLinkValid: chainLinkValid
                 } : null
             };
         });

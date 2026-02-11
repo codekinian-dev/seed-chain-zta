@@ -471,11 +471,22 @@ class FabricGateway {
 
                     // Decode the block
                     const { BlockDecoder } = require('fabric-common');
+                    const crypto = require('crypto');
                     const block = BlockDecoder.decode(blockBuffer);
 
                     let blockNumber = null;
-                    let previousHash = null;
-                    let dataHash = null;
+                    let previousHeaderHash = null;  // Hash of previous block's header
+                    let dataHash = null;            // Hash of transactions in this block
+                    let blockHeaderHash = null;     // Hash of this block's header (becomes previousHeaderHash for next block)
+
+                    // Helper function to convert to hex string
+                    const toHexString = (data) => {
+                        if (!data) return null;
+                        if (Buffer.isBuffer(data)) return data.toString('hex');
+                        if (data instanceof Uint8Array) return Buffer.from(data).toString('hex');
+                        if (typeof data === 'string') return data;
+                        return String(data);
+                    };
 
                     // Extract block metadata
                     if (block && block.header) {
@@ -491,38 +502,44 @@ class FabricGateway {
                             }
                         }
 
-                        // Previous hash - always a buffer in decoded block
-                        if (block.header.previous_hash) {
-                            // Convert Buffer to hex string
-                            if (Buffer.isBuffer(block.header.previous_hash)) {
-                                previousHash = block.header.previous_hash.toString('hex');
-                            } else if (block.header.previous_hash instanceof Uint8Array) {
-                                previousHash = Buffer.from(block.header.previous_hash).toString('hex');
-                            } else {
-                                previousHash = String(block.header.previous_hash);
-                            }
+                        // Previous Block Header Hash (previous_hash field)
+                        previousHeaderHash = toHexString(block.header.previous_hash);
+
+                        // Block Data Hash (data_hash field - hash of transactions)
+                        dataHash = toHexString(block.header.data_hash);
+
+                        // Calculate Block Header Hash
+                        // In Hyperledger Fabric, the block header hash is SHA256 of the ASN.1 DER encoded header
+                        // The header consists of: number + previous_hash + data_hash
+                        try {
+                            // Get the raw header bytes from the original block buffer
+                            // The block header hash is typically available in the block metadata
+                            // But we can also compute it from the header fields
+                            const fabproto6 = require('fabric-protos');
+
+                            // Re-encode the header to get its hash
+                            const headerProto = fabproto6.common.BlockHeader.create({
+                                number: block.header.number,
+                                previous_hash: block.header.previous_hash,
+                                data_hash: block.header.data_hash
+                            });
+                            const headerBytes = fabproto6.common.BlockHeader.encode(headerProto).finish();
+                            blockHeaderHash = crypto.createHash('sha256').update(headerBytes).digest('hex');
+                        } catch (hashError) {
+                            logger.warn(`[Fabric] Could not compute block header hash: ${hashError.message}`);
+                            // Fallback: use a combination identifier
+                            blockHeaderHash = null;
                         }
 
-                        // Data hash
-                        if (block.header.data_hash) {
-                            // Convert Buffer to hex string
-                            if (Buffer.isBuffer(block.header.data_hash)) {
-                                dataHash = block.header.data_hash.toString('hex');
-                            } else if (block.header.data_hash instanceof Uint8Array) {
-                                dataHash = Buffer.from(block.header.data_hash).toString('hex');
-                            } else {
-                                dataHash = String(block.header.data_hash);
-                            }
-                        }
-
-                        logger.info(`[Fabric] Block #${blockNumber} - prevHash: ${previousHash?.substring(0, 16)}..., dataHash: ${dataHash?.substring(0, 16)}...`);
+                        logger.info(`[Fabric] Block #${blockNumber} - headerHash: ${blockHeaderHash?.substring(0, 16)}..., prevHeaderHash: ${previousHeaderHash?.substring(0, 16)}..., dataHash: ${dataHash?.substring(0, 16)}...`);
                     }
 
                     enrichedHistory.push({
                         ...entry,
                         blockNumber: blockNumber,
-                        previousBlockHash: previousHash,
-                        blockDataHash: dataHash
+                        blockHeaderHash: blockHeaderHash,       // Hash of this block's header
+                        previousHeaderHash: previousHeaderHash, // Hash of previous block's header  
+                        blockDataHash: dataHash                 // Hash of transactions in this block
                     });
 
                 } catch (blockError) {
@@ -534,7 +551,8 @@ class FabricGateway {
                     enrichedHistory.push({
                         ...entry,
                         blockNumber: null,
-                        previousBlockHash: null,
+                        blockHeaderHash: null,
+                        previousHeaderHash: null,
                         blockDataHash: null
                     });
                 }

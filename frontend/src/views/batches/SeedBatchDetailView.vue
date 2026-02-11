@@ -15,6 +15,7 @@ import {
   XMarkIcon,
   CubeIcon,
   LinkIcon,
+  DocumentIcon,
 } from '@heroicons/vue/24/outline'
 import DashboardLayout from '../../layouts/DashboardLayout.vue'
 import TimelineView from '../../components/batches/TimelineView.vue'
@@ -1472,19 +1473,33 @@ onMounted(() => {
                             <label class="text-xs text-ink/60">Status</label>
                             <p class="text-sm font-semibold text-primary">{{ block.data?.status || '-' }}</p>
                           </div>
-                          <div>
+                          
+                          <!-- 3 Explicit Hash Fields -->
+                          <div class="md:col-span-2">
                             <label class="flex items-center gap-1 text-xs text-ink/60">
-                              <span>Block Hash</span>
+                              <CubeIcon class="w-3 h-3" />
+                              <span>Block Header Hash</span>
+                              <span class="px-1 ml-1 text-xs rounded bg-primary/10 text-primary">This Block</span>
                             </label>
-                            <p class="font-mono text-xs break-all text-ink" :title="block.blockHashes?.dataHash">{{ formatHash(block.blockHashes?.dataHash) }}</p>
+                            <p class="font-mono text-xs break-all text-ink" :title="block.blockHashes?.blockHeaderHash">{{ formatHash(block.blockHashes?.blockHeaderHash) }}</p>
                           </div>
-                          <div>
+                          <div class="md:col-span-2">
                             <label class="flex items-center gap-1 text-xs text-ink/60">
                               <LinkIcon class="w-3 h-3" />
-                              <span>Previous Block Hash</span>
+                              <span>Previous Block Header Hash</span>
+                              <span class="px-1 ml-1 text-xs rounded bg-amber-100 text-amber-700">Chain Link</span>
                             </label>
-                            <p class="font-mono text-xs break-all text-ink" :title="block.blockHashes?.previousBlockHash">{{ formatHash(block.blockHashes?.previousBlockHash) }}</p>
+                            <p class="font-mono text-xs break-all text-ink" :title="block.blockHashes?.previousHeaderHash">{{ formatHash(block.blockHashes?.previousHeaderHash) }}</p>
                           </div>
+                          <div class="md:col-span-2">
+                            <label class="flex items-center gap-1 text-xs text-ink/60">
+                              <DocumentIcon class="w-3 h-3" />
+                              <span>Block Data Hash</span>
+                              <span class="px-1 ml-1 text-xs rounded bg-ink/10 text-ink/70">Transactions</span>
+                            </label>
+                            <p class="font-mono text-xs break-all text-ink" :title="block.blockHashes?.blockDataHash">{{ formatHash(block.blockHashes?.blockDataHash) }}</p>
+                          </div>
+                          
                           <div v-if="block.timestamp" class="md:col-span-2">
                             <label class="text-xs text-ink/60">Timestamp</label>
                             <p class="text-sm text-ink">{{ formatDate(block.timestamp) }}</p>
