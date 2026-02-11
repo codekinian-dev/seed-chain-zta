@@ -76,6 +76,13 @@ const router = createRouter({
             component: () => import('../views/batches/SeedBatchDetailView.vue'),
             meta: { requiresAuth: true },
         },
+        // Admin Routes
+        {
+            path: '/admin/audit-logs',
+            name: 'admin-audit-logs',
+            component: () => import('../views/admin/AuditLogsView.vue'),
+            meta: { requiresAuth: true, roles: ['role_admin'] },
+        },
         // DISABLED: Backend API not yet integrated
         // {
         //     path: '/certifications/pre-planting',

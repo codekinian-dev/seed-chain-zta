@@ -517,6 +517,22 @@ const getBatchBlockHistory = async (req, res) => {
                 }
             }
 
+            // Helper function to ensure hash is a string
+            const ensureHashString = (hash) => {
+                if (!hash) return null;
+                if (typeof hash === 'string') return hash;
+                if (Buffer.isBuffer(hash)) return hash.toString('hex');
+                if (hash instanceof Uint8Array) return Buffer.from(hash).toString('hex');
+                if (typeof hash === 'object') {
+                    // Try to convert object to hex if it has data property
+                    if (hash.data && Array.isArray(hash.data)) {
+                        return Buffer.from(hash.data).toString('hex');
+                    }
+                    return JSON.stringify(hash);
+                }
+                return String(hash);
+            };
+
             return {
                 sequence: index + 1,
                 blockNumber: entry.blockNumber,
@@ -527,9 +543,9 @@ const getBatchBlockHistory = async (req, res) => {
                 // Block hash information - this shows the chain linkage
                 blockHashes: {
                     // Hash of this block's data
-                    dataHash: entry.blockDataHash || null,
+                    dataHash: ensureHashString(entry.blockDataHash),
                     // Hash of the previous block - THIS LINKS THE CHAIN
-                    previousBlockHash: entry.previousBlockHash || null
+                    previousBlockHash: ensureHashString(entry.previousBlockHash)
                 },
 
                 // The actual data/state at this point in time

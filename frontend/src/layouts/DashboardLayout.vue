@@ -18,6 +18,7 @@ import {
   ChevronDownIcon,
   UserCircleIcon,
   ArrowLeftOnRectangleIcon,
+  DocumentMagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuth } from '../composables/useAuth'
 import { USER_ROLE_LABELS } from '../utils/constants'
@@ -78,6 +79,20 @@ const navigation = [
   // { name: 'Planting-Ready Certification', to: '/certifications/planting-ready', icon: DocumentCheckIcon },
   // { name: 'Seed Distribution', to: '/seed-distribution', icon: InboxStackIcon },
 ]
+
+// Admin navigation - only shown for admin role
+const adminNavigation = [
+  { name: 'Audit Logs', to: '/admin/audit-logs', icon: DocumentMagnifyingGlassIcon },
+]
+
+// Check if user has admin role
+const isAdmin = computed(() => {
+  if (user.value) {
+    const roles = user.value.roles || []
+    return roles.includes('role_admin')
+  }
+  return false
+})
 
 const route = useRoute()
 
@@ -164,6 +179,31 @@ function handleLogout() {
             </nav>
           </div>
 
+          <!-- Admin Menu Section -->
+          <div v-if="isAdmin">
+            <p class="section-title">Administration</p>
+            <nav class="mt-3 space-y-1">
+              <template v-for="item in adminNavigation" :key="item.to">
+                <RouterLink
+                  :to="item.to"
+                  class="relative flex items-center gap-3 px-4 py-3 text-sm font-semibold transition group rounded-2xl"
+                  :class="
+                    activePath.startsWith(item.to)
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-ink/70 hover:bg-primary/5 hover:text-ink'
+                  "
+                  @click="closeSidebar"
+                >
+                  <span
+                    class="absolute w-1 h-8 transition-opacity -translate-y-1/2 rounded-full left-2 top-1/2 bg-primary"
+                    :class="activePath.startsWith(item.to) ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'"
+                  />
+                  <component :is="item.icon" class="w-5 h-5" />
+                  <span>{{ item.name }}</span>
+                </RouterLink>
+              </template>
+            </nav>
+          </div>
           
         </div>
 

@@ -7,12 +7,14 @@ import identityService from './identity.service'
 import seedBatchService from './seed-batch.service'
 import healthService from './health.service'
 import documentService from './document.service'
+import auditService from './audit.service'
 
 export {
     identityService,
     seedBatchService,
     healthService,
     documentService,
+    auditService,
 }
 
 export default {
@@ -20,4 +22,5 @@ export default {
     seedBatch: seedBatchService,
     health: healthService,
     document: documentService,
+    audit: auditService,
 }
