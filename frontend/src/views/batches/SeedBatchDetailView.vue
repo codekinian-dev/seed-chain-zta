@@ -593,7 +593,7 @@ onMounted(() => {
             </div>
             <div>
               <label class="text-xs font-semibold text-ink/60">Harvest Date</label>
-              <p class="mt-1 text-sm text-ink">{{ batch.harvest_date }}</p>
+              <p class="mt-1 text-sm text-ink">{{ formatDate(batch.harvest_date) }}</p>
             </div>
             <div>
               <label class="text-xs font-semibold text-ink/60">Seed Source Number</label>
@@ -617,8 +617,8 @@ onMounted(() => {
             </div>
             
             <!-- Quantity Information -->
-            <div v-if="batch.quantity" class="md:col-span-2 p-3 bg-ocean/5 rounded-lg border border-ocean/20">
-              <label class="text-xs font-semibold text-ocean mb-2 block">Quantity Information</label>
+            <div v-if="batch.quantity" class="p-3 border rounded-lg md:col-span-2 bg-ocean/5 border-ocean/20">
+              <label class="block mb-2 text-xs font-semibold text-ocean">Quantity Information</label>
               <div class="grid gap-3 md:grid-cols-4">
                 <div>
                   <label class="text-xs text-ink/60">Declared</label>
@@ -649,7 +649,7 @@ onMounted(() => {
                   </p>
                 </div>
               </div>
-              <div v-if="batch.quantity.distributed_total > 0" class="mt-2 pt-2 border-t border-ocean/10">
+              <div v-if="batch.quantity.distributed_total > 0" class="pt-2 mt-2 border-t border-ocean/10">
                 <div class="flex justify-between text-xs">
                   <span class="text-ink/60">Distributed Total:</span>
                   <span class="font-semibold text-ink">{{ batch.quantity.distributed_total?.toLocaleString() }} {{ batch.quantity.qty_base_unit || 'GRAM' }}</span>
@@ -667,7 +667,7 @@ onMounted(() => {
             </div>
             
             <!-- Certificate info (if certified) -->
-            <div v-if="batch.cert_number" class="md:col-span-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <div v-if="batch.cert_number" class="p-3 border rounded-lg md:col-span-2 bg-primary/5 border-primary/20">
               <div class="grid gap-3 md:grid-cols-3">
                 <div>
                   <label class="text-xs font-semibold text-primary">Certificate Number</label>
@@ -734,12 +734,12 @@ onMounted(() => {
           
           <div class="space-y-4">
             <!-- No distributions yet message -->
-            <div v-if="!batch.distributions || batch.distributions.length === 0" class="p-4 text-center text-ink/60 bg-ink/5 rounded-lg">
+            <div v-if="!batch.distributions || batch.distributions.length === 0" class="p-4 text-center rounded-lg text-ink/60 bg-ink/5">
               <p class="text-sm">No distributions recorded yet.</p>
             </div>
             
             <!-- Distribution list -->
-            <div v-for="(dist, index) in batch.distributions" :key="dist.dist_id || index" class="p-4 bg-ink/5 rounded-lg border border-ink/10">
+            <div v-for="(dist, index) in batch.distributions" :key="dist.dist_id || index" class="p-4 border rounded-lg bg-ink/5 border-ink/10">
               <div class="flex items-start justify-between gap-4">
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-2">
@@ -769,8 +769,8 @@ onMounted(() => {
             </div>
             
             <!-- Distribution Summary -->
-            <div v-if="batch.quantity" class="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <h4 class="text-sm font-semibold text-primary mb-3">Distribution Summary</h4>
+            <div v-if="batch.quantity" class="p-4 mt-4 border rounded-lg bg-primary/5 border-primary/20">
+              <h4 class="mb-3 text-sm font-semibold text-primary">Distribution Summary</h4>
               <div class="grid gap-3 md:grid-cols-4">
                 <div>
                   <label class="text-xs font-semibold text-ink/60">Certified</label>
@@ -1130,10 +1130,10 @@ onMounted(() => {
           </div>
 
           <!-- Remaining Quantity Info -->
-          <div class="p-4 mb-4 rounded-lg bg-ocean/5 border border-ocean/20">
+          <div class="p-4 mb-4 border rounded-lg bg-ocean/5 border-ocean/20">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-xs font-semibold text-ocean uppercase">Available for Distribution</p>
+                <p class="text-xs font-semibold uppercase text-ocean">Available for Distribution</p>
                 <p class="text-2xl font-bold text-ink">
                   {{ batch.quantity?.remaining?.toLocaleString() || 0 }}
                   <span class="text-sm font-normal text-ink/60">{{ batch.quantity?.qty_base_unit || 'kg' }}</span>
@@ -1390,13 +1390,13 @@ onMounted(() => {
                 <p class="text-sm text-ink/60">Batch ID: {{ batchId }}</p>
               </div>
             </div>
-            <button @click="closeBlockchainModal" class="p-2 rounded-lg hover:bg-ink/10 transition-colors">
+            <button @click="closeBlockchainModal" class="p-2 transition-colors rounded-lg hover:bg-ink/10">
               <XMarkIcon class="w-5 h-5 text-ink/60" />
             </button>
           </div>
 
           <!-- Modal Content -->
-          <div class="flex-1 overflow-y-auto p-6">
+          <div class="flex-1 p-6 overflow-y-auto">
             <!-- Loading State -->
             <div v-if="blockchainLoading" class="flex items-center justify-center py-12">
               <div class="text-center">
@@ -1413,8 +1413,8 @@ onMounted(() => {
             <!-- Data Display -->
             <div v-else-if="blockchainData" class="space-y-6">
               <!-- Summary Info -->
-              <div class="p-4 bg-ocean/5 rounded-xl border border-ocean/20">
-                <h3 class="text-sm font-semibold text-ocean mb-3">Chain Summary</h3>
+              <div class="p-4 border bg-ocean/5 rounded-xl border-ocean/20">
+                <h3 class="mb-3 text-sm font-semibold text-ocean">Chain Summary</h3>
                 <div class="grid gap-3 md:grid-cols-3">
                   <div>
                     <label class="text-xs text-ink/60">Total Blocks</label>
@@ -1439,50 +1439,50 @@ onMounted(() => {
                   <!-- Chain Connection Line -->
                   <div class="absolute left-6 top-8 bottom-8 w-0.5 bg-gradient-to-b from-ocean via-primary to-primary/30 z-0"></div>
                   
-                  <div class="space-y-4 relative z-10">
+                  <div class="relative z-10 space-y-4">
                     <div 
                       v-for="(block, index) in blockchainData.blocks" 
                       :key="block.blockNumber || index"
                       class="flex items-start gap-4"
                     >
                       <!-- Block Number Indicator -->
-                      <div class="flex-shrink-0 w-12 h-12 bg-ocean text-white rounded-xl flex items-center justify-center font-bold text-sm shadow-lg">
+                      <div class="flex items-center justify-center flex-shrink-0 w-12 h-12 text-sm font-bold text-white shadow-lg bg-ocean rounded-xl">
                         #{{ block.blockNumber }}
                       </div>
                       
                       <!-- Block Details -->
-                      <div class="flex-1 p-4 bg-white rounded-xl border border-ink/10 shadow-sm hover:shadow-md transition-shadow">
+                      <div class="flex-1 p-4 transition-shadow bg-white border shadow-sm rounded-xl border-ink/10 hover:shadow-md">
                         <div class="grid gap-3 md:grid-cols-2">
                           <div>
-                            <label class="text-xs text-ink/60 flex items-center gap-1">
+                            <label class="flex items-center gap-1 text-xs text-ink/60">
                               <span>Transaction ID</span>
                             </label>
-                            <p class="text-xs font-mono text-ink break-all" :title="block.txId">{{ formatHash(block.txId) }}</p>
+                            <p class="font-mono text-xs break-all text-ink" :title="block.transactionId">{{ formatHash(block.transactionId) }}</p>
                           </div>
                           <div>
-                            <label class="text-xs text-ink/60">Action</label>
-                            <p class="text-sm font-semibold text-primary">{{ block.action || '-' }}</p>
+                            <label class="text-xs text-ink/60">Status</label>
+                            <p class="text-sm font-semibold text-primary">{{ block.data?.status || '-' }}</p>
                           </div>
                           <div>
-                            <label class="text-xs text-ink/60 flex items-center gap-1">
+                            <label class="flex items-center gap-1 text-xs text-ink/60">
                               <span>Block Hash</span>
                             </label>
-                            <p class="text-xs font-mono text-ink break-all" :title="block.dataHash || block.blockHash">{{ formatHash(block.dataHash || block.blockHash) }}</p>
+                            <p class="font-mono text-xs break-all text-ink" :title="block.blockHashes?.dataHash">{{ formatHash(block.blockHashes?.dataHash) }}</p>
                           </div>
                           <div>
-                            <label class="text-xs text-ink/60 flex items-center gap-1">
+                            <label class="flex items-center gap-1 text-xs text-ink/60">
                               <LinkIcon class="w-3 h-3" />
                               <span>Previous Block Hash</span>
                             </label>
-                            <p class="text-xs font-mono text-ink break-all" :title="block.previousBlockHash">{{ formatHash(block.previousBlockHash) }}</p>
+                            <p class="font-mono text-xs break-all text-ink" :title="block.blockHashes?.previousBlockHash">{{ formatHash(block.blockHashes?.previousBlockHash) }}</p>
                           </div>
                           <div v-if="block.timestamp" class="md:col-span-2">
                             <label class="text-xs text-ink/60">Timestamp</label>
                             <p class="text-sm text-ink">{{ formatDate(block.timestamp) }}</p>
                           </div>
-                          <div v-if="block.creatorMspId" class="md:col-span-2">
-                            <label class="text-xs text-ink/60">Creator MSP</label>
-                            <p class="text-sm text-ink">{{ block.creatorMspId }}</p>
+                          <div v-if="block.data?.docType" class="md:col-span-2">
+                            <label class="text-xs text-ink/60">Document Type</label>
+                            <p class="text-sm text-ink">{{ block.data.docType }}</p>
                           </div>
                         </div>
                       </div>
@@ -1498,12 +1498,12 @@ onMounted(() => {
               </div>
 
               <!-- Chain Integrity Note -->
-              <div class="p-4 bg-primary/5 rounded-xl border border-primary/20">
+              <div class="p-4 border bg-primary/5 rounded-xl border-primary/20">
                 <div class="flex items-start gap-3">
                   <InformationCircleIcon class="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <div>
                     <h4 class="text-sm font-semibold text-primary">Chain Integrity</h4>
-                    <p class="text-xs text-ink/60 mt-1">
+                    <p class="mt-1 text-xs text-ink/60">
                       Each block contains the hash of the previous block, creating an immutable chain. 
                       Any modification to historical data would break this chain linkage, making tampering immediately detectable.
                     </p>
