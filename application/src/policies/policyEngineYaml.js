@@ -207,7 +207,7 @@ class PolicyEngine {
         const now = new Date();
         const currentHour = now.getHours();
 
-        const restrictedHours = settings.restricted_hours || { start: 22, end: 6 };
+        const restrictedHours = settings.restricted_hours || { start: 3, end: 6 };
 
         // Check if current time is in restricted period
         const isRestricted = currentHour >= restrictedHours.start ||
