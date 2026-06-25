@@ -7,7 +7,7 @@
 # atau jika ada perubahan pada TLS certificates (jarang terjadi)
 
 # Configuration
-BLOCKCHAIN_SERVER="${BLOCKCHAIN_SERVER:-152.42.164.128}"
+BLOCKCHAIN_SERVER="${BLOCKCHAIN_SERVER:-168.144.141.220}"
 BLOCKCHAIN_USER="${BLOCKCHAIN_USER:-root}"
 BLOCKCHAIN_CRYPTO_PATH="${BLOCKCHAIN_CRYPTO_PATH:-/root/blockchain/network/organizations}"
 

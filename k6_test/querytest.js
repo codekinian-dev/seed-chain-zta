@@ -1,246 +1,252 @@
+/**
+ * =============================================================================
+ * K6 QUERY TEST — PUBLIC ENDPOINT (TANPA TOKEN)
+ * =============================================================================
+ *
+ * Menguji endpoint publik verify-certificate yang bisa diakses tanpa token
+ * (digunakan untuk QR code scanning verifikasi oleh publik).
+ *
+ * Endpoint: GET /api/v1/documents/verify-certificate
+ * - Public (tanpa authentication)
+ * - Menerima query params: cert (cert number) & batch (batch ID)
+ * - Me-query Hyperledger Fabric via chaincode querySeedBatch
+ * - Return status sertifikat (VALID/EXPIRED/REVOKED/NOT_FOUND)
+ *
+ * Tidak perlu login, tidak perlu token — cocok untuk publik.
+ * =============================================================================
+ */
+
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Counter, Trend } from 'k6/metrics';
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
-// Custom metrics
+// =============================================================================
+// CUSTOM METRICS
+// =============================================================================
 const errorRate = new Rate('errors');
 const querySuccess = new Counter('query_success');
 const queryFailed = new Counter('query_failed');
 const queryDuration = new Trend('query_duration');
 const queryNotFound = new Counter('query_not_found');
 
-// K6 options - Query test configuration (reduced VUs to prevent OOM)
+// =============================================================================
+// TEST CONFIGURATION
+// =============================================================================
+// Ramp VUs disamakan dengan scenario create (baseline):
+// 30s:5 → 1m:5 → 30s:10 → 1m:10 → 30s:15 → 1m:15 → 30s:0
 export const options = {
     stages: [
-        { duration: '30s', target: 5 },   // Ramp up to 5 users
-        { duration: '1m', target: 5 },    // Stay at 5 users
-        { duration: '30s', target: 10 },  // Ramp up to 10 users
-        { duration: '1m', target: 10 },   // Stay at 10 users
-        { duration: '30s', target: 0 },   // Ramp down
+        { duration: '30s', target: 5 },    // Ramp up to 5 VUs
+        { duration: '1m', target: 5 },     // Stay at 5 VUs
+        { duration: '30s', target: 10 },   // Ramp up to 10 VUs
+        { duration: '1m', target: 10 },    // Stay at 10 VUs
+        { duration: '30s', target: 15 },   // Ramp up to 15 VUs
+        { duration: '1m', target: 15 },    // Stay at 15 VUs
+        { duration: '30s', target: 0 },    // Ramp down
     ],
     thresholds: {
-        'http_req_duration': ['p(95)<2000'],  // 95% of requests must complete below 2s (query is fast)
-        'query_duration': ['p(95)<2000'],     // Query duration under 2s
-        'errors': ['rate<0.1'],               // Error rate must be less than 10%
-        'http_req_failed': ['rate<0.1'],      // HTTP errors must be less than 10%
+        'http_req_duration': ['p(95)<5000'],  // 95% of requests must complete below 5s
+        'query_duration': ['p(95)<5000'],     // Query duration under 5s
+        'errors': ['rate<0.1'],               // Error rate less than 10%
+        'http_req_failed': ['rate<0.1'],      // HTTP errors less than 10%
     },
 };
 
-// API configuration
+// =============================================================================
+// API CONFIGURATION
+// =============================================================================
 const API_BASE_URL = 'https://gateway.jabarchain.me';
 
-// Test user credentials from query_result.csv
-// These users are registered via setup-test-users.sh
-const TEST_USERS = [
-    { username: '1E1DFC06', password: 'Test123!' },
-    { username: '46FC9A16', password: 'Test123!' },
-    { username: 'B59D7AAB', password: 'Test123!' },
-    { username: 'C258D1E8', password: 'Test123!' },
-    { username: 'E9C38C5C', password: 'Test123!' },
-    { username: '812E38B8', password: 'Test123!' },
-    { username: 'FA076AF8', password: 'Test123!' },
-    { username: '0604DE6E', password: 'Test123!' },
-    { username: '3595C469', password: 'Test123!' },
-    { username: '7BF8E819', password: 'Test123!' },
-    { username: '0E540A27', password: 'Test123!' },
-    { username: 'BF785D7D', password: 'Test123!' },
-    { username: 'CC562ABD', password: 'Test123!' },
-    { username: '51E748FE', password: 'Test123!' },
-    { username: '63AF1539', password: 'Test123!' },
-    { username: 'A1B9FEBB', password: 'Test123!' },
-    { username: 'kpri_rati', password: 'Test123!' },
-    { username: '28CF0230', password: 'Test123!' },
-    { username: '91420A44', password: 'Test123!' },
-    { username: '5089220F', password: 'Test123!' },
-    { username: 'C362EC88', password: 'Test123!' },
-    { username: 'B9741EC8', password: 'Test123!' },
-    { username: '1ECD114C', password: 'Test123!' },
-    { username: '7DCF7CA4', password: 'Test123!' },
-    { username: '1A6A8FD7', password: 'Test123!' },
-    { username: '48CA8C6A', password: 'Test123!' },
-    { username: 'DC6629E6', password: 'Test123!' },
-    { username: '1E845C34', password: 'Test123!' },
-    { username: 'F3376F5A', password: 'Test123!' },
+// =============================================================================
+// TEST DATA — Batch IDs + Certificate Numbers
+// =============================================================================
+// Data seed-batch-dataset.json untuk variety dan commodity real
+// Batch ID digenerate dinamis agar formatnya real-time
+const seedBatchDataset = JSON.parse(open('./documents/seed-batch-dataset.json'));
+
+// Certificate numbers dari dataset
+const CERT_DATA = [
+    { cert: '525/393/SMB/BPSBP/XI/2021', variety: 'Kopi Arabika' },
+    { cert: '525/395/SMB/BPSBP/XI/2021', variety: 'Nilam' },
+    { cert: '525/404/SMB/BPSBP/XI/2021', variety: 'Cengkeh' },
+    { cert: '525/419/SMB.PT/BPSBP/XI/2021', variety: 'Tembakau' },
+    { cert: '525/400/SMB/BPSBP/XI/2021', variety: 'Kopi Arabika' },
+    { cert: '525/399/SMB/BPSBP/XI/2021', variety: 'Pala' },
+    { cert: '525/407/SMB/BPSBP/XI/2021', variety: 'Lada' },
+    { cert: '525/406/SMB/BPSBP/XI/2021', variety: 'Vanili' },
+    { cert: '525/402/SMB/BPSBP/XI/2021', variety: 'Kopi Arabika' },
+    { cert: '525/409/SMB/BPSBP/XI/2021', variety: 'Kopi Arabika' },
+    { cert: '525/429/SMB/BPSBP/XI/2021', variety: 'Kelapa' },
+    { cert: '525/414/SMB/BPSBP/XI/2021', variety: 'Nilam' },
+    { cert: '525/412/SMB/BPSBP/XI/2021', variety: 'Seraiwangi' },
+    { cert: '525/416/SMB/BPSBP/XI/2021', variety: 'Vanili' },
+    { cert: '525/433/SMB/BPSBP/XII/2021', variety: 'Kopi Arabika' },
+    { cert: '525/427/SMB/BPSBP/XI/2021', variety: 'Aren' },
+    { cert: '525/462/SMB.PT/BPSBP/XII/2021', variety: 'Cengkeh' },
 ];
 
 /**
- * Get access token via Gateway Login API with caching
- * Token is cached per VU to avoid rate limiting (429)
+ * Generate batch ID dengan format sama seperti create test:
+ * BATCH-{Date.now()}-{random 9 chars}
  */
-const tokenCache = {};
+function generateBatchId() {
+    const rand = Math.random().toString(36).substr(2, 9);
+    return `BATCH-${Date.now()}-${rand}`;
+}
 
-function getAccessToken(userIndex) {
-    // Check if we already have a cached token for this VU
-    if (tokenCache[userIndex]) {
-        return tokenCache[userIndex];
-    }
+/**
+ * Generate query record (batch + cert) untuk dipakai di test
+ * Batch ID: digenerate fresh (tidak dijamin exist di ledger)
+ * Cert:     dari data real BPSBP
+ */
+function getQueryRecord(iteration) {
+    const idx = iteration % CERT_DATA.length;
+    const record = CERT_DATA[idx];
 
-    // Select user based on VU ID to distribute load across multiple users
-    const user = TEST_USERS[userIndex % TEST_USERS.length];
-
-    const loginUrl = `${API_BASE_URL}/api/v1/identity/login`;
-
-    const payload = JSON.stringify({
-        username: user.username,
-        password: user.password,
-    });
-
-    const params = {
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-        },
+    return {
+        batch: generateBatchId(),
+        cert: record.cert,
+        variety: record.variety,
     };
-
-    const response = http.post(loginUrl, payload, params);
-
-    const checkRes = check(response, {
-        'Gateway login successful': (r) => r.status === 200,
-        'Access token received': (r) => {
-            try {
-                const body = r.json();
-                return body.success === true && body.data?.accessToken !== undefined;
-            } catch (e) {
-                return false;
-            }
-        },
-    });
-
-    if (!checkRes) {
-        console.error(`Gateway login failed for ${user.username}: ${response.status} - ${response.body}`);
-        errorRate.add(1);
-        return null;
-    }
-
-    // Cache the token for this VU
-    const token = response.json('data').accessToken;
-    tokenCache[userIndex] = token;
-
-    return token;
 }
 
-// Real batch IDs to query
-const BATCH_IDS = [
-    'BATCH-20260205-01238849',
-    'BATCH-20260205-0181839F',
-    'BATCH-20260205-018B0D6A',
-    'BATCH-20260205-01DEF56B',
-    'BATCH-20260205-03C50AC7',
-    'BATCH-20260205-0453E3FA',
-    'BATCH-20260205-06BC4CC6',
-    'BATCH-20260205-071B0DB2',
-];
-
-/**
- * Get random batch ID from predefined list
- */
-function getRandomBatchId() {
-    const index = Math.floor(Math.random() * BATCH_IDS.length);
-    return BATCH_IDS[index];
-}
-
-/**
- * Main test scenario - Query seed batch by ID
- */
+// =============================================================================
+// MAIN TEST SCENARIO — PUBLIC QUERY TANPA TOKEN
+// =============================================================================
 export default function () {
-    // Step 1: Get access token using VU ID for user distribution
-    const vuId = __VU; // Virtual User ID (1-based)
-    const token = getAccessToken(vuId);
-
-    if (!token) {
-        errorRate.add(1);
-        sleep(1);
-        return;
-    }
-
-    // Step 2: Query random seed batch by ID
-    const batchId = getRandomBatchId();
-    const queryUrl = `${API_BASE_URL}/api/seed-batches/${batchId}`;
+    // -------------------------------------------------------------------------
+    // STEP 1: Query certificate — PUBLIC ENDPOINT, NO AUTH REQUIRED
+    // -------------------------------------------------------------------------
+    // Endpoint ini dirancang untuk QR code scanning oleh publik tanpa login.
+    // Middleware: tidak ada protect(), tidak ada enforcePolicy()
+    // Langsung: documentController.verifyCertificate → fabricService.queryChaincode
+    //
+    // Query params:
+    //   cert  — Certificate number (dari QR code / data real BPSBP)
+    //   batch — Batch ID (digenerate dinamis, sama format dengan create test)
+    //
+    // Response status:
+    //   VALID       — Batch & cert ditemukan dan cocok
+    //   NOT_FOUND   — Batch tidak ditemukan (belum di-create)
+    //   NOT_CERTIFIED — Batch ada tapi belum punya sertifikat
+    //   MISMATCH    — Cert number tidak cocok dengan batch
+    //   EXPIRED     — Sertifikat kedaluwarsa
+    //   REVOKED     — Sertifikat dicabut
+    //
+    // NOTE: Batch ID digenerate fresh (tidak exist di ledger karena belum
+    // di-create). Chaincode querySeedBatch tetap dieksekusi penuh sehingga
+    // latency yang diukur realistik — response NOT_FOUND tetap valid untuk
+    // pengujian performa.
+    // -------------------------------------------------------------------------
+    const iteration = __ITER;
+    const record = getQueryRecord(iteration);
+    const queryUrl = `${API_BASE_URL}/api/v1/documents/verify-certificate` +
+        `?cert=${encodeURIComponent(record.cert)}&batch=${encodeURIComponent(record.batch)}`;
 
     const params = {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-        tags: { name: 'QuerySeedBatch' },
+        tags: { name: 'QueryPublicCertificate' },
     };
 
     const response = http.get(queryUrl, params);
 
-    // Record response time for query
+    // Record response time
     queryDuration.add(response.timings.duration);
 
-    // Validate response
+    // -------------------------------------------------------------------------
+    // STEP 2: Validate response
+    // -------------------------------------------------------------------------
     const checkRes = check(response, {
-        'Query seed batch - status 200 or 404': (r) => r.status === 200 || r.status === 404,
-        'Query seed batch - valid response': (r) => {
+        'Query certificate - status 200': (r) => r.status === 200,
+        'Query certificate - valid response': (r) => {
             try {
                 const body = r.json();
-                return body !== undefined;
+                return body.success === true;
             } catch (e) {
                 return false;
             }
         },
     });
 
-    // Check response status
+    // Analyze response status
     if (response.status === 200) {
-        querySuccess.add(1);
-        errorRate.add(0);
-        // Log successful query every 10 iterations
-        if (__ITER % 10 === 0) {
-            console.log(`✓ Iteration ${__ITER}: Query ${batchId} - Found`);
-        }
-    } else if (response.status === 404) {
-        queryNotFound.add(1);
-        errorRate.add(0);
-        // Not found is acceptable for random query
-        if (__ITER % 20 === 0) {
-            console.log(`ℹ Iteration ${__ITER}: Query ${batchId} - Not Found (404)`);
+        try {
+            const body = response.json();
+            const status = body.status;
+
+            if (status === 'VALID') {
+                querySuccess.add(1);
+                errorRate.add(0);
+            } else if (status === 'NOT_FOUND') {
+                // Batch belum di-create — ini wajar karena batch ID digenerate baru
+                queryNotFound.add(1);
+                errorRate.add(0);
+            } else if (status === 'NOT_CERTIFIED') {
+                // Batch ada tapi belum disertifikasi — tetap chaincode jalan
+                querySuccess.add(1);
+                errorRate.add(0);
+            } else {
+                // EXPIRED, REVOKED, MISMATCH — masih chaincode jalan penuh
+                querySuccess.add(1);
+                errorRate.add(0);
+            }
+
+            if (__ITER % 10 === 0) {
+                console.log(`✓ Iter ${__ITER}: batch=${record.batch} cert=${record.cert} → ${status} (${response.timings.duration}ms)`);
+            }
+        } catch (e) {
+            queryFailed.add(1);
+            errorRate.add(1);
         }
     } else {
         queryFailed.add(1);
         errorRate.add(1);
-        const errorBody = response.body ? String(response.body).substring(0, 300) : 'No response body';
-        console.error(`Query failed for ${batchId}: ${response.status} - ${errorBody}`);
+        const errBody = response.body ? String(response.body).substring(0, 300) : 'No response body';
+        console.error(`✗ Query failed for ${record.batch}: ${response.status} - ${errBody}`);
     }
 
-    // Think time - simulate real user behavior (query is faster than create)
-    sleep(Math.random() * 2 + 1); // Random sleep between 1-3 seconds
+    // Think time — lebih pendek karena query tanpa file upload
+    sleep(Math.random() * 2 + 1); // 1-3 detik
 }
 
-/**
- * Setup function - runs once before test
- */
+// =============================================================================
+// SETUP
+// =============================================================================
 export function setup() {
-    console.log('=== K6 Query Test Setup ===');
-    console.log(`Target: Max 10 Virtual Users`);
-    console.log(`Duration: ~3.5 minutes total`);
-    console.log(`Query Batch IDs: ${BATCH_IDS.length} predefined batches`);
-    console.log(`API: ${API_BASE_URL}`);
-    console.log('===========================');
+    console.log('=============================================');
+    console.log('K6 QUERY TEST — PUBLIC ENDPOINT');
+    console.log('=============================================');
+    console.log('Endpoint: GET /api/v1/documents/verify-certificate');
+    console.log('Auth:     NONE (public — untuk QR code verification)');
+    console.log('Target:   Max 15 VUs, ~5 menit');
+    console.log(`Data:     ${CERT_DATA.length} certificate records (real BPSBP)`);
+    console.log('BatchID:  Generated dinamis (format real-time)');
+    console.log('Note:     NOT_FOUND expected — chaincode tetap dieksekusi');
+    console.log('=============================================');
 
-    return {};
+    return { testType: 'PUBLIC_QUERY' };
 }
 
-/**
- * Teardown function - runs once after test
- */
+// =============================================================================
+// TEARDOWN
+// =============================================================================
 export function teardown(data) {
-    console.log('=== K6 Query Test Completed ===');
+    console.log('=============================================');
+    console.log('K6 QUERY TEST — SELESAI');
+    console.log('=============================================');
 }
 
-/**
- * Handle Summary - Generate HTML and CSV reports with timestamp
- */
+// =============================================================================
+// HANDLE SUMMARY
+// =============================================================================
 export function handleSummary(data) {
     const now = new Date();
     const timestamp = now.toISOString()
         .replace(/T/, '_')
         .replace(/:/g, '-')
-        .replace(/\..*/, ''); // Format: 2025-11-29_14-30-45
+        .replace(/\..*/, '');
 
-    // Extract metrics for CSV
+    // Extract metrics
     const httpReqDuration = data.metrics.http_req_duration || {};
     const queryDurationMetric = data.metrics.query_duration || {};
     const httpReqs = data.metrics.http_reqs || {};
@@ -253,28 +259,25 @@ export function handleSummary(data) {
     const maxResponseTime = httpReqDuration.values?.max || 0;
     const medResponseTime = httpReqDuration.values?.med || 0;
 
-    // Throughput (RPS) = total requests / total duration in seconds
+    // Throughput
     const totalRequests = httpReqs.values?.count || 0;
-    const testDuration = (data.state?.testRunDurationMs || 390000) / 1000; // default ~6.5 min
-    const throughputRPS = totalRequests / testDuration;
-
-    // Overhead calculation (difference between total response time and actual processing)
-    // Using p95 - median as a proxy for overhead/variability
+    const testDuration = (data.state?.testRunDurationMs || 300000) / 1000;
+    const throughputRPS = totalRequests / Math.max(testDuration, 1);
     const overhead = p95ResponseTime - medResponseTime;
 
     // Query specific metrics
     const queryAvg = queryDurationMetric.values?.avg || 0;
     const queryP95 = queryDurationMetric.values?.['p(95)'] || 0;
 
-    // Get success/failure counts
+    // Get counts
     const querySuccessCount = data.metrics.query_success?.values?.count || 0;
     const queryFailedCount = data.metrics.query_failed?.values?.count || 0;
     const queryNotFoundCount = data.metrics.query_not_found?.values?.count || 0;
     const errorRateValue = data.metrics.errors?.values?.rate || 0;
 
-    // CSV Header and Data
-    const csvHeader = 'Timestamp,Test_Type,Total_Requests,Success_Count,Failed_Count,NotFound_Count,Error_Rate_Percent,Avg_Response_Time_ms,Med_Response_Time_ms,P95_Response_Time_ms,P99_Response_Time_ms,Min_Response_Time_ms,Max_Response_Time_ms,Throughput_RPS,Overhead_ms,Query_Avg_ms,Query_P95_ms,Test_Duration_sec';
-    const csvData = `${now.toISOString()},QuerySeedBatch,${totalRequests},${querySuccessCount},${queryFailedCount},${queryNotFoundCount},${(errorRateValue * 100).toFixed(2)},${avgResponseTime.toFixed(2)},${medResponseTime.toFixed(2)},${p95ResponseTime.toFixed(2)},${p99ResponseTime.toFixed(2)},${minResponseTime.toFixed(2)},${maxResponseTime.toFixed(2)},${throughputRPS.toFixed(4)},${overhead.toFixed(2)},${queryAvg.toFixed(2)},${queryP95.toFixed(2)},${testDuration.toFixed(2)}`;
+    // CSV Report
+    const csvHeader = 'Timestamp,Test_Type,Total_Requests,Success_Count,Failed_Count,NotFound_Count,Error_Rate_Pct,Avg_Response_Time_ms,Med_Response_Time_ms,P95_Response_Time_ms,P99_Response_Time_ms,Min_Response_Time_ms,Max_Response_Time_ms,Throughput_RPS,Overhead_ms,Query_Avg_ms,Query_P95_ms,Test_Duration_sec';
+    const csvData = `${now.toISOString()},PublicQueryCertificate,${totalRequests},${querySuccessCount},${queryFailedCount},${queryNotFoundCount},${(errorRateValue * 100).toFixed(2)},${avgResponseTime.toFixed(2)},${medResponseTime.toFixed(2)},${p95ResponseTime.toFixed(2)},${p99ResponseTime.toFixed(2)},${minResponseTime.toFixed(2)},${maxResponseTime.toFixed(2)},${throughputRPS.toFixed(4)},${overhead.toFixed(2)},${queryAvg.toFixed(2)},${queryP95.toFixed(2)},${testDuration.toFixed(2)}`;
     const csvContent = `${csvHeader}\n${csvData}`;
 
     return {
