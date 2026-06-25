@@ -14,7 +14,7 @@
 # =========================================
 
 # Configuration
-BLOCKCHAIN_TLS_URL="${BLOCKCHAIN_TLS_URL:-https://blockchain-tls.jabarchain.me}"
+BLOCKCHAIN_TLS_URL="${BLOCKCHAIN_TLS_URL:-http://168.144.141.220/}"
 
 # Local paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
