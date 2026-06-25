@@ -39,7 +39,15 @@ SCENARIO_DIR=$(dirname "$0")
 
 # Timestamp unik untuk sesi pengujian ini
 SESSION_TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-SESSION_ID=$(date +"%s" | md5 | head -c 8)
+
+# Generate session ID — pakai md5sum (Linux) atau md5 (macOS)
+if command -v md5sum &> /dev/null; then
+    SESSION_ID=$(date +"%s" | md5sum | head -c 8)
+elif command -v md5 &> /dev/null; then
+    SESSION_ID=$(date +"%s" | md5 | head -c 8)
+else
+    SESSION_ID=$(date +"%s" | sha256sum | head -c 8)
+fi
 
 # =============================================================================
 # FLAGS
@@ -172,11 +180,11 @@ run_scenario_1() {
             --vus 5 \
             --duration 2m \
             --tag scenario=hl_baseline \
-            --tag session="$SESSION_ID"
+           
     else
         k6 run "$scenario_file" \
             --tag scenario=hl_baseline \
-            --tag session="$SESSION_ID"
+           
     fi
 
     local exit_code=$?
@@ -206,11 +214,11 @@ run_scenario_2() {
             --vus 3 \
             --duration 2m \
             --tag scenario=hl_ipfs \
-            --tag session="$SESSION_ID"
+           
     else
         k6 run "$scenario_file" \
             --tag scenario=hl_ipfs \
-            --tag session="$SESSION_ID"
+           
     fi
 
     local exit_code=$?
@@ -239,11 +247,11 @@ run_scenario_3() {
             --vus 5 \
             --duration 2m \
             --tag scenario=hl_zta \
-            --tag session="$SESSION_ID"
+           
     else
         k6 run "$scenario_file" \
             --tag scenario=hl_zta \
-            --tag session="$SESSION_ID"
+           
     fi
 
     local exit_code=$?
@@ -272,11 +280,11 @@ run_scenario_4() {
             --vus 3 \
             --duration 2m \
             --tag scenario=hl_zta_ipfs \
-            --tag session="$SESSION_ID"
+           
     else
         k6 run "$scenario_file" \
             --tag scenario=hl_zta_ipfs \
-            --tag session="$SESSION_ID"
+           
     fi
 
     local exit_code=$?
