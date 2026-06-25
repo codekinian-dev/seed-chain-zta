@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x /Users/rangga/playground/tesis_bismillah/k6_test/run-comparative.sh)"
+    ]
+  }
+}
