@@ -59,56 +59,33 @@ export const options = {
 const API_BASE_URL = 'https://gateway.jabarchain.me';
 
 // =============================================================================
-// TEST DATA — Batch IDs + Certificate Numbers
+// TEST DATA — Batch IDs REAL dari CouchDB + Certificate Numbers
 // =============================================================================
-// Data seed-batch-dataset.json untuk variety dan commodity real
-// Batch ID digenerate dinamis agar formatnya real-time
-const seedBatchDataset = JSON.parse(open('./documents/seed-batch-dataset.json'));
-
-// Certificate numbers dari dataset
-const CERT_DATA = [
-    { cert: '525/393/SMB/BPSBP/XI/2021', variety: 'Kopi Arabika' },
-    { cert: '525/395/SMB/BPSBP/XI/2021', variety: 'Nilam' },
-    { cert: '525/404/SMB/BPSBP/XI/2021', variety: 'Cengkeh' },
-    { cert: '525/419/SMB.PT/BPSBP/XI/2021', variety: 'Tembakau' },
-    { cert: '525/400/SMB/BPSBP/XI/2021', variety: 'Kopi Arabika' },
-    { cert: '525/399/SMB/BPSBP/XI/2021', variety: 'Pala' },
-    { cert: '525/407/SMB/BPSBP/XI/2021', variety: 'Lada' },
-    { cert: '525/406/SMB/BPSBP/XI/2021', variety: 'Vanili' },
-    { cert: '525/402/SMB/BPSBP/XI/2021', variety: 'Kopi Arabika' },
-    { cert: '525/409/SMB/BPSBP/XI/2021', variety: 'Kopi Arabika' },
-    { cert: '525/429/SMB/BPSBP/XI/2021', variety: 'Kelapa' },
-    { cert: '525/414/SMB/BPSBP/XI/2021', variety: 'Nilam' },
-    { cert: '525/412/SMB/BPSBP/XI/2021', variety: 'Seraiwangi' },
-    { cert: '525/416/SMB/BPSBP/XI/2021', variety: 'Vanili' },
-    { cert: '525/433/SMB/BPSBP/XII/2021', variety: 'Kopi Arabika' },
-    { cert: '525/427/SMB/BPSBP/XI/2021', variety: 'Aren' },
-    { cert: '525/462/SMB.PT/BPSBP/XII/2021', variety: 'Cengkeh' },
+// Batch ID ini diambil langsung dari CouchDB (state ledger) setelah create test
+// dijalankan — dijamin exist di Hyperledger Fabric.
+// Certificate number diisi placeholder karena batch baru di-create belum
+// melalui workflow sertifikasi, response akan NOT_CERTIFIED.
+// Chaincode querySeedBatch tetap dieksekusi penuh untuk mencari batch.
+const BATCH_IDS = [
+    'BATCH-20260625-F58F20E6',
+    'BATCH-20260625-EA58B7D5',
+    'BATCH-20260625-B0C7838E',
+    'BATCH-20260625-C9FF46D7',
+    'BATCH-20260625-38111C6F',
+    'BATCH-20260625-0483485D',
+    'BATCH-20260625-E5385FA6',
+    'BATCH-20260625-86839FCF',
+    'BATCH-20260625-6AB13F8B',
+    'BATCH-20260625-3C1F7827',
+    'BATCH-20260625-76EB4241',
 ];
 
 /**
- * Generate batch ID dengan format sama seperti create test:
- * BATCH-{Date.now()}-{random 9 chars}
+ * Dapatkan batch ID secara round-robin untuk testing
  */
-function generateBatchId() {
-    const rand = Math.random().toString(36).substr(2, 9);
-    return `BATCH-${Date.now()}-${rand}`;
-}
-
-/**
- * Generate query record (batch + cert) untuk dipakai di test
- * Batch ID: digenerate fresh (tidak dijamin exist di ledger)
- * Cert:     dari data real BPSBP
- */
-function getQueryRecord(iteration) {
-    const idx = iteration % CERT_DATA.length;
-    const record = CERT_DATA[idx];
-
-    return {
-        batch: generateBatchId(),
-        cert: record.cert,
-        variety: record.variety,
-    };
+function getBatchId(iteration) {
+    const idx = iteration % BATCH_IDS.length;
+    return BATCH_IDS[idx];
 }
 
 // =============================================================================
@@ -140,9 +117,9 @@ export default function () {
     // pengujian performa.
     // -------------------------------------------------------------------------
     const iteration = __ITER;
-    const record = getQueryRecord(iteration);
+    const batchId = getBatchId(iteration);
     const queryUrl = `${API_BASE_URL}/api/v1/documents/verify-certificate` +
-        `?cert=${encodeURIComponent(record.cert)}&batch=${encodeURIComponent(record.batch)}`;
+        `?cert=TEST-CERT&batch=${encodeURIComponent(batchId)}`;
 
     const params = {
         tags: { name: 'QueryPublicCertificate' },
@@ -155,6 +132,10 @@ export default function () {
 
     // -------------------------------------------------------------------------
     // STEP 2: Validate response
+    // -------------------------------------------------------------------------
+    // Batch ID dari CouchDB dijamin exist. Response NOT_CERTIFIED expected
+    // karena batch baru belum melalui workflow sertifikasi penuh.
+    // Chaincode querySeedBatch tetap dieksekusi penuh — latency realistik.
     // -------------------------------------------------------------------------
     const checkRes = check(response, {
         'Query certificate - status 200': (r) => r.status === 200,
@@ -177,22 +158,19 @@ export default function () {
             if (status === 'VALID') {
                 querySuccess.add(1);
                 errorRate.add(0);
-            } else if (status === 'NOT_FOUND') {
-                // Batch belum di-create — ini wajar karena batch ID digenerate baru
-                queryNotFound.add(1);
-                errorRate.add(0);
-            } else if (status === 'NOT_CERTIFIED') {
-                // Batch ada tapi belum disertifikasi — tetap chaincode jalan
+            } else if (status === 'NOT_CERTIFIED' || status === 'NOT_FOUND') {
+                // NOT_CERTIFIED = batch exist tapi belum sertifikasi (expected)
+                // NOT_FOUND bisa kena batch expired — tetap valid untuk performance test
                 querySuccess.add(1);
                 errorRate.add(0);
             } else {
-                // EXPIRED, REVOKED, MISMATCH — masih chaincode jalan penuh
+                // EXPIRED, REVOKED, MISMATCH — chaincode tetap jalan penuh
                 querySuccess.add(1);
                 errorRate.add(0);
             }
 
-            if (__ITER % 10 === 0) {
-                console.log(`✓ Iter ${__ITER}: batch=${record.batch} cert=${record.cert} → ${status} (${response.timings.duration}ms)`);
+            if (__ITER % 5 === 0) {
+                console.log(`✓ Iter ${__ITER}: ${batchId} → ${body.status} (${response.timings.duration}ms)`);
             }
         } catch (e) {
             queryFailed.add(1);
@@ -219,9 +197,8 @@ export function setup() {
     console.log('Endpoint: GET /api/v1/documents/verify-certificate');
     console.log('Auth:     NONE (public — untuk QR code verification)');
     console.log('Target:   Max 15 VUs, ~5 menit');
-    console.log(`Data:     ${CERT_DATA.length} certificate records (real BPSBP)`);
-    console.log('BatchID:  Generated dinamis (format real-time)');
-    console.log('Note:     NOT_FOUND expected — chaincode tetap dieksekusi');
+    console.log(`Batch:    ${BATCH_IDS.length} batch ID real dari CouchDB`);
+    console.log('Response: NOT_CERTIFIED expected (batch baru belum disertifikasi)');
     console.log('=============================================');
 
     return { testType: 'PUBLIC_QUERY' };
